@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Giá Cả</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .date-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .date-display {
+            flex: 1;
+            text-align: center;
+        }
+
+        .date-btn {
+            padding: 12px 16px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 1rem;
+        }
+
+        .date-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .date-picker-input {
+            width: 60px;
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .date-picker-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-sort {
+            background: #f3f4f6;
+            color: #333;
+        }
+
+        .btn-sort.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tag-section {
+            margin-bottom: 24px;
+        }
+
+        .tag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #667eea;
+            transition: transform 0.2s;
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .add-tag-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .add-tag-form .input {
+            flex: 1;
+        }
+
+        .color-input {
+            width: 60px;
+            height: 44px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: white;
+        }
+
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .search-input {
+            padding-left: 40px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cpath d='m21 21-4.35-4.35'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 12px center;
+        }
+
+        .sort-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-overlay {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .search-results {
+            padding: 16px;
+        }
+
+        .item-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .item-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .item-content {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .item-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .item-location {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .item-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .item-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            white-space: nowrap;
+        }
+
+        .item-meta {
+            text-align: right;
+        }
+
+        .item-date {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .item-days {
+            font-size: 0.7rem;
+            color: #999;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-edit {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #2563eb;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #f3f4f6;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: all 0.3s;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 1.1rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 24px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background: #9ca3af;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #6b7280;
+        }
+
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .item-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .item-info {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+            
+            .item-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .item-meta {
+                text-align: left;
+            }
+
+            .item-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quản Lý Giá Cả</h1>
+
+        <!-- Search and Filter -->
+        <div class="card">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, nơi mua, ngày..." class="input search-input">
+            </div>
+            
+            <div id="sortButtons" class="sort-buttons">
+                <button id="sortDate" class="btn btn-sort active">Theo ngày</button>
+                <button id="sortPrice" class="btn btn-sort">Theo giá</button>
+            </div>
+            
+            <!-- Search Results Overlay -->
+            <div id="searchOverlay" class="search-overlay" style="display: none;">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="card">
+            <h2 id="formTitle">Thêm Món Mới</h2>
+            
+            <div class="form-group">
+                <label>Tên đồ ăn</label>
+                <select id="foodSelect" class="input">
+                    <option value="">Chọn món</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Giá tiền (K)</label>
+                <input type="number" id="priceInput" step="0.5" placeholder="Ví dụ: 15 hoặc 200.5" class="input">
+            </div>
+
+            <div class="form-group">
+                <label>Nơi mua</label>
+                <select id="locationSelect" class="input">
+                    <option value="">Chọn nơi mua</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ngày mua</label>
+                <div class="date-controls">
+                    <button id="prevDay" class="date-btn">◀</button>
+                    <input type="text" id="dateDisplay" class="input date-display" readonly>
+                    <button id="nextDay" class="date-btn">▶</button>
+                    <input type="date" id="datePicker" class="date-picker-input">
+                </div>
+            </div>
+
+            <button id="addBtn" class="btn btn-primary">Thêm Món</button>
+        </div>
+
+        <!-- Tag Management -->
+        <div class="card">
+            <h2>Quản Lý Tags</h2>
+            
+            <!-- Food Tags -->
+            <div class="tag-section">
+                <div class="tag-header">
+                    <label>Tags đồ ăn</label>
+                    <button id="addFoodTagBtn" class="icon-btn">➕</button>
+                </div>
+                <div id="addFoodForm" class="add-tag-form" style="display: none;">
+                    <input type="text" id="newFoodTag" placeholder="Tên tag mới" class="input">
+                    <button id="saveFoodTagBtn" class="btn btn-success">Thêm</button>
+                </div>
+                <div id="foodTagsList" class="tags-container"></div>
+            </div>
+
+            <!-- Location Tags -->
+            <div class="tag-section">
+                <div class="tag-header">
+                    <label>Tags nơi mua</label>
+                    <button id="addLocationTagBtn" class="icon-btn">➕</button>
+                </div>
+                <div id="addLocationForm" class="add-tag-form" style="display: none;">
+                    <input type="text" id="newLocationTag" placeholder="Tên tag mới" class="input">
+                    <input type="color" id="locationColor" value="#10b981" class="color-input">
+                    <button id="saveLocationTagBtn" class="btn btn-success">Thêm</button>
+                </div>
+                <div id="locationTagsList" class="tags-container"></div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results"></div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Xác nhận xóa</div>
+            <p>Bạn có chắc chắn muốn xóa món này không?</p>
+            <div class="modal-actions">
+                <button id="cancelDelete" class="btn btn-cancel">Hủy</button>
+                <button id="confirmDelete" class="btn btn-delete">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const FIREBASE_URL = 'https://mylife-ddd6a-default-rtdb.firebaseio.com/priceTracker.json';
+
+        // State
+        let items = [];
+        let foodTags = ['Cơm', 'Phở', 'Bún', 'Bánh mì', 'Trà sữa', 'Cà phê'];
+        let locationTags = [
+            { name: 'Siêu thị', color: '#10b981' },
+            { name: 'Chợ', color: '#f59e0b' },
+            { name: 'Cửa hàng tiện lợi', color: '#3b82f6' },
+            { name: 'Quán ăn', color: '#ef4444' }
+        ];
+        let selectedDate = new Date();
+        let searchQuery = '';
+        let sortBy = 'date';
+        let editingItemId = null;
+        let deletingItemId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromFirebase();
+            setupEventListeners();
+            updateDateDisplay();
+            renderFoodTags();
+            renderLocationTags();
+        });
+
+        // Firebase Functions
+        async function loadFromFirebase() {
+            try {
+                const response = await fetch(FIREBASE_URL);
+                const data = await response.json();
+                if (data) {
+                    items = data.items || [];
+                    foodTags = data.foodTags || foodTags;
+                    locationTags = data.locationTags || locationTags;
+                    renderFoodTags();
+                    renderLocationTags();
+                    renderResults();
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        async function saveToFirebase() {
+            try {
+                await fetch(FIREBASE_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items, foodTags, locationTags })
+                });
+            } catch (error) {
+                console.error('Error saving data:', error);
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            document.getElementById('prevDay').addEventListener('click', () => changeDate(-1));
+            document.getElementById('nextDay').addEventListener('click', () => changeDate(1));
+            
+            document.getElementById('datePicker').addEventListener('change', (e) => {
+                selectedDate = new Date(e.target.value);
+                updateDateDisplay();
+            });
+            
+            document.getElementById('addBtn').addEventListener('click', addOrUpdateItem);
+            
+            document.getElementById('addFoodTagBtn').addEventListener('click', () => {
+                const form = document.getElementById('addFoodForm');
+                form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+            });
+            
+            document.getElementById('addLocationTagBtn').addEventListener('click', () => {
+                const form = document.getElementById('addLocationForm');
+                form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+            });
+            
+            document.getElementById('saveFoodTagBtn').addEventListener('click', addFoodTag);
+            document.getElementById('saveLocationTagBtn').addEventListener('click', addLocationTag);
+            
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                updateSortButtons();
+                
+                if (searchQuery.trim()) {
+                    showSearchOverlay();
+                } else {
+                    hideSearchOverlay();
+                    renderResults();
+                }
+            });
+            
+            document.getElementById('sortDate').addEventListener('click', () => {
+                sortBy = 'date';
+                updateSortButtons();
+                renderResults();
+            });
+            
+            document.getElementById('sortPrice').addEventListener('click', () => {
+                sortBy = 'price';
+                updateSortButtons();
+                renderResults();
+            });
+            
+            // Delete modal
+            document.getElementById('cancelDelete').addEventListener('click', closeDeleteModal);
+            document.getElementById('confirmDelete').addEventListener('click', confirmDelete);
+            
+            // Click outside to close search overlay
+            document.addEventListener('click', (e) => {
+                const searchCard = document.querySelector('.card');
+                const modal = document.getElementById('deleteModal');
+                if (!searchCard.contains(e.target) && searchQuery.trim()) {
+                    hideSearchOverlay();
+                }
+                if (e.target === modal) {
+                    closeDeleteModal();
+                }
+            });
+        }
+
+        // Date Functions
+        function changeDate(days) {
+            selectedDate.setDate(selectedDate.getDate() + days);
+            updateDateDisplay();
+            updateDatePicker();
+        }
+
+        function updateDateDisplay() {
+            document.getElementById('dateDisplay').value = selectedDate.toLocaleDateString('vi-VN');
+            updateDatePicker();
+        }
+
+        function updateDatePicker() {
+            document.getElementById('datePicker').value = selectedDate.toISOString().split('T')[0];
+        }
+
+        // Item Functions
+        function addOrUpdateItem() {
+            const food = document.getElementById('foodSelect').value;
+            const price = parseFloat(document.getElementById('priceInput').value);
+            const location = document.getElementById('locationSelect').value;
+            
+            if (!food || !price || !location) {
+                alert('Vui lòng điền đầy đủ thông tin');
+                return;
+            }
+            
+            if (editingItemId) {
+                // Update existing item
+                const itemIndex = items.findIndex(item => item.id === editingItemId);
+                if (itemIndex !== -1) {
+                    items[itemIndex] = {
+                        ...items[itemIndex],
+                        food,
+                        price,
+                        location,
+                        date: selectedDate.toISOString().split('T')[0]
+                    };
+                }
+                editingItemId = null;
+                document.getElementById('formTitle').textContent = 'Thêm Món Mới';
+                document.getElementById('addBtn').textContent = 'Thêm Món';
+            } else {
+                // Add new item
+                const newItem = {
+                    id: Date.now(),
+                    food,
+                    price,
+                    location,
+                    date: selectedDate.toISOString().split('T')[0]
+                };
+                items.push(newItem);
+            }
+            
+            saveToFirebase();
+            renderResults();
+            
+            // Reset form
+            document.getElementById('foodSelect').value = '';
+            document.getElementById('priceInput').value = '';
+            document.getElementById('locationSelect').value = '';
+            selectedDate = new Date();
+            updateDateDisplay();
+        }
+
+        function editItem(id) {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+            
+            editingItemId = id;
+            document.getElementById('foodSelect').value = item.food;
+            document.getElementById('priceInput').value = item.price;
+            document.getElementById('locationSelect').value = item.location;
+            selectedDate = new Date(item.date);
+            updateDateDisplay();
+            
+            document.getElementById('formTitle').textContent = 'Chỉnh Sửa Món';
+            document.getElementById('addBtn').textContent = 'Cập Nhật';
+            
+            // Scroll to form
+            document.querySelector('.card:nth-child(2)').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteItem(id) {
+            deletingItemId = id;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            deletingItemId = null;
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        function confirmDelete() {
+            if (deletingItemId) {
+                items = items.filter(item => item.id !== deletingItemId);
+                saveToFirebase();
+                renderResults();
+                closeDeleteModal();
+            }
+        }
+
+        // Tag Functions
+        function addFoodTag() {
+            const input = document.getElementById('newFoodTag');
+            const tag = input.value.trim();
+            
+            if (tag && !foodTags.includes(tag)) {
+                foodTags.push(tag);
+                saveToFirebase();
+                renderFoodTags();
+                input.value = '';
+                document.getElementById('addFoodForm').style.display = 'none';
+            }
+        }
+
+        function addLocationTag() {
+            const nameInput = document.getElementById('newLocationTag');
+            const colorInput = document.getElementById('locationColor');
+            const name = nameInput.value.trim();
+            const color = colorInput.value;
+            
+            if (name && !locationTags.find(t => t.name === name)) {
+                locationTags.push({ name, color });
+                saveToFirebase();
+                renderLocationTags();
+                nameInput.value = '';
+                colorInput.value = '#10b981';
+                document.getElementById('addLocationForm').style.display = 'none';
+            }
+        }
+
+        function renderFoodTags() {
+            const container = document.getElementById('foodTagsList');
+            const select = document.getElementById('foodSelect');
+            
+            container.innerHTML = foodTags.map(tag => 
+                `<span class="tag" style="background: #667eea">${tag}</span>`
+            ).join('');
+            
+            select.innerHTML = '<option value="">Chọn món</option>' + 
+                foodTags.map(tag => `<option value="${tag}">${tag}</option>`).join('');
+        }
+
+        function renderLocationTags() {
+            const container = document.getElementById('locationTagsList');
+            const select = document.getElementById('locationSelect');
+            
+            container.innerHTML = locationTags.map(tag => 
+                `<span class="tag" style="background: ${tag.color}">${tag.name}</span>`
+            ).join('');
+            
+            select.innerHTML = '<option value="">Chọn nơi mua</option>' + 
+                locationTags.map(tag => 
+                    `<option value="${tag.name}" data-color="${tag.color}">${tag.name}</option>`
+                ).join('');
+        }
+
+        // Results Functions
+        function getDaysSince(dateString) {
+            const itemDate = new Date(dateString);
+            const today = new Date();
+            const diffTime = Math.abs(today - itemDate);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getProgressColor(days) {
+            if (days < 5) return { color: '#22c55e', width: '100%' };
+            if (days < 10) return { color: '#84cc16', width: '80%' };
+            if (days < 15) return { color: '#eab308', width: '60%' };
+            if (days < 20) return { color: '#f97316', width: '40%' };
+            if (days < 25) return { color: '#ef4444', width: '25%' };
+            if (days < 30) return { color: '#dc2626', width: '15%' };
+            return { color: '#7f1d1d', width: '7%' };
+        }
+
+        function getLocationColor(locationName) {
+            const location = locationTags.find(t => t.name === locationName);
+            return location ? location.color : '#10b981';
+        }
+
+        function filterAndSortItems() {
+            let filtered = items.filter(item => {
+                const searchLower = searchQuery.toLowerCase();
+                return (
+                    item.food.toLowerCase().includes(searchLower) ||
+                    item.location.toLowerCase().includes(searchLower) ||
+                    item.date.includes(searchQuery)
+                );
+            });
+            
+            if (searchQuery) {
+                filtered.sort((a, b) => {
+                    if (a.price !== b.price) return a.price - b.price;
+                    return new Date(b.date) - new Date(a.date);
+                });
+            } else {
+                if (sortBy === 'date') {
+                    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+                } else if (sortBy === 'price') {
+                    filtered.sort((a, b) => a.price - b.price);
+                }
+            }
+            
+            return filtered;
+        }
+
+        function createItemHTML(item) {
+            const daysSince = getDaysSince(item.date);
+            const { color, width } = getProgressColor(daysSince);
+            const locationColor = getLocationColor(item.location);
+            
+            return `
+                <div class="item-card">
+                    <div class="item-content">
+                        <div class="item-info">
+                            <div class="item-title">${item.food}</div>
+                            <span class="item-location" style="background: ${locationColor}">${item.location}</span>
+                        </div>
+                        <div class="item-right">
+                            <div class="item-price">${item.price}K</div>
+                            <div class="item-meta">
+                                <div class="item-date">${item.date}</div>
+                                <div class="item-days">${daysSince} ngày trước</div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="action-btn btn-edit" onclick="editItem(${item.id})">Sửa</button>
+                                <button class="action-btn btn-delete" onclick="deleteItem(${item.id})">Xóa</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="background: ${color}; width: ${width}"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showSearchOverlay() {
+            const overlay = document.getElementById('searchOverlay');
+            const resultsContainer = document.getElementById('searchResults');
+            const filtered = filterAndSortItems();
+            
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<div class="empty-state" style="padding: 20px;">Không tì

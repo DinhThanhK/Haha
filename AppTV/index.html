@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://img.icons8.com/color/48/retro-tv.png" type="image/png">
+    <title>Quản Lý Phim TV</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #E50914;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: #222;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab:hover {
+            background: #333;
+        }
+
+        .tab.active {
+            background: #E50914;
+            border-bottom: 3px solid #E50914;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Thêm/Sửa Phim */
+        .form-section {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            margin-bottom: 20px;
+            color: #E50914;
+            font-size: 1.8em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ccc;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            background: #2a2a2a;
+            color: white;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #E50914;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .episodes-container {
+            border: 2px solid #333;
+            padding: 20px;
+            border-radius: 8px;
+            background: #252525;
+            margin-bottom: 15px;
+        }
+
+        .episodes-container h4 {
+            margin-bottom: 15px;
+            color: #E50914;
+        }
+
+        .ep-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .ep-row input {
+            flex: 1;
+        }
+
+        .ep-row button {
+            padding: 10px 15px;
+            background: #c41111;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .ep-row button:hover {
+            background: #a00e0e;
+        }
+
+        button {
+            padding: 12px 25px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #E50914;
+            color: white;
+            margin-right: 10px;
+        }
+
+        .btn-primary:hover {
+            background: #c41111;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 9, 20, 0.4);
+        }
+
+        .btn-secondary {
+            background: #333;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #444;
+        }
+
+        .btn-add {
+            background: #28a745;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+        }
+
+        /* Danh Sách Phim */
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .movie-card {
+            background: #1e1e1e;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(229, 9, 20, 0.3);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .movie-info {
+            padding: 20px;
+        }
+
+        .movie-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #E50914;
+        }
+
+        .movie-country {
+            color: #999;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .movie-episodes {
+            color: #ccc;
+            font-size: 0.85em;
+            margin-bottom: 15px;
+        }
+
+        .movie-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .movie-actions button {
+            flex: 1;
+            padding: 10px;
+            font-size: 13px;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .btn-edit:hover {
+            background: #e0a800;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #999;
+        }
+
+        .no-movies {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+            background: #1e1e1e;
+            border-radius: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #E50914;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .success-message {
+            background: #28a745;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Quản Lý Phim TV</h1>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="add">➕ Thêm Phim Mới</button>
+            <button class="tab" data-tab="list">📋 Danh Sách Phim</button>
+        </div>
+
+        <!-- Tab Thêm Phim -->
+        <div id="add-tab" class="tab-content active">
+            <div class="form-section">
+                <h2>Thêm Phim Mới</h2>
+                <div id="add-success-message"></div>
+                
+                <div class="form-group">
+                    <label>Tên Phim:</label>
+                    <input type="text" id="add-title" placeholder="VD: Squid Game">
+                </div>
+
+                <div class="form-group">
+                    <label>Quốc Gia:</label>
+                    <input type="text" id="add-country" placeholder="VD: Hàn Quốc">
+                </div>
+
+                <div class="form-group">
+                    <label>Link Ảnh Poster (Dọc):</label>
+                    <input type="text" id="add-imageUrl" placeholder="https://...">
+                </div>
+
+                <div class="form-group">
+                    <label>Link Ảnh Banner (Ngang):</label>
+                    <input type="text" id="add-bannerUrl" placeholder="https://...">
+                </div>
+
+                <div class="form-group">
+                    <label>Mô Tả:</label>
+                    <textarea id="add-description" placeholder="Mô tả ngắn về phim..."></textarea>
+                </div>
+
+                <div id="add-episodes-container" class="episodes-container">
+                    <h4>Danh Sách Tập Phim</h4>
+                    <div class="ep-row">
+                        <input type="text" class="add-ep-name" placeholder="Tên tập (VD: Tập 1)">
+                        <input type="text" class="add-ep-url" placeholder="Link video (.m3u8 hoặc .mp4)">
+                    </div>
+                </div>
+                <button class="btn-add" id="btn-add-episode">+ Thêm Tập</button>
+
+                <div style="margin-top: 30px;">
+                    <button class="btn-primary" id="btn-save-movie">💾 LƯU PHIM VÀO FIREBASE</button>
+                    <button class="btn-secondary" id="btn-clear-form">🔄 Xóa Form</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Danh Sách Phim -->
+        <div id="list-tab" class="tab-content">
+            <div id="movies-list" class="loading">
+                Đang tải danh sách phim...
+            </div>
+        </div>
+
+        <!-- Form Cập Nhật Phim -->
+        <div id="update-tab" class="tab-content">
+            <div class="form-section">
+                <h2>Chỉnh Sửa Phim</h2>
+                <div id="update-success-message"></div>
+                
+                <input type="hidden" id="update-movie-id">
+
+                <div class="form-group">
+                    <label>Tên Phim:</label>
+                    <input type="text" id="update-title">
+                </div>
+
+                <div class="form-group">
+                    <label>Quốc Gia:</label>
+                    <input type="text" id="update-country">
+                </div>
+
+                <div class="form-group">
+                    <label>Link Ảnh Poster (Dọc):</label>
+                    <input type="text" id="update-imageUrl">
+                </div>
+
+                <div class="form-group">
+                    <label>Link Ảnh Banner (Ngang):</label>
+                    <input type="text" id="update-bannerUrl">
+                </div>
+
+                <div class="form-group">
+                    <label>Mô Tả:</label>
+                    <textarea id="update-description"></textarea>
+                </div>
+
+                <div id="update-episodes-container" class="episodes-container">
+                    <h4>Danh Sách Tập Phim</h4>
+                </div>
+                <button class="btn-add" id="btn-add-update-episode">+ Thêm Tập</button>
+
+                <div style="margin-top: 30px;">
+                    <button class="btn-primary" id="btn-update-movie">💾 CẬP NHẬT PHIM</button>
+                    <button class="btn-secondary" id="btn-cancel-update">❌ Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Xác Nhận Xóa -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ Xác Nhận Xóa</h3>
+            <p>Bạn có chắc chắn muốn xóa phim này?</p>
+            <p style="color: #E50914; font-weight: bold;" id="delete-movie-title"></p>
+            <div class="modal-actions">
+                <button class="btn-delete" id="btn-confirm-delete">Xóa</button>
+                <button class="btn-secondary" id="btn-cancel-delete">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+        import { getDatabase, ref, push, set, remove, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOZFoWsx1s6xoowfekjnr0aD2n3z7PzMU",
+            authDomain: "fitnesstracker-61e7a.firebaseapp.com",
+            databaseURL: "https://fitnesstracker-61e7a-default-rtdb.firebaseio.com",
+            projectId: "fitnesstracker-61e7a",
+            storageBucket: "fitnesstracker-61e7a.firebasestorage.app",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        let currentDeleteId = null;
+        let allMovies = {};
+
+        // ============= TAB MANAGEMENT =============
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                switchTab(tabName);
+            });
+        });
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Add active class to selected tab
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            if(tabName === 'list') {
+                loadMovies();
+            }
+        }
+
+        // ============= ADD MOVIE =============
+        document.getElementById('btn-add-episode').addEventListener('click', function() {
+            addEpisodeRow('add');
+        });
+
+        document.getElementById('btn-save-movie').addEventListener('click', saveMovie);
+        document.getElementById('btn-clear-form').addEventListener('click', clearAddForm);
+
+        function getNextEpisodeName(type) {
+            const epNames = document.querySelectorAll(`#${type}-episodes-container .${type}-ep-name`);
+            if (epNames.length === 0) return '';
+
+            const lastVal = epNames[epNames.length - 1].value.trim();
+            if (!lastVal) return '';
+
+            // Tìm số cuối cùng trong tên tập
+            const match = lastVal.match(/^(.*?)(\d+)(\D*)$/);
+            if (!match) return '';
+
+            const prefix = match[1];   // VD: "Tập ", "TẬP ", "tập ", "Episode "
+            const num = parseInt(match[2], 10);
+            const suffix = match[3];   // Phần sau số (nếu có)
+
+            return prefix + (num + 1) + suffix;
+        }
+
+        function addEpisodeRow(type) {
+            const container = document.getElementById(`${type}-episodes-container`);
+            const nextName = getNextEpisodeName(type);
+
+            const div = document.createElement('div');
+            div.className = 'ep-row';
+            div.innerHTML = `
+                <input type="text" class="${type}-ep-name" placeholder="Tên tập" value="${nextName}">
+                <input type="text" class="${type}-ep-url" placeholder="Link video">
+                <button type="button">❌</button>
+            `;
+            
+            // Add delete event
+            div.querySelector('button').addEventListener('click', function() {
+                div.remove();
+            });
+            
+            container.appendChild(div);
+
+            // Focus vào ô URL để nhập nhanh
+            div.querySelector(`.${type}-ep-url`).focus();
+        }
+
+        function saveMovie() {
+            const title = document.getElementById('add-title').value.trim();
+            const country = document.getElementById('add-country').value.trim();
+            const imageUrl = document.getElementById('add-imageUrl').value.trim();
+            const bannerUrl = document.getElementById('add-bannerUrl').value.trim();
+            const description = document.getElementById('add-description').value.trim();
+
+            if(!title || !imageUrl) {
+                alert('Vui lòng nhập ít nhất Tên phim và Link ảnh Poster!');
+                return;
+            }
+
+            const epNames = document.getElementsByClassName('add-ep-name');
+            const epUrls = document.getElementsByClassName('add-ep-url');
+            let episodes = [];
+            
+            for(let i=0; i<epNames.length; i++) {
+                if(epUrls[i].value.trim()) {
+                    episodes.push({ 
+                        name: epNames[i].value.trim() || `Tập ${i+1}`, 
+                        url: epUrls[i].value.trim() 
+                    });
+                }
+            }
+
+            const movieData = {
+                title,
+                country,
+                imageUrl,
+                bannerUrl,
+                description,
+                episodes,
+                createdAt: new Date().toISOString()
+            };
+
+            push(ref(db, 'movies'), movieData).then(() => {
+                showMessage('add-success-message', '✅ Đã thêm phim thành công!');
+                clearAddForm();
+                setTimeout(() => {
+                    switchTab('list');
+                }, 1500);
+            }).catch(error => {
+                alert('Lỗi: ' + error.message);
+            });
+        }
+
+        function clearAddForm() {
+            document.getElementById('add-title').value = '';
+            document.getElementById('add-country').value = '';
+            document.getElementById('add-imageUrl').value = '';
+            document.getElementById('add-bannerUrl').value = '';
+            document.getElementById('add-description').value = '';
+            
+            const container = document.getElementById('add-episodes-container');
+            container.innerHTML = `
+                <h4>Danh Sách Tập Phim</h4>
+                <div class="ep-row">
+                    <input type="text" class="add-ep-name" placeholder="Tên tập (VD: Tập 1)">
+                    <input type="text" class="add-ep-url" placeholder="Link video (.m3u8 hoặc .mp4)">
+                </div>
+            `;
+        }
+
+        // ============= LOAD MOVIES =============
+        function loadMovies() {
+            const moviesRef = ref(db, 'movies');
+            onValue(moviesRef, (snapshot) => {
+                const moviesList = document.getElementById('movies-list');
+                allMovies = {};
+                
+                if(!snapshot.exists()) {
+                    moviesList.innerHTML = '<div class="no-movies">📽️ Chưa có phim nào. Hãy thêm phim mới!</div>';
+                    return;
+                }
+
+                let html = '<div class="movies-grid">';
+                snapshot.forEach((child) => {
+                    const movie = child.val();
+                    const movieId = child.key;
+                    allMovies[movieId] = movie;
+
+                    html += `
+                        <div class="movie-card">
+                            <img src="${movie.imageUrl || 'https://via.placeholder.com/300x450?text=No+Image'}" 
+                                 alt="${movie.title}" 
+                                 class="movie-poster"
+                                 onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                            <div class="movie-info">
+                                <div class="movie-title">${movie.title}</div>
+                                <div class="movie-country">🌍 ${movie.country || 'Chưa rõ'}</div>
+                                <div class="movie-episodes">📺 ${movie.episodes ? movie.episodes.length : 0} tập</div>
+                                <div class="movie-actions">
+                                    <button class="btn-edit" data-movie-id="${movieId}">✏️ Sửa</button>
+                                    <button class="btn-delete" data-movie-id="${movieId}">🗑️ Xóa</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                moviesList.innerHTML = html;
+
+                // Add event listeners for edit and delete buttons
+                document.querySelectorAll('.btn-edit').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const movieId = this.getAttribute('data-movie-id');
+                        editMovie(movieId);
+                    });
+                });
+
+                document.querySelectorAll('.btn-delete').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const movieId = this.getAttribute('data-movie-id');
+                        deleteMovie(movieId);
+                    });
+                });
+            });
+        }
+
+        // ============= EDIT MOVIE =============
+        document.getElementById('btn-add-update-episode').addEventListener('click', function() {
+            addEpisodeRow('update');
+        });
+
+        document.getElementById('btn-update-movie').addEventListener('click', updateMovie);
+        document.getElementById('btn-cancel-update').addEventListener('click', cancelUpdate);
+
+        function editMovie(movieId) {
+            const movie = allMovies[movieId];
+            if(!movie) return;
+
+            // Switch to update tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('update-tab').classList.add('active');
+
+            // Fill form
+            document.getElementById('update-movie-id').value = movieId;
+            document.getElementById('update-title').value = movie.title || '';
+            document.getElementById('update-country').value = movie.country || '';
+            document.getElementById('update-imageUrl').value = movie.imageUrl || '';
+            document.getElementById('update-bannerUrl').value = movie.bannerUrl || '';
+            document.getElementById('update-description').value = movie.description || '';
+
+            // Create episodes list
+            const container = document.getElementById('update-episodes-container');
+            container.innerHTML = '<h4>Danh Sách Tập Phim</h4>';
+            
+            if(movie.episodes && movie.episodes.length > 0) {
+                movie.episodes.forEach(ep => {
+                    const div = document.createElement('div');
+                    div.className = 'ep-row';
+                    div.innerHTML = `
+                        <input type="text" class="update-ep-name" value="${ep.name}" placeholder="Tên tập">
+                        <input type="text" class="update-ep-url" value="${ep.url}" placeholder="Link video">
+                        <button type="button">❌</button>
+                    `;
+                    div.querySelector('button').addEventListener('click', function() {
+                        div.remove();
+                    });
+                    container.appendChild(div);
+                });
+            } else {
+                const div = document.createElement('div');
+                div.className = 'ep-row';
+                div.innerHTML = `
+                    <input type="text" class="update-ep-name" placeholder="Tên tập">
+                    <input type="text" class="update-ep-url" placeholder="Link video">
+                `;
+                container.appendChild(div);
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateMovie() {
+            const movieId = document.getElementById('update-movie-id').value;
+            const title = document.getElementById('update-title').value.trim();
+            const country = document.getElementById('update-country').value.trim();
+            const imageUrl = document.getElementById('update-imageUrl').value.trim();
+            const bannerUrl = document.getElementById('update-bannerUrl').value.trim();
+            const description = document.getElementById('update-description').value.trim();
+
+            if(!title || !imageUrl) {
+                alert('Vui lòng nhập ít nhất Tên phim và Link ảnh Poster!');
+                return;
+            }
+
+            const epNames = document.getElementsByClassName('update-ep-name');
+            const epUrls = document.getElementsByClassName('update-ep-url');
+            let episodes = [];
+            
+            for(let i=0; i<epNames.length; i++) {
+                if(epUrls[i].value.trim()) {
+                    episodes.push({ 
+                        name: epNames[i].value.trim() || `Tập ${i+1}`, 
+                        url: epUrls[i].value.trim() 
+                    });
+                }
+            }
+
+            const movieData = {
+                title,
+                country,
+                imageUrl,
+                bannerUrl,
+                description,
+                episodes,
+                updatedAt: new Date().toISOString()
+            };
+
+            if(allMovies[movieId] && allMovies[movieId].createdAt) {
+                movieData.createdAt = allMovies[movieId].createdAt;
+            }
+
+            set(ref(db, 'movies/' + movieId), movieData).then(() => {
+                showMessage('update-success-message', '✅ Đã cập nhật phim thành công!');
+                setTimeout(() => {
+                    switchTab('list');
+                }, 1500);
+            }).catch(error => {
+                alert('Lỗi: ' + error.message);
+            });
+        }
+
+        function cancelUpdate() {
+            switchTab('add');
+        }
+
+        // ============= DELETE MOVIE =============
+        document.getElementById('btn-confirm-delete').addEventListener('click', confirmDelete);
+        document.getElementById('btn-cancel-delete').addEventListener('click', closeDeleteModal);
+
+        function deleteMovie(movieId) {
+            currentDeleteId = movieId;
+            const movie = allMovies[movieId];
+            document.getElementById('delete-movie-title').textContent = movie.title;
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function confirmDelete() {
+            if(!currentDeleteId) return;
+
+            remove(ref(db, 'movies/' + currentDeleteId)).then(() => {
+                closeDeleteModal();
+                loadMovies();
+            }).catch(error => {
+                alert('Lỗi: ' + error.message);
+            });
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            currentDeleteId = null;
+        }
+
+        // ============= UTILITIES =============
+        function showMessage(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="success-message">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 3000);
+        }
+
+        // Load movies on startup
+        loadMovies();
+    </script>
+</body>
+</html>

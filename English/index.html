@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý từ vựng (Offline)</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFD700'%3E%3Cpath d='M18.4 2.6c-.8-.8-2-.8-2.8 0L3 15.2V21h5.8l12.6-12.6c.8-.8.8-2 0-2.8l-3-3zM6 19H5v-1L15.2 7.8l1 1L6 19zm11-9.8l-1-1 1.4-1.4 1 1-1.4 1.4z'/%3E%3C/svg%3E">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+        <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <h1>Quản lý từ vựng</h1>
+
+    <div class="input-section">
+        <input type="date" id="dateInput" />
+        <input type="number" id="wordCount" min="0" placeholder="Số từ vựng" />
+        <button onclick="addEntry()">Add</button>
+        <button onclick="refreshData()">Update</button>
+        <!-- <button onclick="saveAllToFirebase()">Gửi toàn bộ lên Firebase</button> -->
+
+    </div>
+    <textarea id="dataInput" placeholder="Dữ liệu: ngày,số từ vựng (ví dụ: 2025-06-02,10)"></textarea>
+    <div>
+        <input type="text" id="fileName" placeholder="Tên file (ví dụ: vocab.csv)" />
+        <!-- <button onclick="saveToFile()"> Save</button> -->
+        <!-- <button onclick="loadFromFile()"> Open</button> -->
+    </div>
+    <div id="status"></div>
+
+    <div class="panels">
+        <div class="panel" id="panel1">
+            <h3>Thống kê theo ngày</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Số từ</th>
+                            <th>Tổng tích lũy</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTable1"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="panel" id="panel2">
+            <h3>Thống kê theo tháng</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tháng</th>
+                            <th>Số từ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTable2"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="chart-panel" id="panel3">
+            <h3>Thống kê theo ngày (Biểu đồ)</h3>
+            <select id="monthSelect" onchange="updateChart()"></select>
+            <canvas id="wordChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-panel" id="panel4">
+        <h3>Thống kê theo năm (Biểu đồ)</h3>
+        <select id="yearSelect" onchange="updateYearChart()"></select>
+        <div id="monthCharts"></div>
+    </div>
+
+    <input type="file" id="fileInput" style="display:none" accept=".csv" onchange="handleFile(event)" />
+
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+<!-- Firebase config -->
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDvbVX2TwCIFzNcU_xm-wuzkfejseYHrGo",
+    authDomain: "learnenglish-6c394.firebaseapp.com",
+    databaseURL: "https://learnenglish-6c394-default-rtdb.firebaseio.com",
+    projectId: "learnenglish-6c394",
+    storageBucket: "learnenglish-6c394.appspot.com",
+    messagingSenderId: "908891438520",
+    appId: "1:908891438520:web:30d6b8e069f3fff19c634d"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+   <script src="./script.js"></script>
+
+</body>
+</html>

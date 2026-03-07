@@ -1,0 +1,172 @@
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 15px;
+            background-color: #121212;
+            background-image: url('background.jpg');
+            background-size: cover;
+            background-position: center;
+            color: #e0e0e0;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+        .input-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        textarea, input[type="text"], input[type="date"], input[type="number"], select {
+            padding: 7px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #40c4ff;
+            box-shadow: 0 0 5px rgba(64, 196, 255, 0.5);
+        }
+        textarea {
+            width: 100.55%;
+            height: 100px;
+            resize: none;
+            font-size: 0.9em;
+        }
+        input[type="date"], input[type="number"] {
+            flex: 1;
+            min-width: 120px;
+        }
+        input[type="number"] {
+            width: 90px;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8);
+            cursor: pointer;
+        }
+        button {
+            padding: 7px 14px;
+            margin: 4px;
+            background-color: #0288d1;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+        }
+        button:hover {
+            background-color: #0277bd;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(2, 119, 189, 0.4);
+        }
+        #status {
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        .error {
+            color: #ff5252;
+        }
+        .success {
+            color: #4caf50;
+        }
+        .panels {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+            width: 101.6%;
+        }
+        .panel, .chart-panel {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px;
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            font-size: 0.9em;
+        }
+        .panel h3, .chart-panel h3 {
+            margin: 0 0 8px;
+            color: #ffffff;
+            font-size: 1.1em;
+        }
+        .panel table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .panel th, .panel td {
+            padding: 6px;
+            border: 1px solid #333;
+            text-align: left;
+            color: #e0e0e0;
+        }
+        .panel th {
+            background-color: #252525;
+        }
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .total-row {
+            background-color: #333;
+            font-weight: bold;
+        }
+        #panel4 {
+            flex: none;
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        #monthCharts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+        .month-chart {
+            padding: 10px;
+            background-color: #252525;
+            border-radius: 6px;
+        }
+        .month-chart h4 {
+            margin: 0 0 8px;
+            color: #e0e0e0;
+            font-size: 0.95em;
+            text-align: center;
+        }
+        .chart-panel select, #panel4 select {
+            margin-bottom: 8px;
+            width: 150px;
+        }
+        canvas {
+            max-width: 100%;
+        }
+        @media (max-width: 768px) {
+            .panels {
+                flex-direction: column;
+            }
+            .panel, .chart-panel {
+                min-width: 100%;
+            }
+        }

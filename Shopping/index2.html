@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Giá Cả</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml"
+    href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="M7 4h-2l-1 2H2v2h1l3.6 7.59L5.25 18A1 1 0 0 0 6 20h12v-2H7.42l1.1-2h7.88a1 1 0 0 0 .92-.62L21 6H7l-.75-2z"/></svg>'>
+</head>
+<body>
+    <div class="container">
+        <h1>Quản Lý Giá Cả</h1>
+
+        <!-- Search and Filter -->
+        <div class="card">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, nơi mua, ngày..." class="input search-input">
+            </div>
+            
+            <div id="sortButtons" class="sort-buttons">
+                <button id="sortDate" class="btn btn-sort active">Theo ngày</button>
+                <button id="sortPrice" class="btn btn-sort">Theo giá</button>
+            </div>
+            
+            <!-- Search Results Overlay -->
+            <div id="searchOverlay" class="search-overlay" style="display: none;">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="card">
+            <h2>Thêm Món Mới</h2>
+            
+            <div class="form-group">
+                <label>Tên đồ ăn</label>
+                <select id="foodSelect" class="input">
+                    <option value="">Chọn món</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Giá tiền (K)</label>
+                <input type="number" id="priceInput" step="0.5" placeholder="Ví dụ: 15 hoặc 200.5" class="input">
+            </div>
+
+            <div class="form-group">
+                <label>Nơi mua</label>
+                <select id="locationSelect" class="input">
+                    <option value="">Chọn nơi mua</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ngày mua</label>
+                <div class="date-controls">
+                    <button id="prevDay" class="date-btn">◀</button>
+                    <input type="text" id="dateDisplay" class="input date-display" readonly>
+                    <button id="nextDay" class="date-btn">▶</button>
+                    <input type="date" id="datePicker" class="date-picker-input">
+                </div>
+            </div>
+
+            <button id="addBtn" class="btn btn-primary">Thêm Món</button>
+        </div>
+
+        <!-- Tag Management -->
+        <div class="card">
+            <h2>Quản Lý Tags</h2>
+            
+            <!-- Food Tags -->
+            <div class="tag-section">
+                <div class="tag-header">
+                    <label>Tags đồ ăn</label>
+                    <button id="addFoodTagBtn" class="icon-btn">➕</button>
+                </div>
+                <div id="addFoodForm" class="add-tag-form" style="display: none;">
+                    <input type="text" id="newFoodTag" placeholder="Tên tag mới" class="input">
+                    <button id="saveFoodTagBtn" class="btn btn-success">Thêm</button>
+                </div>
+                <div id="foodTagsList" class="tags-container"></div>
+            </div>
+
+            <!-- Location Tags -->
+            <div class="tag-section">
+                <div class="tag-header">
+                    <label>Tags nơi mua</label>
+                    <button id="addLocationTagBtn" class="icon-btn">➕</button>
+                </div>
+                <div id="addLocationForm" class="add-tag-form" style="display: none;">
+                    <input type="text" id="newLocationTag" placeholder="Tên tag mới" class="input">
+                    <input type="color" id="locationColor" value="#10b981" class="color-input">
+                    <button id="saveLocationTagBtn" class="btn btn-success">Thêm</button>
+                </div>
+                <div id="locationTagsList" class="tags-container"></div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

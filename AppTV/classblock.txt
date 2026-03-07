@@ -1,0 +1,13 @@
+    private final String BLOCKED_ELEMENTS =
+            ".ads, .banner, .popup, " +
+                    "#ad-container, #sticky-footer, " +
+                    ".facebook-comment, .chat-widget, " +
+                    "header, footer, " +
+                    ".group.fixed.bottom-5.left-5, " +
+                    ".absolute.bottom-32.right-3.z-30, " +
+                    ".odds-comp-logo, " +
+                    ".mb-1, .textwidget, " +
+                    ".grid-match__footer, " +
+                    "#basketball-tab, #catfish-ad, .header__buttons, " +
+                    ".main-menu, .navbar, .nav-tabs, " + // ĐÃ XÓA .w-full, .h-full
+                    ".gap-2.mb-6.pr-3.py-2, .w-40.h-60, .leading-relaxed.whitespace-pre-line.line-clamp-18";

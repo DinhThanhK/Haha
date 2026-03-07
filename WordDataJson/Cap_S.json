@@ -1,0 +1,1386 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('cudinhthanh1%40gmail.com')/todo/lists('AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgAuAAADOHKXbY4upE2jOlgqsndrkAEAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAA%3D')/tasks",
+    "@microsoft.graph.tips": "Use $select to choose only the properties your app needs, as this can lead to performance improvements. For example: GET me/todo/lists('<key>')/tasks?$select=body,bodyLastModifiedDateTime",
+    "value": [
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM8jAw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "repeated: lặp đi lặp lại",
+            "createdDateTime": "2026-02-26T13:52:34.8382678Z",
+            "lastModifiedDateTime": "2026-02-26T13:52:34.9390153Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIBIAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-25T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM8hpQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "consistency (n): sự nhất quán",
+            "createdDateTime": "2026-02-26T12:18:10.2865939Z",
+            "lastModifiedDateTime": "2026-02-26T12:18:10.3757137Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIBEAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-25T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM8Y4w==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "permanent (a): lâu dài, vĩnh viễn, mãi mãi",
+            "createdDateTime": "2026-02-26T08:00:05.6271714Z",
+            "lastModifiedDateTime": "2026-02-26T08:00:05.7121076Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIBAAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-25T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM8U8Q==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "intend: dự định làm gì (intend to + Vo)",
+            "createdDateTime": "2026-02-26T06:48:30.6046539Z",
+            "lastModifiedDateTime": "2026-02-26T06:48:30.7089507Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIA8AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-25T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM8Pgg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "threat: mối nguy, mối đe dọa",
+            "createdDateTime": "2026-02-26T01:00:32.9554507Z",
+            "lastModifiedDateTime": "2026-02-26T01:00:33.0592419Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIA4AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-25T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM73yQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "therefore: vì vậy, do đó",
+            "createdDateTime": "2026-02-25T03:59:05.2254512Z",
+            "lastModifiedDateTime": "2026-02-25T03:59:05.2853395Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIA0AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-24T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM7rGA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "strict: nghiêm ngặt, nghiêm khắc",
+            "createdDateTime": "2026-02-24T13:47:24.5677977Z",
+            "lastModifiedDateTime": "2026-02-24T13:47:24.8854828Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIAwAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-23T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADOM7p7g==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "proposed: đề xuất, đề nghị",
+            "createdDateTime": "2026-02-24T09:32:28.2412031Z",
+            "lastModifiedDateTime": "2026-02-24T09:32:28.3421966Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAzhzIAsAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-02-23T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADF7MqNw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "significant: quan trọng, đáng kể",
+            "createdDateTime": "2026-01-02T12:07:39.5624545Z",
+            "lastModifiedDateTime": "2026-01-02T12:07:39.695586Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAxdcYmsAAAA=",
+            "body": {
+                "content": "\r\n",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2026-01-01T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADCZkIRw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "such + N: N như vậy",
+            "createdDateTime": "2025-12-12T14:38:30.2390603Z",
+            "lastModifiedDateTime": "2025-12-12T14:38:30.4149348Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAwlEYEcAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-12-11T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADAYMP9A==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "illustrated: minh họa",
+            "createdDateTime": "2025-11-30T04:19:30.7204019Z",
+            "lastModifiedDateTime": "2025-11-30T04:19:30.8203105Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAwEvh9gAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-29T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADAYMP1g==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "weird: kỳ quặc, lạ thường, kỳ quái",
+            "createdDateTime": "2025-11-30T03:57:14.5339817Z",
+            "lastModifiedDateTime": "2025-11-30T03:57:14.6345424Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAwEvh9cAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-29T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADAYMJlw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "instead of: thay vì",
+            "createdDateTime": "2025-11-29T19:18:38.7790315Z",
+            "lastModifiedDateTime": "2025-11-29T19:18:38.8642867Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAwEvh9YAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-29T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADAYMJTg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "satisfy (satisfied): hài lòng",
+            "createdDateTime": "2025-11-29T19:07:43.8176118Z",
+            "lastModifiedDateTime": "2025-11-29T19:07:43.8763803Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAwEvh9UAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-29T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADAYMInQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "whole: toàn bộ, trọn, mọi",
+            "createdDateTime": "2025-11-29T18:43:08.6407753Z",
+            "lastModifiedDateTime": "2025-11-29T18:43:20.6281411Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAwEvh9QAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-29T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gADACH95Q==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "particular: cụ thể",
+            "createdDateTime": "2025-11-27T15:19:40.3265857Z",
+            "lastModifiedDateTime": "2025-11-27T15:19:40.639557Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAv-OhygAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-26T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gAC9bDbSA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "whenever: bất cứ khi nào, mỗi khi",
+            "createdDateTime": "2025-11-11T05:55:10.7797045Z",
+            "lastModifiedDateTime": "2025-11-11T05:55:10.9317604Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAvVffJkAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-10T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gAC9D26ow==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "concern (n/v): mối quan tâm, mối bận tâm",
+            "createdDateTime": "2025-11-11T01:43:10.1428358Z",
+            "lastModifiedDateTime": "2025-11-11T01:43:10.4108742Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAvPsJ2wAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-10T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gAC9D2nMA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "establish: thiết lập, thành lập",
+            "createdDateTime": "2025-11-10T14:14:01.631465Z",
+            "lastModifiedDateTime": "2025-11-10T14:14:01.7190749Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAvPsJ2sAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-09T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gAC9D2nEQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "separate: riêng biệt",
+            "createdDateTime": "2025-11-10T14:07:11.1729997Z",
+            "lastModifiedDateTime": "2025-11-10T14:07:11.4116955Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAvPsJ2oAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-09T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gAC77hFMw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "ignore: phớ lờ, làm ngơ, ngó lơ",
+            "createdDateTime": "2025-11-04T07:14:30.6984846Z",
+            "lastModifiedDateTime": "2025-11-04T07:14:30.7628351Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAu9n3-kAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-11-03T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACy85vuw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "release: phát hành, đưa ra",
+            "createdDateTime": "2025-09-11T03:37:56.4019749Z",
+            "lastModifiedDateTime": "2025-09-11T03:37:56.4778495Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAsuGIVgAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-09-10T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACxiU+SA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "define: xác định, định nghĩa",
+            "createdDateTime": "2025-09-01T01:54:48.9536624Z",
+            "lastModifiedDateTime": "2025-09-01T01:54:49.0820624Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAsXeov8AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-08-31T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACuKDqmg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "outcome: kết quả",
+            "createdDateTime": "2025-08-11T13:12:50.537478Z",
+            "lastModifiedDateTime": "2025-08-11T13:12:50.6590401Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAArhdknMAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-08-10T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACuKDW/Q==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "consist of: chứa, bao gồm",
+            "createdDateTime": "2025-08-11T09:57:14.6059042Z",
+            "lastModifiedDateTime": "2025-08-11T09:57:15.7053548Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAArhdknIAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-08-10T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACtoHqOg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "reach: đạt tới, đạt đến",
+            "createdDateTime": "2025-08-07T14:24:57.1583093Z",
+            "lastModifiedDateTime": "2025-08-07T14:24:57.2198128Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAArY_-vQAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-08-06T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACtDvHxQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "insight: hiểu biết, có cái nhìn sâu sắc",
+            "createdDateTime": "2025-08-05T15:24:29.5969361Z",
+            "lastModifiedDateTime": "2025-08-05T15:24:29.6782619Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAArP5BYIAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-08-04T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACtDvHug==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "research: nghiên cứu",
+            "createdDateTime": "2025-08-05T15:23:45.6688305Z",
+            "lastModifiedDateTime": "2025-08-05T15:23:45.7422604Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAArP5BYEAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-08-04T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACsHMaeg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "essential: điều cần thiết, điều thiết yếu, cốt lõi",
+            "createdDateTime": "2025-07-29T14:13:24.5552455Z",
+            "lastModifiedDateTime": "2025-07-29T14:13:24.6763492Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAArAxHuoAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-28T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACsHMFSw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "infrastructure: cơ sở hạ tầng",
+            "createdDateTime": "2025-07-29T11:42:19.9810676Z",
+            "lastModifiedDateTime": "2025-07-29T11:42:20.032958Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAArAxHukAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-28T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACr0FEYg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "capture: bắt, thu thập, tóm gọn, chiếm lấy",
+            "createdDateTime": "2025-07-27T03:59:45.5210045Z",
+            "lastModifiedDateTime": "2025-07-28T04:32:45.1725027Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAq5Rh24AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-26T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACrnjyRw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "attract: hấp dẫn, thu hút",
+            "createdDateTime": "2025-07-26T02:16:30.7904271Z",
+            "lastModifiedDateTime": "2025-07-26T02:16:30.9659997Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAq423MYAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-25T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACqHiieg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "decision: quyết định, phát quyết",
+            "createdDateTime": "2025-07-19T04:13:47.5161685Z",
+            "lastModifiedDateTime": "2025-07-19T04:13:47.5553708Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAqg2YNEAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-18T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACqHiWmQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "whether ___ or__: cho dù .... hay ..",
+            "createdDateTime": "2025-07-19T01:06:54.32232Z",
+            "lastModifiedDateTime": "2025-07-19T01:06:54.4037551Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAqg2YNAAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-18T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACpoHHrA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "reveal: cho thấy, thể hiện, tiết lộ, bộc lộ",
+            "createdDateTime": "2025-07-16T10:09:36.0139445Z",
+            "lastModifiedDateTime": "2025-07-16T10:09:36.0973627Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAqY-a6AAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-15T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACpoHHfA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "indicate: biểu thị, chỉ ra",
+            "createdDateTime": "2025-07-16T10:01:01.2791674Z",
+            "lastModifiedDateTime": "2025-07-16T10:01:01.3521259Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAqY-a58AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-15T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACpoGiZQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "a bit of: một chút, có chút",
+            "createdDateTime": "2025-07-15T14:22:21.1200415Z",
+            "lastModifiedDateTime": "2025-07-15T14:22:21.2191211Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAqY-a54AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-14T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACouYVzQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "deep: sâu sắc",
+            "createdDateTime": "2025-07-08T15:11:15.9988606Z",
+            "lastModifiedDateTime": "2025-07-08T15:11:16.0833893Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAqKj_ekAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-07T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACobd7Ug==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "initial: ban đầu",
+            "createdDateTime": "2025-07-08T05:01:24.4947464Z",
+            "lastModifiedDateTime": "2025-07-08T05:01:24.581898Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAqF1TeQAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-07T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACn35W8A==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "except: ngoại trừ, trừ việc",
+            "createdDateTime": "2025-07-04T14:38:22.0370667Z",
+            "lastModifiedDateTime": "2025-07-04T14:38:22.1993979Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAp87s9UAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-03T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACn340IA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "even though: cho dù, mặc dù",
+            "createdDateTime": "2025-07-03T14:08:35.7402456Z",
+            "lastModifiedDateTime": "2025-07-03T14:08:35.809154Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAp87s9QAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-02T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACn34oHg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "massive: đồ sộ",
+            "createdDateTime": "2025-07-03T09:38:33.8709862Z",
+            "lastModifiedDateTime": "2025-07-03T09:38:33.9299686Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAp87s9MAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-07-02T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACmVVW5w==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "implement: thực hiện, triển khai",
+            "createdDateTime": "2025-06-24T04:24:35.9088215Z",
+            "lastModifiedDateTime": "2025-06-24T04:24:35.9790021Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAApkSdC4AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-23T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gAClBSrlw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "valuable: có giá trị, quý báu",
+            "createdDateTime": "2025-06-15T11:03:02.3665581Z",
+            "lastModifiedDateTime": "2025-06-15T11:03:02.5832227Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAApPRfyIAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-14T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACklgspA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "surprise: làm bất ngờ, làm ngạc nhiên",
+            "createdDateTime": "2025-06-14T04:17:37.0344507Z",
+            "lastModifiedDateTime": "2025-06-14T04:17:37.1338255Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAApIU-CAAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-13T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACkWx+Pg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "gather: tập trung",
+            "createdDateTime": "2025-06-10T12:51:20.1731335Z",
+            "lastModifiedDateTime": "2025-06-10T12:51:20.3137122Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAApEp4rsAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-09T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACjoRDlg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "fit: hợp, phù hợp",
+            "createdDateTime": "2025-06-06T14:36:11.156399Z",
+            "lastModifiedDateTime": "2025-06-06T14:36:11.1864549Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAo5CTZIAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-05T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACjoPjWw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "journey: hành trình, chặng đường",
+            "createdDateTime": "2025-06-06T03:41:13.2404497Z",
+            "lastModifiedDateTime": "2025-06-06T03:41:13.2731081Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAo5CTZEAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-05T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACjoPjFg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "struggle (struggling): khó khăn, vất vả",
+            "createdDateTime": "2025-06-06T03:30:23.2902549Z",
+            "lastModifiedDateTime": "2025-06-06T03:30:23.3755893Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAo5CTZAAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-05T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACjdQu5Q==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "whatever: bất cứ điều gì",
+            "createdDateTime": "2025-06-05T13:36:29.0367388Z",
+            "lastModifiedDateTime": "2025-06-05T13:36:29.0680925Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAo2SuZwAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-04T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACjdQu3g==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "commit: cam kết",
+            "createdDateTime": "2025-06-05T13:35:13.6581136Z",
+            "lastModifiedDateTime": "2025-06-05T13:35:13.6989027Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAo2SuZsAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-04T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACjHzpSw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "without: mà không, không có",
+            "createdDateTime": "2025-06-03T04:56:53.0411992Z",
+            "lastModifiedDateTime": "2025-06-03T04:57:01.5168164Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAow74ZkAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-06-02T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACUldajg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "mark: đánh dấu",
+            "createdDateTime": "2025-03-07T14:25:33.6443442Z",
+            "lastModifiedDateTime": "2025-03-07T14:25:33.6821607Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAlI280EAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-03-06T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACUldO4g==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "entire: toàn bộ, cả hết, hoàn toàn, nguyên cả",
+            "createdDateTime": "2025-03-07T11:56:43.4541671Z",
+            "lastModifiedDateTime": "2025-03-07T11:57:09.8915371Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAlI280AAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-03-06T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACT8ErPg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "then: sau đó",
+            "createdDateTime": "2025-03-04T12:34:47.5287101Z",
+            "lastModifiedDateTime": "2025-03-04T12:34:47.5632899Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAk_g6ncAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-03-03T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACT8EAWA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "identify: xác định",
+            "createdDateTime": "2025-03-03T13:56:04.2275552Z",
+            "lastModifiedDateTime": "2025-03-03T13:56:04.2904043Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAk_g6nYAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-03-02T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACTzQf+w==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "competitor: đối thủ cạnh tranh",
+            "createdDateTime": "2025-03-02T12:41:14.157771Z",
+            "lastModifiedDateTime": "2025-03-02T12:41:14.1922753Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAk8UA5gAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-03-01T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACS/9CzA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "attempt: cố gắng, nỗ lực",
+            "createdDateTime": "2025-03-02T03:50:56.3102625Z",
+            "lastModifiedDateTime": "2025-03-02T03:50:56.3421231Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAkvel7UAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-03-01T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACS/8ZlA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "unrelated: không liên quan đến",
+            "createdDateTime": "2025-03-01T11:27:30.2597283Z",
+            "lastModifiedDateTime": "2025-03-01T11:27:30.2999471Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAkvel7QAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-02-28T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACS/8J1w==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "noticed: nhận thấy, nhấn biết, để ý",
+            "createdDateTime": "2025-03-01T08:13:07.4978868Z",
+            "lastModifiedDateTime": "2025-03-01T08:13:07.5775861Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAkvel7MAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-02-28T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACS/6izw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "yet: nhưng, tuy nhiên",
+            "createdDateTime": "2025-02-28T00:21:06.3710473Z",
+            "lastModifiedDateTime": "2025-02-28T00:21:06.4594787Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAkvel7IAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-02-27T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACSL1iHw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "executive: điều hành",
+            "createdDateTime": "2025-02-22T00:47:39.205146Z",
+            "lastModifiedDateTime": "2025-02-22T00:47:39.2425311Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAkid2dwAAAA=",
+            "body": {
+                "content": "\r\n",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-02-21T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACTzQlYw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "specific: cụ thể",
+            "createdDateTime": "2025-02-18T02:55:20.0746048Z",
+            "lastModifiedDateTime": "2025-03-02T13:21:29.1970255Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAk8UA5kAAAA=",
+            "body": {
+                "content": "\r\n",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-02-17T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACOkJ/tQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "any: bất kỳ",
+            "createdDateTime": "2025-01-31T10:14:38.62403Z",
+            "lastModifiedDateTime": "2025-01-31T10:14:38.6619417Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAjolD7QAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-01-30T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACOkJsBQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "requirements: yêu cầu",
+            "createdDateTime": "2025-01-31T03:07:03.4386861Z",
+            "lastModifiedDateTime": "2025-01-31T03:07:03.4940572Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAjolD7MAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-01-30T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACN8aJiw==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "meet: đáp ứng",
+            "createdDateTime": "2025-01-27T03:22:18.4581381Z",
+            "lastModifiedDateTime": "2025-01-27T03:22:18.4892353Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAjep1q8AAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-01-26T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACNYeuMg==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "appreciate: đánh giá cao",
+            "createdDateTime": "2025-01-25T11:32:34.0635107Z",
+            "lastModifiedDateTime": "2025-01-25T11:32:34.0955583Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAjVrL4IAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-01-24T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACNYetfQ==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "immediately: ngay lập tức",
+            "createdDateTime": "2025-01-25T10:02:57.1483252Z",
+            "lastModifiedDateTime": "2025-01-25T10:02:57.1938129Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAjVrL4EAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-01-24T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        },
+        {
+            "@odata.etag": "W/\"AJb4jz0ud0CKRUw/sNTI4gACM9QcFA==\"",
+            "importance": "normal",
+            "isReminderOn": false,
+            "status": "notStarted",
+            "title": "even: thậm chí",
+            "createdDateTime": "2025-01-20T13:47:05.5510748Z",
+            "lastModifiedDateTime": "2025-01-20T13:47:05.5993542Z",
+            "hasAttachments": false,
+            "categories": [],
+            "id": "AQMkADAwATM0MDAAMS00YjVkLThlZjAtMDACLTAwCgBGAAADOHKXbY4upE2jOlgqsndrkAcAAACW_I89LndAikVMP7DUyOIAAbYQXwQAAAGW_I89LndAikVMP7DUyOIAAjO4RXoAAAA=",
+            "body": {
+                "content": "",
+                "contentType": "text"
+            },
+            "dueDateTime": {
+                "dateTime": "2025-01-19T17:00:00.0000000",
+                "timeZone": "UTC"
+            }
+        }
+    ]
+}

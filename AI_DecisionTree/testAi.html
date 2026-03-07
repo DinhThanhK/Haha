@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Học Giải Mê Cung (Phiên bản Nâng cấp)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #1e1e2f; color: #fff; margin: 0; padding: 20px; }
+        canvas { background-color: #2a2a40; box-shadow: 0 0 15px rgba(0,0,0,0.5); margin-top: 20px; border: 3px solid #4CAF50; border-radius: 8px; }
+        .controls { margin-top: 10px; padding: 20px; background: #2a2a40; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        button, select, input { padding: 10px 15px; margin: 5px; font-size: 16px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; }
+        select, input { background: #3f3f5a; color: white; }
+        button:hover { opacity: 0.8; }
+        .dashboard { display: flex; justify-content: space-around; background: #3f3f5a; padding: 10px; margin-top: 15px; border-radius: 8px; font-size: 18px; }
+        .stat-box { font-weight: bold; }
+        .text-green { color: #4CAF50; }
+        .text-red { color: #ff5252; }
+        .text-yellow { color: #ffd700; }
+    </style>
+</head>
+<body>
+
+    <h1>🤖 AI Tự Học Giải Mê Cung</h1>
+    
+    <div class="controls">
+        <label for="mapSelect">Bản đồ:</label>
+        <select id="mapSelect" onchange="init()">
+            <option value="simple">Đơn giản (Tối đa 50 bước)</option>
+            <option value="normal">Bình thường (Tối đa 200 bước)</option>
+            <option value="complex">Phức tạp (Tối đa 500 bước)</option>
+        </select>
+
+        <label for="speedSlider" style="margin-left: 20px;">Tốc độ: <span id="speedValue" class="text-yellow">1</span></label>
+        <input type="range" id="speedSlider" min="1" max="50" value="1" oninput="updateSpeed()">
+
+        <br><br>
+        <button onclick="startTraining()" style="background-color: #4CAF50; color: white;">▶ Bắt đầu học</button>
+        <button onclick="stopTraining()" style="background-color: #ff9800; color: white;">⏸ Tạm dừng</button>
+        <button onclick="init()" style="background-color: #f44336; color: white;">🔄 Xóa trí nhớ (Reset)</button>
+
+        <div class="dashboard">
+            <div class="stat-box">Lần thử thứ: <span id="episodeCount" class="text-yellow">0</span></div>
+            <div class="stat-box">Thời gian (Bước): <span id="timeLeft" class="text-red">0</span></div>
+            <div class="stat-box">Điểm hiện tại: <span id="currentScore" class="text-green">0</span></div>
+        </div>
+    </div>
+
+    <br>
+    <canvas id="mazeCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('mazeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // UI Elements
+        const speedText = document.getElementById('speedValue');
+        const episodeText = document.getElementById('episodeCount');
+        const timeLeftText = document.getElementById('timeLeft');
+        const currentScoreText = document.getElementById('currentScore');
+
+        const maps = {
+            simple: {
+                grid: [
+                    [0, 0, 0, 1, 0],
+                    [1, 1, 0, 1, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 1, 2]
+                ],
+                timeLimit: 50
+            },
+            normal: {
+                grid: [
+                    [0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 1, 1, 0, 1, 0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 1, 1, 1, 1, 0, 1, 0, 1, 0],
+                    [0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 1, 1, 1, 1, 1, 2]
+                ],
+                timeLimit: 200
+            },
+            complex: {
+                grid: [
+                    [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+                    [1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+                    [0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                    [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]
+                ],
+                timeLimit: 500
+            }
+        };
+
+        let currentMapData, currentMap, cols, rows, cellSize = 40;
+        let aiX = 0, aiY = 0;
+        let qTable = {}; 
+        let isTraining = false;
+        
+        // Tracking Variables
+        let episodes = 1;
+        let speed = 1;
+        let stepsLeft = 0;
+        let currentScore = 0;
+        let floatingTexts = []; // Mảng chứa các text điểm bay bay
+        let loopTimeout;
+        
+        // Q-Learning Params
+        const alpha = 0.1; 
+        const gamma = 0.9; 
+        let epsilon = 1.0; 
+
+        function updateSpeed() {
+            speed = parseInt(document.getElementById('speedSlider').value);
+            speedText.innerText = speed;
+        }
+
+        function init() {
+            stopTraining();
+            let mapType = document.getElementById('mapSelect').value;
+            currentMapData = maps[mapType];
+            currentMap = currentMapData.grid;
+            rows = currentMap.length;
+            cols = currentMap[0].length;
+            
+            cellSize = mapType === 'simple' ? 80 : (mapType === 'normal' ? 45 : 35);
+            canvas.width = cols * cellSize;
+            canvas.height = rows * cellSize;
+            
+            episodes = 1;
+            epsilon = 1.0;
+            
+            // Khởi tạo Q-Table
+            qTable = {};
+            for(let y = 0; y < rows; y++) {
+                for(let x = 0; x < cols; x++) {
+                    qTable[`${x},${y}`] = [0, 0, 0, 0]; // Lên, Phải, Xuống, Trái
+                }
+            }
+            
+            resetEpisode();
+            updateUI();
+            drawMap();
+        }
+
+        function resetEpisode() {
+            aiX = 0; 
+            aiY = 0;
+            stepsLeft = currentMapData.timeLimit;
+            currentScore = 0;
+            floatingTexts = [];
+        }
+
+        function updateUI() {
+            episodeText.innerText = episodes;
+            timeLeftText.innerText = stepsLeft;
+            currentScoreText.innerText = currentScore.toFixed(1);
+            
+            // Đổi màu cảnh báo nếu sắp hết giờ
+            if(stepsLeft <= 10) timeLeftText.className = "text-red";
+            else timeLeftText.className = "text-yellow";
+        }
+
+        function addFloatingText(x, y, text, color) {
+            // Chỉ hiển thị text bay nếu tốc độ chậm để tránh rối mắt
+            if(speed <= 5) {
+                floatingTexts.push({ x: x, y: y, text: text, color: color, alpha: 1.0 });
+            }
+        }
+
+        function drawMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for(let y = 0; y < rows; y++) {
+                for(let x = 0; x < cols; x++) {
+                    if(currentMap[y][x] === 1) {
+                        ctx.fillStyle = '#4f4f70'; // Tường
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    } else if(currentMap[y][x] === 2) {
+                        ctx.fillStyle = '#4CAF50'; // Đích
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                    ctx.strokeStyle = '#2a2a40';
+                    ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+            
+            // Vẽ AI
+            ctx.fillStyle = '#00e5ff'; // Màu xanh neon
+            ctx.beginPath();
+            ctx.arc(aiX * cellSize + cellSize/2, aiY * cellSize + cellSize/2, cellSize/3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0; // Tắt shadow
+
+            // Vẽ Floating Texts (Các con số điểm bay lên)
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                let ft = floatingTexts[i];
+                ctx.fillStyle = ft.color;
+                ctx.globalAlpha = ft.alpha;
+                ctx.font = "bold 20px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(ft.text, ft.x, ft.y);
+                
+                ft.y -= 1.5; // Bay lên trên
+                ft.alpha -= 0.03; // Mờ dần
+                
+                if (ft.alpha <= 0) {
+                    floatingTexts.splice(i, 1);
+                }
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
+        function stepAI() {
+            let state = `${aiX},${aiY}`;
+            let action;
+
+            if (Math.random() < epsilon) action = Math.floor(Math.random() * 4); 
+            else action = qTable[state].indexOf(Math.max(...qTable[state]));
+
+            let newX = aiX, newY = aiY;
+            if (action === 0) newY--; // Lên
+            if (action === 1) newX++; // Phải
+            if (action === 2) newY++; // Xuống
+            if (action === 3) newX--; // Trái
+
+            let reward = 0;
+            let nextState = `${newX},${newY}`;
+            let done = false;
+
+            stepsLeft--;
+
+            // Logic Thưởng - Phạt
+            if (newX < 0 || newX >= cols || newY < 0 || newY >= rows || currentMap[newY][newX] === 1) {
+                reward = -5; // Phạt đâm tường
+                addFloatingText(aiX * cellSize + cellSize/2, aiY * cellSize, "-5", "#ff5252");
+                nextState = state; 
+            } else if (currentMap[newY][newX] === 2) {
+                reward = 100; // Thưởng tới đích
+                aiX = newX; aiY = newY;
+                addFloatingText(aiX * cellSize + cellSize/2, aiY * cellSize, "+100", "#4CAF50");
+                done = true;
+            } else {
+                reward = -0.1; // Phạt đi lòng vòng
+                aiX = newX; aiY = newY;
+                addFloatingText(aiX * cellSize + cellSize/2, aiY * cellSize, "-0.1", "#fff");
+            }
+
+            currentScore += reward;
+
+            // Kiểm tra hết giờ (hết số bước)
+            if (stepsLeft <= 0 && !done) {
+                done = true;
+            }
+
+            // Cập nhật Q-Table
+            let maxNextQ = Math.max(...qTable[nextState]);
+            qTable[state][action] = qTable[state][action] + alpha * (reward + gamma * maxNextQ - qTable[state][action]);
+
+            if (done) {
+                episodes++;
+                if(epsilon > 0.05) epsilon -= 0.01; // AI khôn dần lên
+                resetEpisode();
+            }
+        }
+
+        function trainingLoop() {
+            if (!isTraining) return;
+            
+            // Xử lý logic tốc độ
+            let stepsThisTick = 1;
+            let tickDelay = 300; // Mặc định x1 thì 0.3s đi 1 bước
+
+            if (speed <= 10) {
+                tickDelay = 300 / speed; // Tốc độ 1-10 sẽ giảm thời gian delay
+            } else {
+                tickDelay = 16; // Chạy ở 60FPS
+                stepsThisTick = (speed - 9) * 2; // Tốc độ >10 sẽ gộp nhiều bước vào 1 khung hình để tua nhanh
+            }
+
+            for(let i = 0; i < stepsThisTick; i++) {
+                stepAI();
+            }
+            
+            updateUI();
+            drawMap();
+            
+            // Lặp lại vòng lặp
+            loopTimeout = setTimeout(trainingLoop, tickDelay);
+        }
+
+        function startTraining() {
+            if(!isTraining) {
+                isTraining = true;
+                trainingLoop();
+            }
+        }
+
+        function stopTraining() {
+            isTraining = false;
+            clearTimeout(loopTimeout);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

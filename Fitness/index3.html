@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng Theo dõi Giá Đồ Ăn</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { margin-bottom: 20px; }
+        label { display: block; margin: 5px 0; }
+        input, select, button { margin: 5px 0; padding: 5px; }
+        .item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .time-bar { height: 10px; border-radius: 5px; margin-top: 5px; }
+        #results { margin-top: 20px; }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
+</head>
+<body>
+    <h1>Theo dõi Giá Đồ Ăn</h1>
+
+    <!-- Phần thêm tags -->
+    <h2>Thêm Tags</h2>
+    <form id="addTagForm">
+        <label>Thêm tên đồ ăn:</label>
+        <input type="text" id="newFoodTag" placeholder="Tên đồ ăn mới">
+        <button type="button" onclick="addFoodTag()">Thêm</button>
+        
+        <label>Thêm nơi mua:</label>
+        <input type="text" id="newPlaceTag" placeholder="Nơi mua mới">
+        <button type="button" onclick="addPlaceTag()">Thêm</button>
+    </form>
+
+    <!-- Form nhập dữ liệu -->
+    <h2>Nhập Món Đồ Mới</h2>
+    <form id="itemForm">
+        <label>Tên đồ ăn:</label>
+        <select id="foodName"></select>
+        
+        <label>Giá tiền (K):</label>
+        <input type="number" id="price" step="0.1" placeholder="Ví dụ: 15 cho 15K">
+        
+        <label>Nơi mua:</label>
+        <select id="place"></select>
+        
+        <label>Ngày mua:</label>
+        <input type="date" id="purchaseDate">
+        <button type="button" onclick="changeDate(-1)">-1 Ngày</button>
+        <button type="button" onclick="changeDate(1)">+1 Ngày</button>
+        
+        <button type="button" onclick="addItem()">Lưu</button>
+    </form>
+
+    <!-- Thanh search -->
+    <h2>Tìm Kiếm</h2>
+    <input type="text" id="searchInput" placeholder="Tìm theo tên, nơi, ngày (YYYY-MM-DD)" oninput="searchItems()">
+
+    <!-- Bộ lọc -->
+    <select id="filter" onchange="searchItems()">
+        <option value="">Không lọc</option>
+        <option value="date">Theo ngày (mới nhất)</option>
+        <option value="price">Theo giá (rẻ nhất)</option>
+    </select>
+
+    <!-- Kết quả -->
+    <div id="results"></div>
+
+    <script>
+        // Firebase config từ người dùng
+        const firebaseConfig = {
+            apiKey: "AIzaSyARyxrxmbNLaxSdDP14S5YQES5AJnLj-XU",
+            authDomain: "mylife-ddd6a.firebaseapp.com",
+            databaseURL: "https://mylife-ddd6a-default-rtdb.firebaseio.com",
+            projectId: "mylife-ddd6a",
+            storageBucket: "mylife-ddd6a.firebasestorage.app",
+            messagingSenderId: "969759088030",
+            appId: "1:969759088030:web:69155b992b0cea296e4a8f",
+            measurementId: "G-V80ERR7KWQ"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Refs
+        const itemsRef = db.ref('items');
+        const foodTagsRef = db.ref('tags_food');
+        const placeTagsRef = db.ref('tags_place');
+
+        // Load tags
+        function loadTags() {
+            foodTagsRef.once('value').then(snapshot => {
+                const select = document.getElementById('foodName');
+                select.innerHTML = '';
+                snapshot.forEach(child => {
+                    const option = document.createElement('option');
+                    option.value = child.val();
+                    option.textContent = child.val();
+                    select.appendChild(option);
+                });
+            });
+
+            placeTagsRef.once('value').then(snapshot => {
+                const select = document.getElementById('place');
+                select.innerHTML = '';
+                snapshot.forEach(child => {
+                    const option = document.createElement('option');
+                    option.value = child.val();
+                    option.textContent = child.val();
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // Add food tag
+        function addFoodTag() {
+            const tag = document.getElementById('newFoodTag').value.trim();
+            if (tag) {
+                foodTagsRef.push(tag);
+                loadTags();
+                document.getElementById('newFoodTag').value = '';
+            }
+        }
+
+        // Add place tag
+        function addPlaceTag() {
+            const tag = document.getElementById('newPlaceTag').value.trim();
+            if (tag) {
+                placeTagsRef.push(tag);
+                loadTags();
+                document.getElementById('newPlaceTag').value = '';
+            }
+        }
+
+        // Set default date
+        function setDefaultDate() {
+            const dateInput = document.getElementById('purchaseDate');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
+
+        // Change date by days
+        function changeDate(days) {
+            const dateInput = document.getElementById('purchaseDate');
+            let currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() + days);
+            dateInput.value = currentDate.toISOString().split('T')[0];
+        }
+
+        // Add item
+        function addItem() {
+            const name = document.getElementById('foodName').value;
+            const price = parseFloat(document.getElementById('price').value) * 1000; // Convert to VND
+            const place = document.getElementById('place').value;
+            const date = document.getElementById('purchaseDate').value;
+
+            if (name && price && place && date) {
+                itemsRef.push({ name, price, place, date });
+                document.getElementById('itemForm').reset();
+                setDefaultDate();
+                searchItems(); // Refresh results
+            }
+        }
+
+        // Display items
+        function displayItems(items) {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerHTML = `
+                    <p>${item.name} - ${item.price / 1000}K - ${item.place} - ${item.date}</p>
+                `;
+                const bar = document.createElement('div');
+                bar.className = 'time-bar';
+                const daysAgo = Math.floor((new Date() - new Date(item.date)) / (1000 * 60 * 60 * 24));
+                let width, color;
+                if (daysAgo < 5) {
+                    width = 100;
+                    color = 'green';
+                } else if (daysAgo < 15) {
+                    width = 100 - (daysAgo - 5) * 5; // Giảm 5% mỗi ngày
+                    color = 'orange';
+                } else if (daysAgo < 30) {
+                    width = 50 - (daysAgo - 15) * (50 / 15); // Giảm từ 50% xuống 10%
+                    color = 'red';
+                } else {
+                    width = 10 - (daysAgo - 30) / 30 * 5; // Xuống minimum 5-10%
+                    color = 'brown';
+                    if (width < 5) width = 5;
+                }
+                bar.style.width = `${width}%`;
+                bar.style.backgroundColor = color;
+                div.appendChild(bar);
+                results.appendChild(div);
+            });
+        }
+
+        // Search and filter
+        function searchItems() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filter = document.getElementById('filter').value;
+
+            itemsRef.once('value').then(snapshot => {
+                let items = [];
+                snapshot.forEach(child => {
+                    const item = child.val();
+                    const matches = !search || 
+                        item.name.toLowerCase().includes(search) ||
+                        item.place.toLowerCase().includes(search) ||
+                        item.date.includes(search);
+                    if (matches) items.push(item);
+                });
+
+                // Sort
+                if (search) {
+                    // Ưu tiên giá rẻ, rồi ngày mới
+                    items.sort((a, b) => a.price - b.price || new Date(b.date) - new Date(a.date));
+                } else if (filter === 'date') {
+                    items.sort((a, b) => new Date(b.date) - new Date(a.date));
+                } else if (filter === 'price') {
+                    items.sort((a, b) => a.price - b.price);
+                }
+
+                displayItems(items);
+            });
+        }
+
+        // Init
+        loadTags();
+        setDefaultDate();
+        searchItems(); // Load all initially
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Tree ID3 Training</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300A86B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='6' height='6'/%3E%3Crect x='15' y='3' width='6' height='6'/%3E%3Crect x='9' y='15' width='6' height='6'/%3E%3Cline x1='6' y1='9' x2='12' y2='15'/%3E%3Cline x1='18' y1='9' x2='12' y2='15'/%3E%3C/svg%3E">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌳 Decision Tree ID3 Training</h1>
+            <p>Thuật toán ID3 (Iterative Dichotomiser 3) - J. Ross Quinlan</p>
+            <p class="subtitle">Sử dụng Information Gain để xây dựng cây quyết định</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Upload & Training Section -->
+            <div class="card">
+                <h2>📊 Tải dữ liệu & Training</h2>
+                
+                <div class="upload-section">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="csvFile" accept=".csv,.xlsx,.xls">
+                        <label for="csvFile" class="file-input-label">📁 Chọn file CSV/Excel</label>
+                    </div>
+                    <div id="fileName" class="file-name"></div>
+                </div>
+
+                <div id="dataPreview" class="data-preview" style="display: none;"></div>
+
+                <!-- Column Configuration -->
+                <div id="columnSelection" style="display: none;">
+                    <h3 class="section-title">⚙️ Cấu hình cột dữ liệu</h3>
+                    
+                    <div class="input-group">
+                        <label>🎯 Chọn thuộc tính kết quả (Target):</label>
+                        <select id="targetColumnSelect">
+                            <option value="">-- Chọn cột target --</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>🚫 Chọn các cột cần bỏ qua:</label>
+                        <div id="ignoreColumnsCheckbox" class="checkbox-group"></div>
+                    </div>
+                </div>
+
+                <button id="trainBtn" class="btn btn-primary" disabled>🚀 Training Model với ID3</button>
+                
+                <div id="status"></div>
+                <div id="stats" class="stats" style="display: none;"></div>
+            </div>
+
+            <!-- Prediction Section -->
+            <div class="card">
+                <h2>🎯 Dự đoán</h2>
+                <div id="predictionForm">
+                    <p class="empty-state">
+                        Vui lòng tải dữ liệu và training model trước
+                    </p>
+                </div>
+                <div id="predictionResult" class="prediction-result"></div>
+            </div>
+        </div>
+
+        <!-- Tree Visualization Section -->
+        <div class="card">
+            <h2>🌲 Cây Quyết định (Decision Tree)</h2>
+            <div class="tree-controls">
+                <button id="showTreeBtn" class="btn btn-secondary" disabled>👁️ Xem cây quyết định</button>
+                <button id="showCalculationsBtn" class="btn btn-secondary" disabled style="display: none;">📊 Chi tiết tính toán</button>
+            </div>
+            <div id="treeVisualization" class="tree-visualization" style="display: none;"></div>
+            <div id="calculationsDisplay" class="calculations-display" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
