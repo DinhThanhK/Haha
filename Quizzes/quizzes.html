@@ -863,7 +863,7 @@ let _navigatingFromEdit = false;
 
 // ===== USER MANAGEMENT (Firebase-backed) =====
 let _usersCache = null;
-let _currentUserCache = null;
+let _currentUserCache = undefined;
 
 function getUsers() {
   if(_usersCache) return _usersCache;
