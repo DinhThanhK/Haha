@@ -558,6 +558,27 @@
   }
   .reset-sessions-btn:hover { border-color:var(--wrong); color:var(--wrong); background:rgba(255,107,107,.08); }
 
+
+  /* ===== MATH NOTATION REFERENCE ===== */
+  .math-ref-panel {
+    background:rgba(0,212,170,.05); border:1px solid rgba(0,212,170,.2);
+    border-radius:var(--radius-sm); padding:10px 14px; margin-top:6px; font-size:.75rem;
+  }
+  .math-ref-title { color:var(--accent2); font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .math-ref-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:4px 16px; }
+  .math-ref-row { display:flex; align-items:center; gap:6px; padding:2px 0; }
+  .math-ref-code { font-family:monospace; color:var(--accent2); background:rgba(0,212,170,.1); padding:1px 5px; border-radius:3px; font-size:.72rem; white-space:nowrap; }
+  .math-ref-arrow { color:var(--text3); font-size:.7rem; }
+  .math-ref-result { color:var(--text); }
+  /* rendered math inline */
+  .math-sup { font-size:.65em; vertical-align:super; line-height:0; }
+  .math-sub { font-size:.65em; vertical-align:sub; line-height:0; }
+  .math-frac { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; font-size:.85em; margin:0 2px; }
+  .math-frac-num { border-bottom:1px solid currentColor; padding:0 3px; line-height:1.2; }
+  .math-frac-den { padding:0 3px; line-height:1.2; }
+  .math-sqrt { display:inline-flex; align-items:center; gap:1px; }
+  .math-sqrt-sym { font-size:1.15em; }
+  .math-sqrt-body { border-top:1.5px solid currentColor; padding:0 2px 0 1px; }
   /* ===== EXPLANATION IMAGE ===== */
   .expl-img-preview { max-width:100%; max-height:90px; border-radius:var(--radius-sm); margin-top:5px; display:none; object-fit:cover; }
 </style>
@@ -1595,8 +1616,12 @@ function renderQuestionItem(q, qi, container, isInline) {
     </div>
     <div class="q-text-panel-hint">
       Dùng <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">A*.</code> để đánh dấu đáp án đúng &nbsp;|&nbsp;
-      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">=></code> cho giải thích
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">=></code> cho giải thích &nbsp;|&nbsp;
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">x^2</code> mũ &nbsp;
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">H_2O</code> chỉ số dưới &nbsp;
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">-></code> mũi tên
     </div>
+    \${buildMathRefPanel()}
     <textarea class="q-text-area" id="qtext-${qi}" spellcheck="false"
       placeholder="${placeholder}"
       oninput="syncTextToForm(${qi})">${escHtml(qToText(q, qi))}</textarea>
@@ -1817,17 +1842,17 @@ function showQuestion(idx) {
   updateProgress();
   updateNavButtons(idx);
 
-  // Set text content after render (allows HTML entities / special chars from user input)
+  // Set text content after render — áp dụng renderMath cho ký hiệu đặc biệt
   const qtd = document.getElementById('qtext-display-'+idx);
-  if(qtd) qtd.innerHTML = q.text || '';
+  if(qtd) applyMath(qtd, q.text || '');
   display.querySelectorAll('.answer-text[data-text]').forEach(el => {
-    el.innerHTML = decodeURIComponent(el.dataset.text);
+    applyMath(el, decodeURIComponent(el.dataset.text));
   });
   const explEl = document.getElementById('expl-display-'+idx);
   if(explEl) {
     const prefix = '<strong><i class="fas fa-lightbulb"></i> Giải thích:</strong> ';
     const imgSuffix = explEl.querySelector('img') ? '<br>' + explEl.querySelector('img').outerHTML : '';
-    explEl.innerHTML = prefix + decodeURIComponent(explEl.dataset.expl) + imgSuffix;
+    explEl.innerHTML = prefix + renderMath(decodeURIComponent(explEl.dataset.expl)) + imgSuffix;
   }
 }
 
@@ -2071,6 +2096,140 @@ window.saveInlineEdit = async function() {
   showQuestion(qi);
   updateSidebarStats();
 };
+
+
+// ===== MATH / FORMULA RENDERER =====
+// Quy ước ký hiệu đặc biệt:
+//   x^2       → x²  (superscript)
+//   H_2O      → H₂O (subscript)
+//   _t^o      → t° (nhiệt độ hoá học)  
+//   ->        → →  (mũi tên phương trình)
+//   <->       → ⇌  (cân bằng thuận nghịch)
+//   =>        → ⇒  (suy ra / điều kiện)
+//   +-        → ±
+//   *         → ×  (nhân, chỉ khi giữa số/chữ)
+//   /frac{a}{b} → phân số a/b đẹp
+//   /sqrt{x}  → √x đẹp
+//   !=        → ≠
+//   <=        → ≤
+//   >=        → ≥
+//   ~=        → ≈
+//   inf       → ∞ (khi đứng riêng)
+//   alpha beta gamma delta pi omega theta → ký tự Hy Lạp
+//   CO_2, H_2O, H_2SO_4, ... → chỉ số dưới hoá học tự động
+
+const MATH_SYMBOLS = [
+  { input:'x^2',      output:'x<sup class="math-sup">2</sup>',   label:'Mũ / Lũy thừa' },
+  { input:'H_2O',     output:'H<sub class="math-sub">2</sub>O',  label:'Chỉ số dưới' },
+  { input:'_t^o',     output:'<sup class="math-sup">t°</sup>',   label:'Nhiệt độ (điều kiện)' },
+  { input:'->',       output:'→',                                 label:'Mũi tên pt hoá' },
+  { input:'<->',      output:'⇌',                                label:'Cân bằng thuận nghịch' },
+  { input:'=>',       output:'⇒',                                 label:'Suy ra / điều kiện' },
+  { input:'+-',       output:'±',                                 label:'Cộng trừ' },
+  { input:'!=',       output:'≠',                                 label:'Không bằng' },
+  { input:'<=',       output:'≤',                                 label:'Nhỏ hơn hoặc bằng' },
+  { input:'>=',       output:'≥',                                 label:'Lớn hơn hoặc bằng' },
+  { input:'~=',       output:'≈',                                 label:'Xấp xỉ' },
+  { input:'/sqrt{x}', output:'√x',                               label:'Căn bậc hai' },
+  { input:'/frac{a}{b}', output:'a/b',                           label:'Phân số' },
+  { input:'alpha',    output:'α',                                 label:'Alpha' },
+  { input:'beta',     output:'β',                                 label:'Beta' },
+  { input:'gamma',    output:'γ',                                 label:'Gamma' },
+  { input:'delta',    output:'Δ',                                 label:'Delta' },
+  { input:'pi',       output:'π',                                 label:'Pi' },
+  { input:'omega',    output:'ω',                                 label:'Omega' },
+  { input:'theta',    output:'θ',                                 label:'Theta' },
+  { input:'mu',       output:'μ',                                 label:'Mu (micro)' },
+  { input:'inf',      output:'∞',                                 label:'Vô cực' },
+  { input:'sum',      output:'Σ',                                 label:'Tổng Sigma' },
+  { input:'deg',      output:'°',                                 label:'Độ (góc/nhiệt)' },
+];
+
+function renderMath(text) {
+  if (!text) return text;
+  let s = text;
+
+  // 1. /frac{a}{b} → phân số đẹp
+  s = s.replace(/\/frac\{([^}]*)\}\{([^}]*)\}/g, (_, num, den) =>
+    `<span class="math-frac"><span class="math-frac-num">${renderMath(num)}</span><span class="math-frac-den">${renderMath(den)}</span></span>`
+  );
+
+  // 2. /sqrt{x} → √x đẹp
+  s = s.replace(/\/sqrt\{([^}]*)\}/g, (_, body) =>
+    `<span class="math-sqrt"><span class="math-sqrt-sym">√</span><span class="math-sqrt-body">${renderMath(body)}</span></span>`
+  );
+
+  // 3. _t^o → nhiệt độ hoá học (điều kiện phản ứng)
+  s = s.replace(/_t\^o/g, '<sup class="math-sup">t°</sup>');
+  // _to^o variant
+  s = s.replace(/_to\^o/g, '<sup class="math-sup">t°</sup>');
+
+  // 4. x^{abc} → abc là superscript (nhóm)
+  s = s.replace(/\^\{([^}]*)\}/g, (_, exp) =>
+    `<sup class="math-sup">${exp}</sup>`
+  );
+  // x^2 hoặc x^ab (đến khoảng trắng/ký tự đặc biệt)
+  s = s.replace(/\^([A-Za-z0-9+\-*/αβγδπωθμ°]+)/g, (_, exp) =>
+    `<sup class="math-sup">${exp}</sup>`
+  );
+
+  // 5. _{abc} → subscript nhóm
+  s = s.replace(/_\{([^}]*)\}/g, (_, sub) =>
+    `<sub class="math-sub">${sub}</sub>`
+  );
+  // _2 (chỉ số đơn - hoá học)
+  s = s.replace(/_([A-Za-z0-9]+)/g, (_, sub) =>
+    `<sub class="math-sub">${sub}</sub>`
+  );
+
+  // 6. Mũi tên & ký hiệu toán (thứ tự quan trọng!)
+  s = s.replace(/<->/g, '⇌');
+  s = s.replace(/->/g, '→');
+  s = s.replace(/=>/g, '⇒');   // chỉ sau khi xử lý => của parser (đây là display)
+  s = s.replace(/\.\.\.+-/g, '±');
+  s = s.replace(/([^!<>~])!=([^=])/g, '$1≠$2');
+  s = s.replace(/([^<])<=([^>])/g, '$1≤$2');
+  s = s.replace(/([^>])>=([^=])/g, '$1≥$2');
+  s = s.replace(/~=/g, '≈');
+  s = s.replace(/\+-/g, '±');
+
+  // 7. Ký tự Hy Lạp (standalone words)
+  const greekMap = {
+    'alpha':'α','beta':'β','gamma':'γ','delta':'δ','epsilon':'ε',
+    'zeta':'ζ','eta':'η','theta':'θ','lambda':'λ','mu':'μ',
+    'nu':'ν','xi':'ξ','pi':'π','rho':'ρ','sigma':'σ',
+    'tau':'τ','phi':'φ','chi':'χ','psi':'ψ','omega':'ω',
+    'Delta':'Δ','Sigma':'Σ','Omega':'Ω','Pi':'Π','Phi':'Φ',
+    'inf':'∞','deg':'°','sum':'Σ',
+  };
+  s = s.replace(/\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|Delta|Sigma|Omega|Pi|Phi|inf|deg|sum)\b/g,
+    (_, w) => greekMap[w] || w
+  );
+
+  return s;
+}
+
+// Áp dụng renderMath cho một element innerHTML
+function applyMath(el, rawText) {
+  if (!el) return;
+  el.innerHTML = renderMath(rawText || '');
+}
+
+// Bảng tham khảo ký hiệu (HTML) để nhúng vào panel soạn thảo
+function buildMathRefPanel() {
+  const rows = MATH_SYMBOLS.map(s =>
+    `<div class="math-ref-row">
+      <span class="math-ref-code">${escHtml(s.input)}</span>
+      <span class="math-ref-arrow">→</span>
+      <span class="math-ref-result">${s.output}</span>
+      <span style="color:var(--text3);font-size:.68rem">${s.label}</span>
+    </div>`
+  ).join('');
+  return `<div class="math-ref-panel">
+    <div class="math-ref-title"><i class="fas fa-flask"></i> Ký hiệu đặc biệt — gõ vào câu hỏi/đáp án/giải thích</div>
+    <div class="math-ref-grid">${rows}</div>
+  </div>`;
+}
 
 // ===== SETTINGS PAGE =====
 function renderColorSettings() {
