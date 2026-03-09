@@ -239,9 +239,6 @@
   .sample-img-btn:hover, .sample-img-btn.selected { border-color:var(--accent); }
 
 
-  .explanation-box sub, .answer-text sub, .question-text sub { font-size:.72em; vertical-align:sub; color:#93c5fd; }
-  .explanation-box sup, .answer-text sup, .question-text sup { font-size:.72em; vertical-align:super; color:#86efac; }
-
   /* ===== QUESTION ITEM SPLIT LAYOUT ===== */
   .question-list { display:flex; flex-direction:column; gap:16px; }
 
@@ -310,19 +307,19 @@
     .quiz-sidebar.mobile-visible { transform:translateY(0); }
   }
 
+  /* quiz top bar */
   .quiz-topbar {
     display:flex; align-items:center; justify-content:space-between; gap:12px;
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; margin-bottom:16px;
   }
-  .quiz-title-text { font-family:'Lexend Deca',sans-serif; font-weight:800; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+  .quiz-title-text { font-family:'Lexend Deca',sans-serif; font-weight:800; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .timer-display {
     display:flex; align-items:center; gap:6px; color:var(--timer-color);
     font-family:'Lexend Deca',sans-serif; font-weight:700; font-size:1rem; flex-shrink:0;
-    min-width:80px; justify-content:flex-end;
   }
   .timer-display.urgent { color:var(--wrong); animation:pulse .5s ease infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-  .quiz-progress { display:flex; align-items:center; gap:8px; flex-shrink:0; font-size:.82rem; color:var(--text2); min-width:110px; justify-content:flex-end; }
+  .quiz-progress { display:flex; align-items:center; gap:8px; flex-shrink:0; font-size:.82rem; color:var(--text2); }
   .progress-bar { width:80px; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
   .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; transition:width .3s; }
 
@@ -360,8 +357,8 @@
   .answer-icon { font-size:1rem; flex-shrink:0; }
   .explanation-box {
     background:rgba(108,99,255,.08); border:1px solid rgba(108,99,255,.3); border-radius:var(--radius-sm);
-    padding:12px 16px; margin-top:12px; font-size:.95rem; color:var(--text2); line-height:1.7;
-    animation:fadeIn .3s ease; white-space:pre-wrap;
+    padding:12px 16px; margin-top:12px; font-size:.85rem; color:var(--text2); line-height:1.6;
+    animation:fadeIn .3s ease;
   }
   @keyframes fadeIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
   .explanation-box strong { color:var(--accent); }
@@ -391,8 +388,6 @@
   .quiz-nav-btn.submit:hover { filter:brightness(1.1); }
   .quiz-nav-btn.nav-middle { background:var(--bg3); border-color:var(--border); color:var(--text2); flex:0 0 auto; padding:12px 16px; }
   .quiz-nav-btn.nav-middle:hover { border-color:var(--accent); color:var(--accent); }
-  /* Show nav-center toggle on all screen sizes */
-  .btn-nav-center { display:flex; }
 
   /* sidebar nav */
   .sidebar-header { padding:14px 16px; border-bottom:1px solid var(--nav-border); display:flex; align-items:center; justify-content:space-between; }
@@ -565,64 +560,6 @@
 
   /* ===== EXPLANATION IMAGE ===== */
   .expl-img-preview { max-width:100%; max-height:90px; border-radius:var(--radius-sm); margin-top:5px; display:none; object-fit:cover; }
-
-  /* ===== RICH CONTENTEDITABLE FIELDS ===== */
-  /* Các ô soạn thảo inline hỗ trợ paste HTML (sub/sup) */
-
-  /* Base style chung cho mọi rich-field */
-  .rich-field {
-    width:100%; min-height:38px;
-    padding:8px 12px;
-    border-radius:var(--radius-sm); border:1px solid var(--border);
-    background:var(--bg3); color:var(--text);
-    font-family:'DM Sans',sans-serif; font-size:.9rem; line-height:1.8;
-    outline:none; transition:border-color .2s, box-shadow .2s;
-    word-break:break-word; white-space:pre-wrap;
-    cursor:text; position:relative;
-  }
-  .rich-field:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(108,99,255,.15); }
-  .rich-field:empty:before {
-    content:attr(data-placeholder);
-    color:var(--text3); pointer-events:none; font-style:italic; font-size:.85em;
-  }
-  /* sub/sup đẹp trong rich-field */
-  .rich-field sub { font-size:.72em; vertical-align:sub;   color:#93c5fd; }
-  .rich-field sup { font-size:.72em; vertical-align:super; color:#86efac; }
-
-  /* Rich field dùng cho answer-input (nhỏ hơn) */
-  .rich-field.answer-rich {
-    flex:1; min-height:34px; padding:6px 10px; font-size:.85rem;
-  }
-  .rich-field.answer-rich:focus { border-color:var(--accent); }
-
-  /* Rich field dùng cho explanation (textarea style) */
-  .rich-field.expl-rich {
-    min-height:60px; resize:vertical; overflow-y:auto;
-  }
-
-  /* Badge nhỏ hiện khi field có rich content */
-  .rich-has-badge {
-    display:none; font-size:.58rem; font-weight:700; letter-spacing:.4px;
-    text-transform:uppercase; color:var(--accent2);
-    background:rgba(0,212,170,.1); border:1px solid rgba(0,212,170,.3);
-    border-radius:4px; padding:1px 5px; margin-left:4px; vertical-align:middle;
-  }
-  .rich-has-badge.visible { display:inline; }
-
-  /* Hint bar phía trên rich-field */
-  .rich-field-hint {
-    font-size:.68rem; color:var(--text3); margin-bottom:3px;
-    display:flex; align-items:center; gap:5px;
-  }
-  .rich-field-hint i { color:var(--accent); }
-
-  /* Soạn nhanh text panel vẫn là textarea bình thường — thêm hỗ trợ paste PT inline */
-  /* Hidden paste capture zone */
-  #_rich-capture {
-    position:fixed; left:-9999px; top:-9999px;
-    width:1px; height:1px; opacity:0; pointer-events:none;
-    border:none; outline:none; background:transparent; color:transparent;
-  }
 </style>
 </head>
 <body>
@@ -757,7 +694,7 @@
           <span id="q-progress-text">0/0</span>
           <div class="progress-bar"><div class="progress-fill" id="q-progress-bar" style="width:0%"></div></div>
         </div>
-        <div class="timer-display" id="timer-display"><i class="fas fa-clock"></i><span id="timer-text" style="font-variant-numeric:tabular-nums;letter-spacing:.05em">--:--</span></div>
+        <div class="timer-display" id="timer-display"><i class="fas fa-clock"></i><span id="timer-text">--:--</span></div>
       </div>
       <div id="question-display"></div>
       <div class="quiz-nav-btns-wrap">
@@ -868,17 +805,7 @@
 </div>
 
 <div id="toast-container"></div>
-<!-- Rich paste capture zone -->
-<div id="_rich-capture" contenteditable="true" spellcheck="false" tabindex="-1"></div>
 
-<script>
-  window.MathJax = {
-    tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
-    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-    startup: { typeset: false }
-  };
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js" crossorigin="anonymous"></script>
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -1431,10 +1358,6 @@ function renderQuestions() {
   list.innerHTML = '';
   editQuestions.forEach((q, qi) => renderQuestionItem(q, qi, list));
   document.getElementById('q-count').textContent = editQuestions.length;
-  // Apply rich paste buttons after DOM is ready
-  setTimeout(() => {
-    editQuestions.forEach((_, qi) => applyRichPasteToQuestion(qi));
-  }, 0);
 }
 
 // ---- Text ↔ Form converter ----
@@ -1542,19 +1465,15 @@ function syncFormToText(qi) {
 /** Update form fields in-place after text parse (avoids full re-render losing focus) */
 function refreshFormFields(qi, q) {
   const letters = 'ABCDEFGHIJ';
-  // Question rich-field
+  // Question text input
   const qInput = document.getElementById(`qinput-${qi}`);
-  if(qInput && qInput !== document.activeElement) {
-    setRichFieldContent(qInput, q.textHtml || '', q.text || '');
-  }
+  if(qInput && qInput !== document.activeElement) qInput.value = q.text||'';
   // Type select
   const qType = document.getElementById(`qtype-${qi}`);
   if(qType) qType.value = q.type||'single';
-  // Explanation rich-field
+  // Explanation
   const qExpl = document.getElementById(`qexpl-${qi}`);
-  if(qExpl && qExpl !== document.activeElement) {
-    setRichFieldContent(qExpl, q.explanationHtml || '', q.explanation || '');
-  }
+  if(qExpl && qExpl !== document.activeElement) qExpl.value = q.explanation||'';
 
   // Answers: compare count first
   const container = document.getElementById(`answers-${qi}`);
@@ -1566,27 +1485,18 @@ function refreshFormFields(qi, q) {
       <div class="answer-row" id="ans-${qi}-${ai}">
         <div class="answer-letter">${letters[ai]||'?'}</div>
         <input type="checkbox" class="answer-check" ${a.correct?'checked':''} onchange="editAns(${qi},${ai},'correct',this.checked,${q.type==='single'?'true':'false'})">
-        <div class="rich-field answer-rich" id="ainput-${qi}-${ai}" contenteditable="true" spellcheck="false"
-          data-placeholder="Đáp án ${letters[ai]||ai+1}..."
-          data-qi="${qi}" data-ai="${ai}" data-field="atext"></div>
+        <input type="text" class="answer-input" placeholder="Đáp án ${letters[ai]||ai+1}..." value="${escHtml(a.text||'')}" id="ainput-${qi}-${ai}" oninput="editAns(${qi},${ai},'text',this.value)">
         ${(q.answers||[]).length>2?`<button class="answer-remove-btn" onclick="removeAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
       </div>`).join('');
-    setTimeout(() => {
-      (q.answers||[]).forEach((a, ai) => {
-        const el = document.getElementById(`ainput-${qi}-${ai}`);
-        if(el) { setRichFieldContent(el, a.html||'', a.text||''); bindRichField(el); }
-      });
-    }, 0);
   } else {
+    // Update each row in-place
     (q.answers||[]).forEach((a,ai) => {
       const row = document.getElementById(`ans-${qi}-${ai}`);
       if(!row) return;
       const cb = row.querySelector('.answer-check');
-      const inp = document.getElementById(`ainput-${qi}-${ai}`);
+      const inp = row.querySelector('.answer-input');
       if(cb) cb.checked = a.correct;
-      if(inp && inp !== document.activeElement) {
-        setRichFieldContent(inp, a.html||'', a.text||'');
-      }
+      if(inp && inp!==document.activeElement) inp.value = a.text||'';
     });
   }
 }
@@ -1641,10 +1551,9 @@ function renderQuestionItem(q, qi, container, isInline) {
     <button class="q-remove" onclick="removeQuestion(${qi})" title="Xóa câu"><i class="fas fa-times"></i></button>
     <div class="q-header">
       <div class="q-num">Câu ${qi+1}</div>
-      <div class="rich-field form-input" id="qinput-${qi}" contenteditable="true" spellcheck="false"
-        style="flex:1;min-height:38px"
-        data-placeholder="Nội dung câu hỏi..."
-        data-qi="${qi}" data-field="qtext"></div>
+      <input type="text" class="form-input" id="qinput-${qi}" style="flex:1" placeholder="Nội dung câu hỏi..."
+        value="${escHtml(q.text||'')}"
+        oninput="editQ(${qi},'text',this.value);syncFormToText(${qi})">
       <select class="q-type-select" id="qtype-${qi}" onchange="editQType(${qi},this.value);syncFormToText(${qi})">
         <option value="single" ${q.type==='single'?'selected':''}>Chọn 1</option>
         <option value="multi" ${q.type==='multi'?'selected':''}>Nhiều đáp án</option>
@@ -1659,18 +1568,17 @@ function renderQuestionItem(q, qi, container, isInline) {
         <div class="answer-row" id="ans-${qi}-${ai}">
           <div class="answer-letter">${letters[ai]||'?'}</div>
           <input type="checkbox" class="answer-check" ${a.correct?'checked':''} onchange="editAns(${qi},${ai},'correct',this.checked,${q.type==='single'?'true':'false'});syncFormToText(${qi})">
-          <div class="rich-field answer-rich" id="ainput-${qi}-${ai}" contenteditable="true" spellcheck="false"
-            data-placeholder="Đáp án ${letters[ai]||ai+1}..."
-            data-qi="${qi}" data-ai="${ai}" data-field="atext"></div>
+          <input type="text" class="answer-input" id="ainput-${qi}-${ai}" placeholder="Đáp án ${letters[ai]||ai+1}..."
+            value="${escHtml(a.text||'')}"
+            oninput="editAns(${qi},${ai},'text',this.value);syncFormToText(${qi})">
           ${(q.answers||[]).length>2?`<button class="answer-remove-btn" onclick="removeAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
         </div>`).join('')}
     </div>
     <button class="add-answer-btn" onclick="addAnswer(${qi})"><i class="fas fa-plus"></i> Thêm đáp án</button>
     <div class="form-group" style="margin-top:10px;margin-bottom:0">
       <label>Giải thích (hiện sau khi trả lời)</label>
-      <div class="rich-field expl-rich" id="qexpl-${qi}" contenteditable="true" spellcheck="false"
-        data-placeholder="Giải thích đáp án..."
-        data-qi="${qi}" data-field="expl"></div>
+      <textarea class="form-textarea" id="qexpl-${qi}" style="min-height:52px" placeholder="Giải thích đáp án..."
+        oninput="editQ(${qi},'explanation',this.value);syncFormToText(${qi})">${escHtml(q.explanation||'')}</textarea>
       <input type="url" class="form-input" id="qexpl-img-${qi}" style="margin-top:6px;font-size:.8rem" placeholder="🖼 URL ảnh minh họa giải thích (tùy chọn)" value="${escHtml(q.explImageUrl||'')}" oninput="editQ(${qi},'explImageUrl',this.value);updateExplImgPreview(this,'expl-img-${qi}')">
       <img id="expl-img-${qi}" class="expl-img-preview" src="${escHtml(q.explImageUrl||'')}" ${q.explImageUrl?'style="display:block"':''}>
     </div>`;
@@ -1697,9 +1605,6 @@ function renderQuestionItem(q, qi, container, isInline) {
   rowWrap.appendChild(formItem);
   rowWrap.appendChild(textPanel);
   container.appendChild(rowWrap);
-
-  // Khởi tạo nội dung cho các rich-field (sau khi DOM đã có)
-  setTimeout(() => initRichFields(qi, q), 0);
 }
 
 window.editQ = function(qi, field, val) { if(editQuestions[qi]) editQuestions[qi][field]=val; };
@@ -1753,17 +1658,6 @@ window.resetCurrentSessions = function() {
   renderQuizGrid();
 };
 window.saveQuiz = async function() {
-  // Sync tất cả rich-fields lần cuối trước khi validate
-  editQuestions.forEach((q, qi) => {
-    const qInput = document.getElementById(`qinput-${qi}`);
-    if(qInput) { const {html,plain}=getRichFieldContent(qInput); q.textHtml=html||undefined; q.text=plain; }
-    (q.answers||[]).forEach((a,ai) => {
-      const el = document.getElementById(`ainput-${qi}-${ai}`);
-      if(el) { const {html,plain}=getRichFieldContent(el); a.html=html||undefined; a.text=plain; }
-    });
-    const qExpl = document.getElementById(`qexpl-${qi}`);
-    if(qExpl) { const {html,plain}=getRichFieldContent(qExpl); q.explanationHtml=html||undefined; q.explanation=plain; }
-  });
   const name = document.getElementById('quiz-name').value.trim();
   if(!name) { showToast('Vui lòng nhập tên chủ đề','error'); return; }
   if(editQuestions.length===0) { showToast('Vui lòng thêm ít nhất 1 câu hỏi','error'); return; }
@@ -1925,30 +1819,15 @@ function showQuestion(idx) {
 
   // Set text content after render (allows HTML entities / special chars from user input)
   const qtd = document.getElementById('qtext-display-'+idx);
-  if(qtd) {
-    // Use rich HTML if available, else fall back to text + chemRender
-    if(q.textHtml) { qtd.innerHTML = q.textHtml; }
-    else { qtd.innerHTML = q.text || ''; applyChemRender(qtd); }
-  }
-  display.querySelectorAll('.answer-text[data-text]').forEach((el, ai) => {
-    const ans = q.answers[ai];
-    if(ans && ans.html) {
-      el.innerHTML = ans.html;
-    } else {
-      el.innerHTML = decodeURIComponent(el.dataset.text);
-      applyChemRender(el);
-    }
+  if(qtd) qtd.innerHTML = q.text || '';
+  display.querySelectorAll('.answer-text[data-text]').forEach(el => {
+    el.innerHTML = decodeURIComponent(el.dataset.text);
   });
   const explEl = document.getElementById('expl-display-'+idx);
   if(explEl) {
     const prefix = '<strong><i class="fas fa-lightbulb"></i> Giải thích:</strong> ';
     const imgSuffix = explEl.querySelector('img') ? '<br>' + explEl.querySelector('img').outerHTML : '';
-    explEl.innerHTML = prefix + '<span class="expl-text-content"></span>' + imgSuffix;
-    const exSpan = explEl.querySelector('.expl-text-content');
-    if(exSpan) {
-      if(q.explanationHtml) { exSpan.innerHTML = q.explanationHtml; }
-      else { exSpan.innerHTML = decodeURIComponent(explEl.dataset.expl); applyChemRender(exSpan); }
-    }
+    explEl.innerHTML = prefix + decodeURIComponent(explEl.dataset.expl) + imgSuffix;
   }
 }
 
@@ -2079,14 +1958,8 @@ window.toggleSidebar = function() {
   updateSidebarVisibility();
 };
 window.toggleMobileSidebar = function() {
-  const isMobile = window.innerWidth <= 768;
-  if(isMobile) {
-    const sb = document.getElementById('quiz-sidebar');
-    sb.classList.toggle('mobile-visible');
-  } else {
-    sidebarVisible = !sidebarVisible;
-    updateSidebarVisibility();
-  }
+  const sb = document.getElementById('quiz-sidebar');
+  sb.classList.toggle('mobile-visible');
 };
 // Unified close: on mobile closes mobile panel, on desktop hides sidebar
 window.closeSidebar = function() {
@@ -2134,14 +2007,10 @@ window.finishQuiz = function() {
   document.getElementById('result-grade').textContent=grade;
   document.getElementById('result-overlay').classList.add('visible');
   if(pct>=70) spawnConfetti(30);
-  // Chỉ tính lượt nếu đúng >= 60%
+  // Increment session count, refresh cards
   if(currentQuizMeta?.id) {
-    if(pct >= 60) {
-      incrementSession(currentQuizMeta.id);
-      renderQuizGrid();
-    } else {
-      showToast('Vì làm sai hoặc làm thiếu quá nhiều nên không được tính lượt, hãy cố gắng làm lại 💪', 'error');
-    }
+    incrementSession(currentQuizMeta.id);
+    renderQuizGrid(); // refresh progress bars
   }
 };
 
@@ -2230,65 +2099,7 @@ function rgbaToHex(rgba) {
   return '#'+[m[1],m[2],m[3]].map(n=>parseInt(n).toString(16).padStart(2,'0')).join('');
 }
 
-// ===== CHEM / MATH TEXT RENDERER =====
-// Converts raw chemical formula text to proper sub/superscript HTML,
-// also supports LaTeX wrapped in $ or $$ for MathJax rendering.
-function renderChemText(text) {
-  if(!text) return '';
-
-  // If text already contains $...$ or $$...$$ LaTeX, we keep those for MathJax
-  // and handle the rest as plain chemical notation.
-  // Step 1: convert chemical sub/superscript notation if no LaTeX markers present
-  // Chemical pattern: element + digit subscripts (e.g. H2O → H<sub>2</sub>O)
-  // and charge superscripts (e.g. Ca2+ → Ca<sup>2+</sup>)
-
-  // Split on LaTeX segments to avoid double-processing
-  const latexRe = /(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/g;
-  const parts = [];
-  let last = 0;
-  let m;
-  while((m = latexRe.exec(text)) !== null) {
-    if(m.index > last) parts.push({type:'plain', val: text.slice(last, m.index)});
-    parts.push({type:'latex', val: m[0]});
-    last = m.index + m[0].length;
-  }
-  if(last < text.length) parts.push({type:'plain', val: text.slice(last)});
-
-  // Process plain parts for chemical formulas
-  const processPlain = (s) => {
-    // Subscripts: letter(s) or ) followed by digits → subscript
-    // e.g. H2, O2, Al2O3, Ca(OH)2
-    s = s.replace(/([A-Za-z\)])(\d+)/g, (_, pre, num) => `${pre}<sub>${num}</sub>`);
-    // Superscripts: digit(s) or letter followed by + or - charge
-    // e.g. Ca2+, Fe3+, OH-
-    s = s.replace(/([A-Za-z\d])([\d]*)([+-](?=[^>]|$))/g, (full, base, mid, sign) => {
-      const sup = mid + sign;
-      return `${base}<sup>${sup}</sup>`;
-    });
-    // Degree symbol for temperature: t° or t∘ or to
-    s = s.replace(/t\s*[°∘o](?=\s*→|\s*[-–→]|$|\s)/g, 't°');
-    return s;
-  };
-
-  const html = parts.map(p => p.type === 'latex' ? p.val : processPlain(p.val)).join('');
-  return html;
-}
-
-// Apply renderChemText to a DOM element and run MathJax typeset
-function applyChemRender(el) {
-  if(!el) return;
-  // Only process if text has chem indicators or LaTeX
-  const raw = el.innerHTML;
-  const rendered = renderChemText(el.textContent);
-  // Check if transformation actually changed anything (or has LaTeX)
-  if(rendered !== el.textContent || /\$|\\\(/.test(raw)) {
-    el.innerHTML = rendered;
-  }
-  // Run MathJax if available
-  if(window.MathJax && window.MathJax.typesetPromise) {
-    MathJax.typesetPromise([el]).catch(()=>{});
-  }
-}
+// ===== UTILS =====
 function shuffle(arr) {
   const a=[...arr];
   for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
@@ -2325,227 +2136,8 @@ window.showToast = function(msg, type='success') {
   setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); },3000);
 };
 
-// ===== RICH FIELD SYSTEM =====
-// contenteditable divs hỗ trợ gõ text thường + paste HTML (sub/sup) vào vị trí con trỏ
-// Khi paste: chỉ giữ sub/sup, strip toàn bộ thẻ khác → hiển thị đẹp ngay inline
-
-/**
- * Set nội dung cho rich-field.
- * html = phần sub/sup HTML (có thể rỗng)
- * plain = fallback text thuần
- */
-function setRichFieldContent(el, html, plain) {
-  if(!el) return;
-  if(html && html.trim()) {
-    el.innerHTML = html;
-  } else if(plain && plain.trim()) {
-    el.textContent = plain;
-  } else {
-    el.innerHTML = '';
-  }
-}
-
-/**
- * Lấy HTML đã strip (chỉ giữ sub/sup) từ rich-field.
- * Trả về { html, plain }
- */
-function getRichFieldContent(el) {
-  if(!el) return {html:'', plain:''};
-  const clone = el.cloneNode(true);
-  const plain = _htmlToPlain(clone.innerHTML);
-  // Walk để chỉ giữ sub/sup
-  function walk(node) {
-    if(node.nodeType===Node.TEXT_NODE) return escHtml(node.nodeValue||'');
-    if(node.nodeType!==Node.ELEMENT_NODE) return '';
-    const tag = node.tagName.toLowerCase();
-    const ch = Array.from(node.childNodes).map(walk).join('');
-    if(tag==='sub') return `<sub>${ch}</sub>`;
-    if(tag==='sup') return `<sup>${ch}</sup>`;
-    if(tag==='br') return ' ';
-    return ch;
-  }
-  const html = walk(clone).trim();
-  // Nếu html chỉ là text thuần (không có sub/sup), trả html rỗng để tiết kiệm
-  const hasRich = /<sub>|<sup>/i.test(html);
-  return { html: hasRich ? html : '', plain: plain || el.innerText.trim() };
-}
-
-/**
- * Bind event listeners cho một rich-field.
- * - paste: strip HTML, chỉ giữ sub/sup, insert vào vị trí con trỏ
- * - input: sync vào editQuestions
- */
-function bindRichField(el) {
-  if(el._richBound) return;
-  el._richBound = true;
-
-  // Paste handler
-  el.addEventListener('paste', (e) => {
-    e.preventDefault();
-    const cd = e.clipboardData;
-    const html = cd.getData('text/html');
-    const text = cd.getData('text/plain');
-
-    let insertHtml = '';
-    if(html) {
-      const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-      const inner = bodyMatch ? bodyMatch[1] : html;
-      const extracted = _extractSubSup(inner);
-      insertHtml = extracted || escHtml(text.trim());
-    } else {
-      insertHtml = escHtml(text.trim());
-    }
-
-    // Insert tại vị trí con trỏ
-    const sel = window.getSelection();
-    if(sel && sel.rangeCount) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      const frag = document.createRange().createContextualFragment(insertHtml);
-      range.insertNode(frag);
-      // Di chuyển con trỏ về cuối đoạn vừa insert
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    } else {
-      el.innerHTML += insertHtml;
-    }
-
-    // Trigger sync
-    el.dispatchEvent(new Event('input', {bubbles:true}));
-  });
-
-  // Input handler → sync data
-  el.addEventListener('input', () => {
-    const qi = parseInt(el.dataset.qi);
-    const field = el.dataset.field;
-    if(isNaN(qi) || !editQuestions[qi]) return;
-
-    const {html, plain} = getRichFieldContent(el);
-
-    if(field === 'qtext') {
-      editQuestions[qi].textHtml = html || undefined;
-      editQuestions[qi].text = plain;
-      if(!window._syncingText) syncFormToText(qi);
-    } else if(field === 'atext') {
-      const ai = parseInt(el.dataset.ai);
-      if(!isNaN(ai) && editQuestions[qi].answers[ai]) {
-        editQuestions[qi].answers[ai].html = html || undefined;
-        editQuestions[qi].answers[ai].text = plain;
-        if(!window._syncingText) syncFormToText(qi);
-      }
-    } else if(field === 'expl') {
-      editQuestions[qi].explanationHtml = html || undefined;
-      editQuestions[qi].explanation = plain;
-      if(!window._syncingText) syncFormToText(qi);
-    }
-  });
-
-  // Prevent Enter tạo <div> mới (cho các field 1 dòng)
-  if(!el.classList.contains('expl-rich')) {
-    el.addEventListener('keydown', (e) => {
-      if(e.key === 'Enter') { e.preventDefault(); }
-    });
-  }
-}
-
-/**
- * Khởi tạo tất cả rich fields của một question item sau khi render.
- */
-function initRichFields(qi, q) {
-  // Câu hỏi
-  const qInput = document.getElementById(`qinput-${qi}`);
-  if(qInput) {
-    setRichFieldContent(qInput, q.textHtml||'', q.text||'');
-    bindRichField(qInput);
-  }
-  // Đáp án
-  (q.answers||[]).forEach((a, ai) => {
-    const el = document.getElementById(`ainput-${qi}-${ai}`);
-    if(el) {
-      setRichFieldContent(el, a.html||'', a.text||'');
-      bindRichField(el);
-    }
-  });
-  // Giải thích
-  const qExpl = document.getElementById(`qexpl-${qi}`);
-  if(qExpl) {
-    setRichFieldContent(qExpl, q.explanationHtml||'', q.explanation||'');
-    bindRichField(qExpl);
-  }
-}
-
-// Các hàm applyRichPasteToQuestion / createRichPasteUI / wrapWithRichPaste
-// không còn cần thiết — giữ stub rỗng để tránh lỗi gọi từ code cũ
-function applyRichPasteToQuestion(qi) { /* replaced by initRichFields */ }
-function startRichPaste(cb) { /* deprecated */ }
-
-// Patch syncTextToForm để cập nhật rich-field thay vì input.value
-const _origSyncFormToText = syncFormToText;
-// Override để cập nhật rich-fields sau khi sync text → form
-const _patchedSyncTextToForm = window.syncTextToForm;
-
-// Patch editQ để khi editQ text thì đồng thời cập nhật rich-field display
-const _origEditQ = window.editQ;
-window.editQ = function(qi, field, val) {
-  if(_origEditQ) _origEditQ(qi, field, val);
-};
-
-// Capture zone giữ lại (dù không dùng nữa) để tránh lỗi tham chiếu
-const _captureEl = document.getElementById('_rich-capture');
-let _richPasteTarget = null;
-
-// ===== _extractSubSup helper (dùng bởi bindRichField) =====
-function _extractSubSup(html) {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  tmp.querySelectorAll('script,style,link,meta,noscript').forEach(n=>n.remove());
-  tmp.querySelectorAll('[aria-hidden="true"]').forEach(n=>n.remove());
-  tmp.querySelectorAll('*').forEach(n=>{
-    const cls=(n.className&&typeof n.className==='string')?n.className:'';
-    if(cls.includes('assistive')||cls.includes('sr-only')) n.remove();
-  });
-  function walk(node) {
-    if(node.nodeType===Node.TEXT_NODE) return node.nodeValue||'';
-    if(node.nodeType!==Node.ELEMENT_NODE) return '';
-    const tag=node.tagName.toLowerCase();
-    const ch=Array.from(node.childNodes).map(walk).join('');
-    if(tag==='sub') return `<sub>${ch}</sub>`;
-    if(tag==='sup') return `<sup>${ch}</sup>`;
-    if(tag==='br')  return ' ';
-    return ch;
-  }
-  // Dedup check
-  let result = walk(tmp);
-  const pt = result.replace(/<[^>]+>/g,'');
-  const half = Math.floor(pt.length/2);
-  if(half>4){
-    const a=pt.slice(0,half).trim(), b=pt.slice(half).trim();
-    const overlap = (x,y) => { const s=new Set(x); let m=0; for(const c of y) if(s.has(c))m++; return m/Math.max(x.length,y.length); };
-    if(a&&b&&overlap(a,b)>0.7){
-      const kids=Array.from(tmp.childNodes);
-      const keep=Math.ceil(kids.length/2)||1;
-      const t2=document.createElement('div');
-      kids.slice(0,keep).forEach(k=>t2.appendChild(k.cloneNode(true)));
-      result=walk(t2);
-    }
-  }
-  return result.replace(/\s{2,}/g,' ').trim();
-}
-
-/** HTML sub/sup → Unicode plain text */
-function _htmlToPlain(html) {
-  const S={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋'};
-  const P={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻'};
-  return html
-    .replace(/<sub>(.*?)<\/sub>/gi,(_,t)=>t.split('').map(c=>S[c]||c).join(''))
-    .replace(/<sup>(.*?)<\/sup>/gi,(_,t)=>t.split('').map(c=>P[c]||c).join(''))
-    .replace(/<[^>]+>/g,'').replace(/\s{2,}/g,' ').trim();
-}
-
-
-// ===== INIT =====
 init();
 </script>
 </body>
+
 </html>
