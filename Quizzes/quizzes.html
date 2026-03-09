@@ -861,15 +861,54 @@ let inlineEditQIndex = null;
 let isReviewMode = false;
 let _navigatingFromEdit = false;
 
-// ===== USER MANAGEMENT =====
+// ===== USER MANAGEMENT (Firebase-backed) =====
+let _usersCache = null;
+let _currentUserCache = null;
+
 function getUsers() {
+  if(_usersCache) return _usersCache;
+  // Fallback to localStorage until Firebase loads
   const saved = JSON.parse(localStorage.getItem('qm_users') || 'null');
-  if(saved) return saved;
-  return [{id:'user_noc',name:'Nóc'},{id:'user_chit',name:'Chịt'}];
+  return saved || [{id:'user_noc',name:'Nóc'},{id:'user_chit',name:'Chịt'}];
 }
-function saveUsers(users) { localStorage.setItem('qm_users', JSON.stringify(users)); }
-function getCurrentUser() { return localStorage.getItem('qm_current_user') || null; }
-function setCurrentUser(id) { localStorage.setItem('qm_current_user', id); }
+async function saveUsers(users) {
+  _usersCache = users;
+  localStorage.setItem('qm_users', JSON.stringify(users)); // keep local as fallback
+  try { await set(ref(db, 'app_data/users'), users); } catch(e) { console.warn('saveUsers FB err', e); }
+}
+function getCurrentUser() {
+  if(_currentUserCache !== undefined) return _currentUserCache;
+  return localStorage.getItem('qm_current_user') || null;
+}
+function setCurrentUser(id) {
+  _currentUserCache = id;
+  localStorage.setItem('qm_current_user', id);
+  try { set(ref(db, 'app_data/current_user'), id || ''); } catch(e) {}
+}
+
+function subscribeUsers() {
+  onValue(ref(db, 'app_data/users'), snap => {
+    const val = snap.val();
+    if(val && Array.isArray(val) && val.length > 0) {
+      _usersCache = val;
+      localStorage.setItem('qm_users', JSON.stringify(val));
+    } else if(!_usersCache) {
+      // First time: migrate from localStorage to Firebase
+      const local = JSON.parse(localStorage.getItem('qm_users') || 'null');
+      const defaults = [{id:'user_noc',name:'Nóc'},{id:'user_chit',name:'Chịt'}];
+      _usersCache = local || defaults;
+      set(ref(db, 'app_data/users'), _usersCache).catch(()=>{});
+    }
+    // Refresh UI that depends on users
+    const cur = getCurrentUser();
+    const curUser = (_usersCache||[]).find(u=>u.id===cur);
+    const badge = document.getElementById('user-badge-name');
+    if(badge) badge.textContent = curUser ? curUser.name : 'Tất cả';
+    renderUsersSettings();
+    renderUserAssignChips([]);
+    updateHomeStats();
+  });
+}
 
 function renderUserDropdown() {
   const dropdown = document.getElementById('user-dropdown');
@@ -967,23 +1006,25 @@ function renderUsersSettings() {
     </div>`).join('') + `
     <button class="add-answer-btn" style="margin-top:10px" onclick="addUser()"><i class="fas fa-plus"></i> Thêm user</button>`;
 }
-window.renameUser = function(i, name) {
-  const users = getUsers(); users[i].name = name; saveUsers(users);
+window.renameUser = async function(i, name) {
+  const users = getUsers(); users[i].name = name; await saveUsers(users);
   renderUserDropdown(); renderUsersSettings();
   const cur = getCurrentUser();
   const u = users.find(u=>u.id===cur);
   if(u) document.getElementById('user-badge-name').textContent = u.name;
 };
-window.deleteUser = function(i) {
-  const users = getUsers(); users.splice(i,1); saveUsers(users);
-  if(getCurrentUser() === users[i]?.id) setCurrentUser(null);
+window.deleteUser = async function(i) {
+  const users = getUsers();
+  const removedId = users[i]?.id;
+  users.splice(i,1); await saveUsers(users);
+  if(getCurrentUser() === removedId) setCurrentUser(null);
   renderUsersSettings(); renderUserDropdown(); renderQuizGrid();
 };
-window.addUser = function() {
+window.addUser = async function() {
   const users = getUsers();
   const id = 'user_' + Date.now();
   users.push({id, name:'User mới'});
-  saveUsers(users); renderUsersSettings(); renderUserDropdown();
+  await saveUsers(users); renderUsersSettings(); renderUserDropdown();
 };
 
 // ===== SOUND ENGINE (Web Audio API) =====
@@ -1102,6 +1143,8 @@ function init() {
   document.getElementById('user-badge-name').textContent = curUser ? curUser.name : 'Tất cả';
   document.getElementById('user-badge').addEventListener('click', function(e) { toggleUserDropdown(e); });
   subscribeQuizzes();
+  subscribeUsers();
+  subscribeSessions();
   // keyboard arrow navigation
   document.addEventListener('keydown', e => {
     if(document.getElementById('page-quiz').classList.contains('active')) {
@@ -1621,7 +1664,10 @@ function renderQuestionItem(q, qi, container, isInline) {
       <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">H_2O</code> chỉ số dưới &nbsp;
       <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">-></code> mũi tên
     </div>
-    \${buildMathRefPanel()}
+    <div class="q-math-ref-toggle" id="q-math-ref-toggle-${qi}" onclick="toggleMathRef(${qi})" style="cursor:pointer;padding:4px 12px 4px;font-size:.7rem;color:var(--accent2);display:flex;align-items:center;gap:5px;user-select:none;border-bottom:1px solid var(--border)">
+      <i class="fas fa-flask"></i> Ký hiệu Toán/Hoá học <i class="fas fa-chevron-down" id="q-math-ref-icon-${qi}" style="font-size:.6rem;margin-left:auto;transition:transform .2s"></i>
+    </div>
+    <div class="q-math-ref-wrap" id="q-math-ref-${qi}" style="display:none;padding:0 12px 8px;"></div>
     <textarea class="q-text-area" id="qtext-${qi}" spellcheck="false"
       placeholder="${placeholder}"
       oninput="syncTextToForm(${qi})">${escHtml(qToText(q, qi))}</textarea>
@@ -1631,6 +1677,16 @@ function renderQuestionItem(q, qi, container, isInline) {
   rowWrap.appendChild(textPanel);
   container.appendChild(rowWrap);
 }
+
+window.toggleMathRef = function(qi) {
+  const wrap = document.getElementById('q-math-ref-'+qi);
+  const icon = document.getElementById('q-math-ref-icon-'+qi);
+  if(!wrap) return;
+  const open = wrap.style.display === 'none';
+  wrap.style.display = open ? '' : 'none';
+  if(icon) icon.style.transform = open ? 'rotate(180deg)' : '';
+  if(open && !wrap.innerHTML) wrap.innerHTML = buildMathRefPanel();
+};
 
 window.editQ = function(qi, field, val) { if(editQuestions[qi]) editQuestions[qi][field]=val; };
 window.syncFormToText = syncFormToText;
@@ -1673,8 +1729,11 @@ window.removeQuestion = function(qi) {
   renderQuestions();
 };
 
-window.resetCurrentSessions = function() {
+window.resetCurrentSessions = async function() {
   if(!currentEditId) return;
+  _sessionsCache[currentEditId] = 0;
+  try { await set(ref(db, 'app_data/sessions/'+currentEditId), 0); } catch(e) {}
+  // Also clear localStorage fallback
   const data = JSON.parse(localStorage.getItem('qm_sessions')||'{}');
   data[currentEditId] = 0;
   localStorage.setItem('qm_sessions', JSON.stringify(data));
@@ -1731,7 +1790,7 @@ window.startQuiz = function(id) {
   const q = quizzesCache[id];
   if(!q){ showToast('Không tìm thấy bộ đề','error'); return; }
   if(!q.questions||q.questions.length===0){ showToast('Bộ đề chưa có câu hỏi','error'); return; }
-  currentQuizMeta = {...q, id};
+  currentQuizMeta = {...q, id, questions: JSON.parse(JSON.stringify(q.questions||[]))};
   isReviewMode = false;
   answers = {};
   currentQIndex = 0;
@@ -1852,7 +1911,10 @@ function showQuestion(idx) {
   if(explEl) {
     const prefix = '<strong><i class="fas fa-lightbulb"></i> Giải thích:</strong> ';
     const imgSuffix = explEl.querySelector('img') ? '<br>' + explEl.querySelector('img').outerHTML : '';
-    explEl.innerHTML = prefix + renderMath(decodeURIComponent(explEl.dataset.expl)) + imgSuffix;
+    const explText = decodeURIComponent(explEl.dataset.expl);
+    // Preserve newlines: split by \n, render each line, join with <br>
+    const renderedExpl = explText.split('\n').map(line => renderMath(line)).join('<br>');
+    explEl.innerHTML = prefix + renderedExpl + imgSuffix;
   }
 }
 
@@ -2002,19 +2064,47 @@ function updateSidebarVisibility() {
   else sb.classList.add('hidden');
 }
 
-// ===== FINISH =====
-// ===== SESSION TRACKING (localStorage, per device) =====
-function getSessionCount(quizId) {
-  const data = JSON.parse(localStorage.getItem('qm_sessions')||'{}');
-  return data[quizId]||0;
-}
-function incrementSession(quizId) {
-  const data = JSON.parse(localStorage.getItem('qm_sessions')||'{}');
-  data[quizId] = (data[quizId]||0)+1;
-  localStorage.setItem('qm_sessions', JSON.stringify(data));
+// ===== SESSION TRACKING (Firebase-backed) =====
+let _sessionsCache = {};
+
+function subscribeSessions() {
+  onValue(ref(db, 'app_data/sessions'), snap => {
+    const val = snap.val();
+    if(val && typeof val === 'object') {
+      _sessionsCache = val;
+      // Migrate old localStorage data on first load
+      const local = JSON.parse(localStorage.getItem('qm_sessions') || '{}');
+      let needMigrate = false;
+      Object.entries(local).forEach(([id, cnt]) => {
+        if(!_sessionsCache[id] && cnt > 0) { _sessionsCache[id] = cnt; needMigrate = true; }
+      });
+      if(needMigrate) set(ref(db, 'app_data/sessions'), _sessionsCache).catch(()=>{});
+    } else {
+      // Migrate from localStorage
+      const local = JSON.parse(localStorage.getItem('qm_sessions') || '{}');
+      if(Object.keys(local).length > 0) {
+        _sessionsCache = local;
+        set(ref(db, 'app_data/sessions'), local).catch(()=>{});
+      }
+    }
+    renderQuizGrid();
+  });
 }
 
-window.finishQuiz = function() {
+function getSessionCount(quizId) {
+  return _sessionsCache[quizId] || 0;
+}
+async function incrementSession(quizId) {
+  _sessionsCache[quizId] = (_sessionsCache[quizId] || 0) + 1;
+  try { await set(ref(db, 'app_data/sessions/'+quizId), _sessionsCache[quizId]); } catch(e) {
+    // fallback localStorage
+    const data = JSON.parse(localStorage.getItem('qm_sessions')||'{}');
+    data[quizId] = _sessionsCache[quizId];
+    localStorage.setItem('qm_sessions', JSON.stringify(data));
+  }
+}
+
+window.finishQuiz = async function() {
   clearInterval(timerInterval);
   let correct=0, wrong=0;
   Object.values(answers).forEach(a=>{ if(a.correct) correct++; else wrong++; });
@@ -2034,7 +2124,7 @@ window.finishQuiz = function() {
   if(pct>=70) spawnConfetti(30);
   // Increment session count, refresh cards
   if(currentQuizMeta?.id) {
-    incrementSession(currentQuizMeta.id);
+    await incrementSession(currentQuizMeta.id);
     renderQuizGrid(); // refresh progress bars
   }
 };
@@ -2076,21 +2166,51 @@ window.saveInlineEdit = async function() {
   const qi = inlineEditQIndex;
   if(qi===null||!editQuestions[0]) return;
   const updated = editQuestions[0];
-  // update local
-  quizQuestions[qi] = updated;
-  // update firebase - find original index
   const meta = currentQuizMeta;
+
+  // Update locally in quizQuestions (shuffled session copy)
+  quizQuestions[qi] = updated;
+
+  // Persist to Firebase: find the original question by matching text,
+  // then update the full questions array
   if(meta?.id) {
-    // update in original questions array
     try {
-      const snap = await get(ref(db,'quizzes/'+meta.id+'/questions'));
-      // Since questions are shuffled, we match by original text
-      // Just update the full questions array with the updated content
-      // The safest approach: save the updated question back by its original index
-      // For simplicity, we update the quizQuestions local and reflect in display
-      showToast('Đã cập nhật câu hỏi (phiên này)','success');
-    } catch(e){}
+      const snap = await get(ref(db, 'quizzes/'+meta.id+'/questions'));
+      const origQuestions = snap.val();
+      if(origQuestions && Array.isArray(origQuestions)) {
+        // Try to match by original question text (before edit)
+        const origText = meta.questions ? meta.questions.find(q => q.text === updated.text || quizQuestions[qi].text === q.text) : null;
+        // Best approach: find index in original array by matching text of the pre-edit version
+        // Use quizzesCache which has the original unshuffled questions
+        const cachedQuiz = quizzesCache[meta.id];
+        const origArr = cachedQuiz?.questions || [];
+        // Find original index by matching question text (pre-edit stored in quizQuestions before update)
+        let origIdx = -1;
+        // We saved updated already into quizQuestions[qi], so match by old text from DB
+        // Best: match by all answers to find unique question
+        origIdx = origArr.findIndex(q =>
+          q.text === updated.text ||
+          (q.answers && updated.answers && JSON.stringify(q.answers) === JSON.stringify(updated.answers))
+        );
+        // Fallback: if no match, use position qi directly
+        if(origIdx === -1) origIdx = Math.min(qi, origArr.length - 1);
+
+        if(origIdx >= 0) {
+          await update(ref(db, 'quizzes/'+meta.id+'/questions/'+origIdx), updated);
+          // Also update cache
+          if(quizzesCache[meta.id]?.questions) quizzesCache[meta.id].questions[origIdx] = updated;
+          showToast('Đã lưu thay đổi vào bộ đề!', 'success');
+        } else {
+          showToast('Đã cập nhật câu hỏi (phiên này)', 'success');
+        }
+      } else {
+        showToast('Đã cập nhật câu hỏi (phiên này)', 'success');
+      }
+    } catch(e) {
+      showToast('Lỗi lưu: '+e.message, 'error');
+    }
   }
+
   delete answers[qi];
   closeInlineEdit();
   showQuestion(qi);
