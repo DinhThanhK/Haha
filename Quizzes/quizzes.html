@@ -2315,12 +2315,12 @@ function renderMath(text) {
 
   // 7. Ký tự Hy Lạp (standalone words)
   const greekMap = {
-    'alpha':'α','beta':'β','gamma':'γ','delta':'δ','epsilon':'ε',
-    'zeta':'ζ','eta':'η','theta':'θ','lambda':'λ','mu':'μ',
-    'nu':'ν','xi':'ξ','pi':'π','rho':'ρ','sigma':'σ',
-    'tau':'τ','phi':'φ','chi':'χ','psi':'ψ','omega':'ω',
-    'Delta':'Δ','Sigma':'Σ','Omega':'Ω','Pi':'Π','Phi':'Φ',
-    'inf':'∞','deg':'°','sum':'Σ',
+    '_alpha':'α','_beta':'β','_gamma':'γ','_delta':'δ','_epsilon':'ε',
+    '_zeta':'ζ','_eta':'η','_theta':'θ','_lambda':'λ','_mu':'μ',
+    '_nu':'ν','_xi':'ξ','_pi':'π','_rho':'ρ','_sigma':'σ',
+    '_tau':'τ','_phi':'φ','_chi':'χ','_psi':'ψ','_omega':'ω',
+    '_Delta':'Δ','_Sigma':'Σ','_Omega':'Ω','_Pi':'Π','_Phi':'Φ',
+    '_inf':'∞','_deg':'°','_sum':'Σ',
   };
   s = s.replace(/\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|Delta|Sigma|Omega|Pi|Phi|inf|deg|sum)\b/g,
     (_, w) => greekMap[w] || w
@@ -2387,11 +2387,11 @@ function shuffle(arr) {
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function getCorrectPraise(){
-  const p=['🎉 Xuất sắc! Đúng rồi!','✅ Chính xác! Tuyệt vời!','🌟 Quá giỏi! Đúng!','💯 Hoàn hảo!','🔥 Xuất sắc!'];
+  const p=['🎉 Xuất sắc! Đúng rồi!','✅ Chính xác! Tuyệt vời!','🌟 Quá giỏi! Đúng!','💯 Hoàn hảo!','🔥 Xuất sắc!', '🍗 Người đâu, ban khô gà cho ta!'];
   return p[Math.floor(Math.random()*p.length)];
 }
 function getWrongPraise(){
-  const p=['❌ Sai rồi, cố lên!','😔 Chưa đúng, thử lại nhé!','💪 Không sao, học thêm nào!','🤔 Sai rồi bạn ơi!'];
+  const p=['❌ Chời ơi chời, sai rồi','😛 Chưa đúng, lêu lêu!','😝 Đồ gà, học thêm đi!','🤔 Sai rồi chế ơi!', '🍗 Nà nà ná nà sai rồi bạn ơi!'];
   return p[Math.floor(Math.random()*p.length)];
 }
 
