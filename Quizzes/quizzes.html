@@ -155,6 +155,8 @@
   .icon-btn-edit:hover { background:var(--accent); }
   .icon-btn-delete { background:rgba(255,107,107,.85); color:#fff; }
   .icon-btn-delete:hover { background:var(--wrong); }
+  .icon-btn-history { background:rgba(0,212,170,.85); color:#fff; }
+  .icon-btn-history:hover { background:var(--accent2); }
   .empty-state { text-align:center; padding:80px 20px; color:var(--text2); }
   .empty-state i { font-size:3rem; margin-bottom:16px; color:var(--text3); }
   .empty-state h3 { font-family:'Lexend Deca',sans-serif; font-size:1.2rem; margin-bottom:8px; color:var(--text); }
@@ -581,6 +583,37 @@
   .math-sqrt-body { border-top:1.5px solid currentColor; padding:0 2px 0 1px; }
   /* ===== EXPLANATION IMAGE ===== */
   .expl-img-preview { max-width:100%; max-height:90px; border-radius:var(--radius-sm); margin-top:5px; display:none; object-fit:cover; }
+
+  /* ===== HISTORY MODAL ===== */
+  .history-modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center; z-index:2000;
+    opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .history-modal-overlay.visible { opacity:1; pointer-events:all; }
+  .history-modal {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:24px; width:min(520px,95vw); max-height:80vh; overflow-y:auto;
+    box-shadow:var(--shadow);
+  }
+  .history-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .history-modal-title { font-family:'Lexend Deca',sans-serif; font-weight:800; font-size:1.05rem; color:var(--accent2); display:flex; align-items:center; gap:8px; }
+  .history-empty { text-align:center; padding:32px 0; color:var(--text3); font-size:.9rem; }
+  .history-entry {
+    background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:12px 14px; margin-bottom:10px;
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
+  }
+  .history-entry-time { font-size:.78rem; color:var(--text3); margin-bottom:4px; display:flex; align-items:center; gap:5px; }
+  .history-entry-score { font-family:'Lexend Deca',sans-serif; font-size:1.1rem; font-weight:800; }
+  .history-entry-score.good { color:var(--correct); }
+  .history-entry-score.ok { color:var(--accent4); }
+  .history-entry-score.bad { color:var(--wrong); }
+  .history-entry-meta { font-size:.8rem; color:var(--text2); margin-top:3px; }
+  .history-entry-duration { font-size:.78rem; color:var(--text3); display:flex; align-items:center; gap:4px; }
+  .history-badge { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; padding:2px 8px; border-radius:10px; }
+  .history-badge.pass { background:rgba(0,212,170,.12); color:var(--correct); border:1px solid rgba(0,212,170,.2); }
+  .history-badge.fail { background:rgba(255,107,107,.12); color:var(--wrong); border:1px solid rgba(255,107,107,.2); }
 </style>
 </head>
 <body>
@@ -692,7 +725,9 @@
         <span style="font-size:.72rem;color:var(--text3);font-weight:400;display:flex;align-items:center;gap:6px">
           <i class="fas fa-keyboard"></i> Soạn bằng văn bản ở cột phải &nbsp;|&nbsp;
           Dùng <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">A*.</code> = đúng,
-          <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">=></code> = giải thích
+          <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">=></code> = giải thích,
+          <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">H_(2)O</code> = chỉ số hóa học,
+          <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">/phi</code> = ký tự Hy Lạp
         </span>
       </div>
       <div class="question-list" id="question-list"></div>
@@ -826,6 +861,30 @@
 </div>
 
 <div id="toast-container"></div>
+
+<!-- SUBMIT CONFIRM MODAL -->
+<div class="modal-overlay" id="submit-confirm-modal">
+  <div class="modal">
+    <h3>Xác nhận nộp bài</h3>
+    <p id="submit-confirm-desc">Bạn có chắc chắn muốn nộp bài không?</p>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="document.getElementById('submit-confirm-modal').classList.remove('visible')">Hủy</button>
+      <button class="modal-btn danger" id="submit-confirm-btn" onclick="doFinishQuiz()"><i class="fas fa-flag-checkered"></i> Nộp bài</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="history-modal-overlay" id="history-modal">
+  <div class="history-modal">
+    <div class="history-modal-header">
+      <div class="history-modal-title"><i class="fas fa-history"></i> Lịch sử làm bài</div>
+      <button class="sidebar-close-btn" onclick="document.getElementById('history-modal').classList.remove('visible')"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="font-size:.82rem;color:var(--text3);margin-bottom:12px" id="history-modal-quiz-name"></div>
+    <div id="history-modal-entries"></div>
+  </div>
+</div>
 
 <!-- FIREBASE -->
 <script type="module">
@@ -1301,6 +1360,7 @@ function renderQuizGrid() {
         ${progressHtml}
       </div>
       <div class="quiz-card-actions">
+        <button class="icon-btn icon-btn-history" onclick="showQuizHistory('${id}',event)" title="Lịch sử làm bài"><i class="fas fa-eye"></i></button>
         <button class="icon-btn icon-btn-edit" onclick="editQuiz('${id}',event)" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
         <button class="icon-btn icon-btn-delete" onclick="confirmDeleteQuiz('${id}',event)" title="Xóa"><i class="fas fa-trash"></i></button>
       </div>
@@ -1660,9 +1720,11 @@ function renderQuestionItem(q, qi, container, isInline) {
     <div class="q-text-panel-hint">
       Dùng <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">A*.</code> để đánh dấu đáp án đúng &nbsp;|&nbsp;
       <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">=></code> cho giải thích &nbsp;|&nbsp;
-      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">x^2</code> mũ &nbsp;
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">x^2</code> mũ 1 ký tự &nbsp;
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">x^{2a}</code> mũ nhóm &nbsp;
       <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">H_2O</code> chỉ số dưới &nbsp;
-      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">-></code> mũi tên
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">H_{2SO4}</code> nhóm dưới &nbsp;
+      <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">/rho /ell</code> ký hiệu
     </div>
     <div class="q-math-ref-toggle" id="q-math-ref-toggle-${qi}" onclick="toggleMathRef(${qi})" style="cursor:pointer;padding:4px 12px 4px;font-size:.7rem;color:var(--accent2);display:flex;align-items:center;gap:5px;user-select:none;border-bottom:1px solid var(--border)">
       <i class="fas fa-flask"></i> Ký hiệu Toán/Hoá học <i class="fas fa-chevron-down" id="q-math-ref-icon-${qi}" style="font-size:.6rem;margin-left:auto;transition:transform .2s"></i>
@@ -1824,7 +1886,7 @@ function startTimer() {
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerDisplay();
-    if(timeLeft<=0){ clearInterval(timerInterval); finishQuiz(); }
+    if(timeLeft<=0){ clearInterval(timerInterval); doFinishQuiz(); }
   }, 1000);
 }
 
@@ -2104,12 +2166,92 @@ async function incrementSession(quizId) {
   }
 }
 
-window.finishQuiz = async function() {
+// ===== QUIZ HISTORY =====
+async function saveQuizHistory(quizId, entry) {
+  try {
+    await push(ref(db, 'app_data/history/'+quizId), entry);
+  } catch(e) {
+    // fallback localStorage
+    const data = JSON.parse(localStorage.getItem('qm_history')||'{}');
+    if(!data[quizId]) data[quizId] = [];
+    data[quizId].push(entry);
+    localStorage.setItem('qm_history', JSON.stringify(data));
+  }
+}
+
+window.showQuizHistory = async function(quizId, e) {
+  if(e) e.stopPropagation();
+  const quiz = quizzesCache[quizId];
+  const modal = document.getElementById('history-modal');
+  const nameEl = document.getElementById('history-modal-quiz-name');
+  const entriesEl = document.getElementById('history-modal-entries');
+  nameEl.textContent = quiz?.name || 'Bộ đề';
+  entriesEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+  modal.classList.add('visible');
+
+  let entries = [];
+  try {
+    const snap = await get(ref(db, 'app_data/history/'+quizId));
+    const val = snap.val();
+    if(val && typeof val === 'object') {
+      entries = Object.values(val).sort((a,b) => b.ts - a.ts);
+    }
+  } catch(e) {
+    const data = JSON.parse(localStorage.getItem('qm_history')||'{}');
+    entries = (data[quizId]||[]).slice().reverse();
+  }
+
+  if(entries.length === 0) {
+    entriesEl.innerHTML = '<div class="history-empty"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có lần làm nào được ghi lại</div>';
+    return;
+  }
+
+  entriesEl.innerHTML = entries.map((en, i) => {
+    const date = new Date(en.ts);
+    const dateStr = date.toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric'});
+    const timeStr = date.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'});
+    const m = Math.floor((en.timeUsedSec||0)/60), s = (en.timeUsedSec||0)%60;
+    const durStr = `${m} phút ${s} giây`;
+    const scoreClass = en.pct>=70 ? 'good' : en.pct>=50 ? 'ok' : 'bad';
+    const passClass = en.pct>=50 ? 'pass' : 'fail';
+    const passLabel = en.pct>=50 ? 'Đạt' : 'Chưa đạt';
+    return `<div class="history-entry">
+      <div>
+        <div class="history-entry-time"><i class="fas fa-calendar-alt"></i>${dateStr} &nbsp;<i class="fas fa-clock"></i>${timeStr}</div>
+        <div class="history-entry-meta"><i class="fas fa-check-circle" style="color:var(--correct)"></i> ${en.correct} đúng &nbsp; <i class="fas fa-times-circle" style="color:var(--wrong)"></i> ${en.wrong} sai &nbsp; / ${en.total} câu</div>
+        <div class="history-entry-duration"><i class="fas fa-stopwatch"></i> Thời gian làm: ${durStr}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="history-entry-score ${scoreClass}">${en.pct}%</div>
+        <div class="history-badge ${passClass}" style="margin-top:4px">${passLabel}</div>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.finishQuiz = function() {
+  const total = quizQuestions.length;
+  const done = Object.keys(answers).length;
+  const unanswered = total - done;
+  const descEl = document.getElementById('submit-confirm-desc');
+  if(unanswered > 0) {
+    descEl.innerHTML = `Bạn còn <strong style="color:var(--accent4)">${unanswered}</strong> câu chưa trả lời. Bạn có chắc muốn nộp bài không?`;
+  } else {
+    descEl.innerHTML = `Bạn đã trả lời hết <strong style="color:var(--correct)">${total}</strong> câu. Xác nhận nộp bài?`;
+  }
+  document.getElementById('submit-confirm-modal').classList.add('visible');
+};
+
+window.doFinishQuiz = async function() {
+  document.getElementById('submit-confirm-modal').classList.remove('visible');
   clearInterval(timerInterval);
   let correct=0, wrong=0;
   Object.values(answers).forEach(a=>{ if(a.correct) correct++; else wrong++; });
   const total = quizQuestions.length;
   const pct = total>0 ? Math.round(correct/total*100) : 0;
+  // Calculate time used
+  const timeLimitSec = (currentQuizMeta?.settings?.timeLimit||30)*60;
+  const timeUsedSec = timeLimitSec - timeLeft;
   document.getElementById('result-score').textContent = pct+'%';
   document.getElementById('r-correct').textContent = correct;
   document.getElementById('r-wrong').textContent = wrong;
@@ -2122,9 +2264,10 @@ window.finishQuiz = async function() {
   document.getElementById('result-grade').textContent=grade;
   document.getElementById('result-overlay').classList.add('visible');
   if(pct>=70) spawnConfetti(30);
-  // Increment session count, refresh cards
+  // Increment session count, save history, refresh cards
   if(currentQuizMeta?.id) {
     await incrementSession(currentQuizMeta.id);
+    await saveQuizHistory(currentQuizMeta.id, { correct, wrong, total, pct, timeUsedSec, ts: Date.now() });
     renderQuizGrid(); // refresh progress bars
   }
 };
@@ -2239,37 +2382,54 @@ window.saveInlineEdit = async function() {
 //   CO_2, H_2O, H_2SO_4, ... → chỉ số dưới hoá học tự động
 
 const MATH_SYMBOLS = [
-  { input:'x^2',      output:'x<sup class="math-sup">2</sup>',   label:'Mũ / Lũy thừa' },
-  { input:'H_2O',     output:'H<sub class="math-sub">2</sub>O',  label:'Chỉ số dưới' },
-  { input:'_t^o',     output:'<sup class="math-sup">t°</sup>',   label:'Nhiệt độ (điều kiện)' },
-  { input:'->',       output:'→',                                 label:'Mũi tên pt hoá' },
-  { input:'<->',      output:'⇌',                                label:'Cân bằng thuận nghịch' },
-  { input:'=>',       output:'⇒',                                 label:'Suy ra / điều kiện' },
-  { input:'+-',       output:'±',                                 label:'Cộng trừ' },
-  { input:'!=',       output:'≠',                                 label:'Không bằng' },
-  { input:'<=',       output:'≤',                                 label:'Nhỏ hơn hoặc bằng' },
-  { input:'>=',       output:'≥',                                 label:'Lớn hơn hoặc bằng' },
-  { input:'~=',       output:'≈',                                 label:'Xấp xỉ' },
-  { input:'/sqrt{x}', output:'√x',                               label:'Căn bậc hai' },
-  { input:'/frac{a}{b}', output:'a/b',                           label:'Phân số' },
-  { input:'alpha',    output:'α',                                 label:'Alpha' },
-  { input:'beta',     output:'β',                                 label:'Beta' },
-  { input:'gamma',    output:'γ',                                 label:'Gamma' },
-  { input:'delta',    output:'Δ',                                 label:'Delta' },
-  { input:'pi',       output:'π',                                 label:'Pi' },
-  { input:'omega',    output:'ω',                                 label:'Omega' },
-  { input:'theta',    output:'θ',                                 label:'Theta' },
-  { input:'mu',       output:'μ',                                 label:'Mu (micro)' },
-  { input:'inf',      output:'∞',                                 label:'Vô cực' },
-  { input:'sum',      output:'Σ',                                 label:'Tổng Sigma' },
-  { input:'deg',      output:'°',                                 label:'Độ (góc/nhiệt)' },
+  // ── Mũ / Superscript ────────────────────────────────────────────
+  { input:'x^2',         output:'x<sup class="math-sup">2</sup>',              label:'Mũ 1 ký tự — x²' },
+  { input:'x^{2a}',      output:'x<sup class="math-sup">2a</sup>',             label:'Mũ nhóm — x^(2a)' },
+  { input:'U^2/I',       output:'U<sup class="math-sup">2</sup>/I',            label:'Chỉ ^ lên 1 ký tự (2), không lên /I' },
+  { input:'U^{2/I}',     output:'U<sup class="math-sup">2/I</sup>',            label:'^ lên cả nhóm 2/I' },
+  // ── Chỉ số dưới / Subscript ──────────────────────────────────────
+  { input:'H_2O',        output:'H<sub class="math-sub">2</sub>O',             label:'Chỉ số dưới 1 ký tự — H₂O' },
+  { input:'C_3O_4',      output:'C<sub class="math-sub">3</sub>O<sub class="math-sub">4</sub>', label:'Nhiều chỉ số đơn — C₃O₄' },
+  { input:'H_{2SO4}',    output:'H<sub class="math-sub">2SO4</sub>',           label:'Chỉ số dưới nhóm — H₂SO₄ kiểu nhóm' },
+  { input:'_t^o',        output:'<sup class="math-sup">t°</sup>',              label:'Điều kiện nhiệt độ' },
+  // ── Mũi tên ─────────────────────────────────────────────────────
+  { input:'->',          output:'→',   label:'Mũi tên phương trình' },
+  { input:'<->',         output:'⇌',  label:'Cân bằng thuận nghịch' },
+  { input:'=>',          output:'⇒',   label:'Suy ra / điều kiện' },
+  // ── Toán học ────────────────────────────────────────────────────
+  { input:'+-',          output:'±',   label:'Cộng trừ ±' },
+  { input:'!=',          output:'≠',   label:'Không bằng ≠' },
+  { input:'<=',          output:'≤',   label:'Nhỏ hơn hoặc bằng ≤' },
+  { input:'>=',          output:'≥',   label:'Lớn hơn hoặc bằng ≥' },
+  { input:'~=',          output:'≈',   label:'Xấp xỉ ≈' },
+  { input:'/sqrt{x}',   output:'√x',  label:'Căn bậc hai' },
+  { input:'/frac{a}{b}',output:'a/b', label:'Phân số đẹp' },
+  // ── Ký tự Hy Lạp (dùng / làm tiền tố) ──────────────────────────
+  { input:'/alpha',  output:'α',  label:'Alpha α' },
+  { input:'/beta',   output:'β',  label:'Beta β' },
+  { input:'/gamma',  output:'γ',  label:'Gamma γ' },
+  { input:'/delta',  output:'δ',  label:'Delta δ' },
+  { input:'/Delta',  output:'Δ',  label:'Delta hoa Δ' },
+  { input:'/theta',  output:'θ',  label:'Theta θ' },
+  { input:'/lambda', output:'λ',  label:'Lambda λ' },
+  { input:'/mu',     output:'μ',  label:'Mu μ (micro)' },
+  { input:'/pi',     output:'π',  label:'Pi π' },
+  { input:'/rho',    output:'ρ',  label:'Rho ρ — điện trở suất' },
+  { input:'/sigma',  output:'σ',  label:'Sigma σ' },
+  { input:'/Sigma',  output:'Σ',  label:'Sigma hoa Σ (tổng)' },
+  { input:'/phi',    output:'φ',  label:'Phi φ' },
+  { input:'/omega',  output:'ω',  label:'Omega ω' },
+  { input:'/Omega',  output:'Ω',  label:'Omega hoa Ω' },
+  { input:'/ell',    output:'ℓ',  label:'ℓ — chiều dài (khác l và I)' },
+  { input:'/inf',    output:'∞',  label:'Vô cực ∞' },
+  { input:'/deg',    output:'°',  label:'Độ ° (góc / nhiệt độ)' },
 ];
 
 function renderMath(text) {
   if (!text) return text;
   let s = text;
 
-  // 1. /frac{a}{b} → phân số đẹp
+  // 1. /frac{a}{b} → phân số đẹp (xử lý trước để tránh nhầm {})
   s = s.replace(/\/frac\{([^}]*)\}\{([^}]*)\}/g, (_, num, den) =>
     `<span class="math-frac"><span class="math-frac-num">${renderMath(num)}</span><span class="math-frac-den">${renderMath(den)}</span></span>`
   );
@@ -2279,52 +2439,52 @@ function renderMath(text) {
     `<span class="math-sqrt"><span class="math-sqrt-sym">√</span><span class="math-sqrt-body">${renderMath(body)}</span></span>`
   );
 
-  // 3. _t^o → nhiệt độ hoá học (điều kiện phản ứng)
-  s = s.replace(/_t\^o/g, '<sup class="math-sup">t°</sup>');
-  // _to^o variant
-  s = s.replace(/_to\^o/g, '<sup class="math-sup">t°</sup>');
+  // 3. _t^o → nhiệt độ hoá học (điều kiện phản ứng) — xử lý trước _ chung
+  s = s.replace(/_t\^o\b/g, '<sup class="math-sup">t°</sup>');
+  s = s.replace(/_to\^o\b/g, '<sup class="math-sup">t°</sup>');
 
-  // 4. x^{abc} → abc là superscript (nhóm)
+  // 4. SUPERSCRIPT
+  // 4a. ^{nhóm} → toàn bộ nhóm nâng lên: U^{2/I} → U^(2/I)
   s = s.replace(/\^\{([^}]*)\}/g, (_, exp) =>
     `<sup class="math-sup">${exp}</sup>`
   );
-  // x^2 hoặc x^ab (đến khoảng trắng/ký tự đặc biệt)
-  s = s.replace(/\^([A-Za-z0-9+\-*/αβγδπωθμ°]+)/g, (_, exp) =>
+  // 4b. ^x → chỉ 1 ký tự đơn: U^2/I → U²/I  (chữ, số, hoặc ký tự đặc biệt đơn)
+  s = s.replace(/\^([A-Za-z0-9°])/g, (_, exp) =>
     `<sup class="math-sup">${exp}</sup>`
   );
 
-  // 5. _{abc} → subscript nhóm
+  // 5. SUBSCRIPT
+  // 5a. _{nhóm} → toàn bộ nhóm thu nhỏ: H_{2SO4} → H₍₂ₛₒ₄₎
   s = s.replace(/_\{([^}]*)\}/g, (_, sub) =>
     `<sub class="math-sub">${sub}</sub>`
   );
-  // _2 (chỉ số đơn - hoá học)
-  s = s.replace(/_([A-Za-z0-9]+)/g, (_, sub) =>
+  // 5b. _x → chỉ 1 ký tự đơn: H_2O → H₂O, C_3O_4 → C₃O₄
+  s = s.replace(/_([A-Za-z0-9])/g, (_, sub) =>
     `<sub class="math-sub">${sub}</sub>`
   );
 
-  // 6. Mũi tên & ký hiệu toán (thứ tự quan trọng!)
+  // 6. Mũi tên & ký hiệu toán
   s = s.replace(/<->/g, '⇌');
   s = s.replace(/->/g, '→');
-  s = s.replace(/=>/g, '⇒');   // chỉ sau khi xử lý => của parser (đây là display)
-  s = s.replace(/\.\.\.+-/g, '±');
+  s = s.replace(/=>/g, '⇒');
   s = s.replace(/([^!<>~])!=([^=])/g, '$1≠$2');
   s = s.replace(/([^<])<=([^>])/g, '$1≤$2');
   s = s.replace(/([^>])>=([^=])/g, '$1≥$2');
   s = s.replace(/~=/g, '≈');
   s = s.replace(/\+-/g, '±');
 
-  // 7. Ký tự Hy Lạp (standalone words)
+  // 7. Ký tự Hy Lạp — BẮT BUỘC có tiền tố / để tránh nhầm hóa học
   const greekMap = {
     '/alpha':'α','/beta':'β','/gamma':'γ','/delta':'δ','/epsilon':'ε',
     '/zeta':'ζ','/eta':'η','/theta':'θ','/lambda':'λ','/mu':'μ',
     '/nu':'ν','/xi':'ξ','/pi':'π','/rho':'ρ','/sigma':'σ',
     '/tau':'τ','/phi':'φ','/chi':'χ','/psi':'ψ','/omega':'ω',
     '/Delta':'Δ','/Sigma':'Σ','/Omega':'Ω','/Pi':'Π','/Phi':'Φ',
-    '/inf':'∞','/deg':'°','/sum':'Σ',
+    '/inf':'∞','/deg':'°','/sum':'Σ','/ell':'ℓ',
   };
-  s = s.replace(/\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|Delta|Sigma|Omega|Pi|Phi|inf|deg|sum)\b/g,
-    (_, w) => greekMap[w] || w
-  );
+  // Thay thế dài trước để tránh /Delta bị match thành /delta + a
+  const greekKeys = Object.keys(greekMap).sort((a,b) => b.length - a.length);
+  greekKeys.forEach(k => { s = s.split(k).join(greekMap[k]); });
 
   return s;
 }
