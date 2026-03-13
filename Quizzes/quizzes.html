@@ -2888,11 +2888,9 @@ window.submitFill = function(qi) {
   const input = document.getElementById('fill-input-'+qi);
   if(!input) return;
   const typedText = input.value.trim();
-  const prefill = input.dataset.prefill || '';
-  // Combine prefill + typed for scoring (if prefill exists)
-  const userText = prefill ? (prefill + ' ' + typedText).trim() : typedText;
-  if(!typedText && !prefill) { input.focus(); input.style.borderColor='var(--accent)'; return; }
-  if(!typedText) { input.focus(); input.style.borderColor='var(--accent)'; return; }
+  // prefill is already inside input.value — no need to prepend again
+  const userText = typedText;
+  if(!userText) { input.focus(); input.style.borderColor='var(--accent)'; return; }
 
   const q = quizQuestions[qi];
   const correctAnswers = (q.answers||[]).filter(a=>a.correct).map(a=>a.text);
