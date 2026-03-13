@@ -143,6 +143,21 @@
   .quiz-card-progress-bar { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
   .quiz-card-progress-fill { height:100%; border-radius:3px; transition:width .4s ease; background:linear-gradient(90deg,var(--accent),var(--accent2)); }
   .quiz-card-progress-fill.complete { background:linear-gradient(90deg,var(--accent2),#00ffaa); }
+  /* ===== NEW BADGE ===== */
+  .new-badge {
+    position:absolute; top:10px; left:10px; z-index:10;
+    background:linear-gradient(135deg,#ff6b6b,#ffd93d);
+    color:#1a1a1a; font-family:'Lexend Deca',sans-serif; font-weight:800;
+    font-size:.62rem; padding:3px 8px; border-radius:10px;
+    letter-spacing:.08em; text-transform:uppercase;
+    box-shadow:0 2px 10px rgba(255,107,107,.5);
+    animation:newBadgePulse 2s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes newBadgePulse {
+    0%,100% { transform:scale(1); box-shadow:0 2px 10px rgba(255,107,107,.5); }
+    50% { transform:scale(1.06); box-shadow:0 3px 16px rgba(255,107,107,.8); }
+  }
   .quiz-card-actions { display:flex; gap:6px; position:absolute; top:10px; right:10px; opacity:0; transition:opacity .2s; }
   .quiz-card:hover .quiz-card-actions { opacity:1; }
   @media(hover:none) { .quiz-card-actions { opacity:1; } }
@@ -581,7 +596,174 @@
   .math-sqrt { display:inline-flex; align-items:center; gap:1px; }
   .math-sqrt-sym { font-size:1.15em; }
   .math-sqrt-body { border-top:1.5px solid currentColor; padding:0 2px 0 1px; }
-  /* ===== EXPLANATION IMAGE ===== */
+  /* Fix chữ ℓ viết tay khi in */
+  .math-ell {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.05em;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @media print {
+    .math-ell { font-family: 'Georgia', 'Times New Roman', serif !important; font-style: italic !important; }
+  }
+  /* ===== NEXT BUTTON DIM STATE ===== */
+  .quiz-nav-btn.next.needs-confirm {
+    opacity: 0.35;
+    pointer-events: auto;
+  }
+  /* ===== MULTI-FILL (Điền nhiều ô) ===== */
+  .multifill-question-display {
+    font-size:1.05rem; line-height:2.2; padding:12px 0 4px;
+    word-break:break-word;
+  }
+  .mf-blank {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:64px; height:32px; padding:0 8px;
+    border-bottom:2px solid var(--accent); margin:0 3px;
+    font-family:'Lexend Deca',sans-serif; font-weight:700;
+    color:var(--accent); background:rgba(108,99,255,.07);
+    border-radius:4px 4px 0 0; vertical-align:middle;
+    transition:all .2s; font-size:.95rem;
+  }
+  .mf-blank.empty { color:var(--text3); min-width:48px; }
+  .mf-blank.correct { border-color:var(--correct); color:var(--correct); background:rgba(0,212,170,.1); }
+  .mf-blank.wrong   { border-color:var(--wrong);   color:var(--wrong);   background:rgba(255,107,107,.1); }
+  .multifill-inputs {
+    display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; align-items:flex-end;
+  }
+  .mf-input-group {
+    display:flex; flex-direction:column; align-items:center; gap:3px; min-width:80px;
+  }
+  .mf-input-label {
+    font-size:.68rem; color:var(--text3); font-weight:600;
+    text-transform:uppercase; letter-spacing:.06em;
+  }
+  .mf-input {
+    width:100%; min-width:70px; max-width:160px;
+    padding:8px 10px; border-radius:var(--radius-sm);
+    border:2px solid var(--ans-border); background:var(--ans-bg);
+    color:var(--text); font-family:'DM Sans',sans-serif; font-size:.95rem;
+    outline:none; transition:border-color .2s; text-align:center;
+  }
+  .mf-input:focus { border-color:var(--accent); }
+  .mf-input.correct { border-color:var(--correct); background:rgba(0,212,170,.1); }
+  .mf-input.wrong   { border-color:var(--wrong);   background:rgba(255,107,107,.1); }
+  .multifill-add-btn {
+    padding:7px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border);
+    background:transparent; color:var(--text2); font-size:.82rem; cursor:pointer;
+    transition:all .2s; align-self:flex-end; font-family:'DM Sans',sans-serif;
+    display:flex; align-items:center; gap:5px;
+  }
+  .multifill-add-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .mf-remove-btn {
+    width:18px; height:18px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,107,107,.15); color:var(--wrong); font-size:.6rem;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    transition:all .15s;
+  }
+  .mf-remove-btn:hover { background:var(--wrong); color:#fff; }
+
+  /* ===== AUDIO ANSWER BUTTON ===== */
+  .answer-audio-btn {
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--border);
+    background:var(--bg3); color:var(--accent2); font-size:.7rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    transition:all .2s;
+  }
+  .answer-audio-btn:hover { background:var(--accent2); color:#fff; border-color:var(--accent2); }
+  .answer-audio-btn.playing { background:var(--accent2); color:#fff; border-color:var(--accent2); animation:audioPulse .6s ease-in-out infinite alternate; }
+  @keyframes audioPulse { from{transform:scale(1)} to{transform:scale(1.15)} }
+
+  /* ===== FILL IN THE BLANK ===== */
+  .fill-answer-wrap { display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+  .fill-input-row { display:flex; gap:10px; align-items:center; }
+  .fill-input {
+    flex:1; padding:12px 16px; border-radius:var(--radius-sm);
+    border:2px solid var(--ans-border); background:var(--ans-bg);
+    color:var(--text); font-family:'DM Sans',sans-serif; font-size:1rem;
+    outline:none; transition:border-color .2s;
+  }
+  .fill-input:focus { border-color:var(--accent); }
+  .fill-input.correct { border-color:var(--correct); background:var(--ans-correct-bg); }
+  .fill-input.wrong { border-color:var(--wrong); background:var(--ans-wrong-bg); }
+  .fill-submit-btn {
+    padding:10px 20px; border-radius:var(--radius-sm); border:none; cursor:pointer;
+    background:var(--accent); color:#fff; font-family:'Lexend Deca',sans-serif;
+    font-weight:700; font-size:.85rem; transition:all .2s; white-space:nowrap;
+  }
+  .fill-submit-btn:hover { background:#7c74ff; transform:translateY(-1px); }
+  .fill-expected { margin-top:6px; font-size:.83rem; color:var(--text2); padding:6px 10px; background:rgba(0,212,170,.08); border-radius:var(--radius-sm); border:1px solid rgba(0,212,170,.2); }
+  .fill-expected strong { color:var(--correct); }
+  /* Fill diff result */
+  .fill-diff-wrap { margin-top:8px; }
+  .fill-diff-display {
+    font-size:.95rem; line-height:1.9; padding:12px 14px;
+    background:var(--ans-bg); border-radius:var(--radius-sm);
+    border:2px solid var(--ans-border); word-break:break-word;
+  }
+  .fill-diff-display .tok-ok { color:var(--correct); }
+  .fill-diff-display .tok-err { color:var(--wrong); text-decoration:underline wavy var(--wrong); }
+  .fill-diff-display .tok-extra { color:var(--text3); text-decoration:line-through; }
+  .fill-diff-display .tok-soft { color:var(--accent4); text-decoration:underline dotted var(--accent4); }
+  .fill-diff-display .tok-missing { color:var(--wrong); opacity:0.5; font-style:italic; }
+  .fill-pct-bar-wrap { margin-top:8px; display:flex; align-items:center; gap:10px; }
+  .fill-pct-bar { flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .fill-pct-fill { height:100%; border-radius:3px; transition:width .5s ease; }
+  .fill-pct-label { font-family:'Lexend Deca',sans-serif; font-weight:800; font-size:.85rem; min-width:44px; text-align:right; }
+  /* ===== HINT BUTTON ===== */
+  .hint-btn {
+    padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:transparent; color:var(--accent4); font-size:.8rem; cursor:pointer;
+    transition:all .2s; display:inline-flex; align-items:center; gap:5px;
+    font-family:'DM Sans',sans-serif; font-weight:500;
+  }
+  .hint-btn:hover { border-color:var(--accent4); background:rgba(255,217,61,.08); }
+  .hint-box {
+    background:rgba(255,217,61,.07); border:1px solid rgba(255,217,61,.25);
+    border-radius:var(--radius-sm); padding:10px 14px; font-size:.88rem;
+    color:var(--accent4); margin-top:8px; animation:fadeUp .2s ease;
+    display:flex; gap:8px; align-items:flex-start;
+  }
+  .hint-box i { flex-shrink:0; margin-top:2px; }
+  /* ===== DRAG SORT ===== */
+  .quiz-grid { position:relative; }
+  .drag-sort-btn {
+    position:absolute; bottom:10px; right:10px;
+    padding:5px 11px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--bg3); color:var(--text2); font-size:.75rem; cursor:pointer;
+    display:flex; align-items:center; gap:5px; font-family:'DM Sans',sans-serif;
+    transition:all .2s; z-index:5;
+  }
+  .drag-sort-btn:hover, .drag-sort-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(108,99,255,.08); }
+  .sort-handle {
+    position:absolute; top:0; left:0; right:0; bottom:0; cursor:grab; z-index:20;
+    display:none; background:rgba(108,99,255,.06); border-radius:var(--radius);
+    border:2px dashed var(--accent); align-items:center; justify-content:center;
+    font-size:1.8rem; color:var(--accent); opacity:.7;
+  }
+  .sort-mode .sort-handle { display:flex; }
+  .sort-mode .quiz-card { cursor:grab; }
+  .quiz-card.drag-over { box-shadow:0 0 0 3px var(--accent2); }
+  .sort-mode-banner {
+    background:rgba(108,99,255,.1); border:1px solid rgba(108,99,255,.3);
+    border-radius:var(--radius-sm); padding:8px 14px; margin:0 24px 12px;
+    font-size:.82rem; color:var(--accent); display:none; align-items:center; gap:8px;
+  }
+  .sort-mode-banner.visible { display:flex; }
+  /* ===== HIDDEN QUESTION ===== */
+  .q-hidden-badge {
+    display:inline-flex; align-items:center; gap:4px; font-size:.68rem;
+    padding:2px 7px; border-radius:8px; background:rgba(255,107,107,.12);
+    color:var(--wrong); border:1px solid rgba(255,107,107,.25); margin-left:6px;
+  }
+  .question-item.is-hidden { opacity:.55; }
+  .question-item.is-hidden .q-hidden-badge { opacity:1; }
+  /* ===== NEW BADGE TOGGLE IN FORM ===== */
+  .new-badge-toggle-row {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0; border-top:1px solid var(--border); margin-top:4px;
+  }
   .expl-img-preview { max-width:100%; max-height:90px; border-radius:var(--radius-sm); margin-top:5px; display:none; object-fit:cover; }
 
   /* ===== HISTORY MODAL ===== */
@@ -654,6 +836,10 @@
       <input type="text" class="search-input" id="search-input" placeholder="🔍 Tìm kiếm bộ đề..." oninput="filterQuizzes()">
     </div>
   </div>
+  <div class="sort-mode-banner" id="sort-mode-banner">
+    <i class="fas fa-arrows-alt"></i> Chế độ sắp xếp — Kéo thả để thay đổi thứ tự bộ đề &nbsp;
+    <button onclick="exitSortMode()" style="margin-left:auto;padding:3px 10px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:.78rem">Xong</button>
+  </div>
   <div class="quiz-grid" id="quiz-grid">
     <div class="empty-state" id="empty-state" style="display:none;grid-column:1/-1">
       <i class="fas fa-inbox"></i>
@@ -661,6 +847,9 @@
       <p>Nhấn <span class="link-text" onclick="showPage('add')">Thêm mới</span> để tạo bộ đề đầu tiên</p>
     </div>
   </div>
+  <button class="drag-sort-btn" id="drag-sort-btn" onclick="toggleSortMode()" style="position:fixed;bottom:24px;right:24px;z-index:100">
+    <i class="fas fa-sort"></i> Sắp xếp bộ đề
+  </button>
 </div>
 
 <!-- ADD/EDIT PAGE -->
@@ -717,7 +906,21 @@
         <div><div class="toggle-label">Hiển thị cho</div><div class="toggle-desc">User được phép xem bộ đề này</div></div>
         <div class="user-assign-wrap" id="quiz-user-assign"></div>
       </div>
+      <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:12px">
+        <div><div class="toggle-label">Loại câu trả lời mặc định</div><div class="toggle-desc">Áp dụng cho câu hỏi mới thêm vào (có thể đổi từng câu)</div></div>
+        <select class="form-select" id="quiz-default-type" style="width:auto;padding:6px 10px;font-size:.82rem">
+          <option value="single">Chọn 1 đáp án</option>
+          <option value="multi">Chọn nhiều đáp án</option>
+          <option value="fill">Điền vào chỗ trống</option>
+        </select>
+      </div>
+      <div class="new-badge-toggle-row">
+        <div><div class="toggle-label">Hiển thị badge <span style="background:linear-gradient(135deg,#ff6b6b,#ffd93d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:800">Mới</span></div><div class="toggle-desc">Bật để đánh dấu bộ đề này là mới/vừa cập nhật</div></div>
+        <label class="toggle"><input type="checkbox" id="quiz-show-new-badge"><span class="toggle-slider"></span></label>
+      </div>
     </div>
+
+    <button class="save-btn" onclick="saveQuiz()" style="margin-bottom:16px"><i class="fas fa-save"></i> Lưu bộ đề</button>
 
     <div class="form-section">
       <div class="form-section-title" style="justify-content:space-between">
@@ -1204,6 +1407,7 @@ function init() {
   subscribeQuizzes();
   subscribeUsers();
   subscribeSessions();
+  subscribeQuizOrder();
   // keyboard arrow navigation
   document.addEventListener('keydown', e => {
     if(document.getElementById('page-quiz').classList.contains('active')) {
@@ -1312,14 +1516,16 @@ window.filterQuizzes = function() {
 function renderQuizGrid() {
   const grid = document.getElementById('quiz-grid');
   const empty = document.getElementById('empty-state');
-  const allIds = Object.keys(quizzesCache);
   const cur = getCurrentUser();
+  // Get ordered IDs
+  const ordered = getQuizOrder();
   // Filter by user
-  const ids = allIds.filter(id => {
+  const ids = ordered.filter(id => {
     const q = quizzesCache[id];
+    if(!q) return false;
     const allowed = q.settings?.allowedUsers;
-    if(!cur) return true; // no user selected: show all
-    if(!allowed || allowed.length===0) return true; // quiz has no restriction
+    if(!cur) return true;
+    if(!allowed || allowed.length===0) return true;
     return allowed.includes(cur);
   });
   // Remove old cards, keep empty state
@@ -1335,6 +1541,12 @@ function renderQuizGrid() {
     const imgHtml = q.imageUrl
       ? `<img class="quiz-card-img" src="${q.imageUrl}" onerror="this.style.display='none'" loading="lazy">`
       : (q.sampleEmoji ? `<div class="quiz-card-img-placeholder" style="background:${q.sampleBg||'var(--bg3)'}">${q.sampleEmoji}</div>` : `<div class="quiz-card-img-placeholder" style="background:var(--bg3)">📝</div>`);
+    // NEW badge: controlled by author + clears after user plays
+    const lastPlayed = getLastPlayedTime(id);
+    const updatedAt = q.updatedAt || q.createdAt || 0;
+    const authorWantsNew = q.settings?.showNewBadge === true;
+    const isNew = authorWantsNew && (!lastPlayed || lastPlayed < updatedAt);
+    const newBadge = isNew ? `<div class="new-badge"><i class="fas fa-star" style="font-size:.55rem;margin-right:2px"></i>Mới</div>` : '';
     const target = q.settings?.targetSessions||1;
     const done = getSessionCount(id);
     const pct = Math.min(100, Math.round(done/target*100));
@@ -1350,10 +1562,12 @@ function renderQuizGrid() {
       </div>` : '';
     card.innerHTML = `
       ${imgHtml}
+      ${newBadge}
+      <div class="sort-handle"><i class="fas fa-grip-vertical"></i></div>
       <div class="quiz-card-body">
         <div class="quiz-card-title">${escHtml(q.name||'Không tên')}</div>
         <div class="quiz-card-meta">
-          <span class="quiz-card-tag"><i class="fas fa-question-circle"></i>${(q.questions||[]).length} câu</span>
+          <span class="quiz-card-tag"><i class="fas fa-question-circle"></i>${(q.questions||[]).filter(qq=>!qq.hidden).length} câu</span>
           <span class="quiz-card-tag"><i class="fas fa-clock"></i>${q.settings?.timeLimit||30} phút</span>
           ${q.settings?.shuffleQ ? '<span class="quiz-card-tag"><i class="fas fa-random"></i>Đảo câu</span>':''}
         </div>
@@ -1365,9 +1579,12 @@ function renderQuizGrid() {
         <button class="icon-btn icon-btn-delete" onclick="confirmDeleteQuiz('${id}',event)" title="Xóa"><i class="fas fa-trash"></i></button>
       </div>
     `;
-    card.addEventListener('click', () => startQuiz(id));
+    card.addEventListener('click', e => { if(!_sortMode) startQuiz(id); });
+    attachDragSort(card, id);
     grid.appendChild(card);
   });
+  // Re-apply sort mode class if active
+  if(_sortMode) grid.classList.add('sort-mode');
 }
 
 // ===== FORM - Add/Edit =====
@@ -1383,6 +1600,10 @@ function resetForm() {
   document.getElementById('shuffle-answers').checked = true;
   document.getElementById('quiz-target-sessions').value = 1;
   document.getElementById('sessions-done-row').style.display = 'none';
+  const dtSel = document.getElementById('quiz-default-type');
+  if(dtSel) dtSel.value = 'single';
+  const nbToggle = document.getElementById('quiz-show-new-badge');
+  if(nbToggle) nbToggle.checked = false;
   selectedSampleImg = null;
   document.querySelectorAll('.sample-img-btn').forEach(b => b.classList.remove('selected'));
   renderUserAssignChips([]);
@@ -1428,6 +1649,12 @@ window.editQuiz = function(id, e) {
   document.getElementById('shuffle-questions').checked = q.settings?.shuffleQ!==false;
   document.getElementById('shuffle-answers').checked = q.settings?.shuffleA!==false;
   document.getElementById('quiz-target-sessions').value = q.settings?.targetSessions||1;
+  // Default type
+  const dtSel = document.getElementById('quiz-default-type');
+  if(dtSel) dtSel.value = q.settings?.defaultType||'single';
+  // New badge toggle
+  const nbToggle = document.getElementById('quiz-show-new-badge');
+  if(nbToggle) nbToggle.checked = q.settings?.showNewBadge||false;
   // Sessions done
   const doneCount = getSessionCount(id);
   document.getElementById('sessions-done-val').textContent = doneCount;
@@ -1465,8 +1692,9 @@ window.closeModal = function() { document.getElementById('confirm-modal').classL
 
 // ===== QUESTION EDITOR =====
 window.addQuestion = function(data) {
+  const defaultType = document.getElementById('quiz-default-type')?.value || 'single';
   editQuestions.push(data || {
-    text:'', type:'single', answers:[
+    text:'', type:defaultType, answers:[
       {text:'',correct:false},{text:'',correct:false},{text:'',correct:false},{text:'',correct:false}
     ], explanation:'', imageUrl:'', audioUrl:''
   });
@@ -1490,10 +1718,18 @@ function renderQuestions() {
 function qToText(q, qi) {
   const letters = 'ABCDEFGHIJ';
   let lines = [`Câu ${qi+1}: ${q.text||''}`];
-  (q.answers||[]).forEach((a,ai) => {
-    const lbl = letters[ai]||String(ai+1);
-    lines.push(`${lbl}${a.correct?'*':''}. ${a.text||''}`);
-  });
+  if(q.type==='fill') {
+    const corrects = (q.answers||[]).filter(a=>a.correct).map(a=>a.text);
+    lines.push(`=> [Điền] ${corrects.join(' | ')}`);
+  } else if(q.type==='multifill') {
+    const blanks = (q.answers||[]).map(a=>a.text);
+    lines.push(`=> [Điền nhiều ô] ${blanks.join(' | ')}`);
+  } else {
+    (q.answers||[]).forEach((a,ai) => {
+      const lbl = letters[ai]||String(ai+1);
+      lines.push(`${lbl}${a.correct?'*':''}. ${a.text||''}`);
+    });
+  }
   if(q.explanation) lines.push(`=> ${q.explanation}`);
   return lines.join('\n');
 }
@@ -1525,7 +1761,23 @@ function textToQ(raw, qi, existingQ) {
 
   for(let line of lines) {
     const explM = line.match(explRe);
-    if(explM) { result.explanation = explM[1].trim(); continue; }
+    if(explM) {
+      // Check for fill/multifill special lines
+      const fillM = explM[1].match(/^\[Điền\]\s*(.*)/);
+      const mfM = explM[1].match(/^\[Điền nhiều ô\]\s*(.*)/);
+      if(fillM) {
+        const parts = fillM[1].split('|').map(s=>s.trim()).filter(Boolean);
+        result.answers = parts.map(t=>({text:t,correct:true}));
+        result.type = 'fill';
+      } else if(mfM) {
+        const parts = mfM[1].split('|').map(s=>s.trim()).filter(Boolean);
+        result.answers = parts.map(t=>({text:t,correct:true}));
+        result.type = 'multifill';
+      } else {
+        result.explanation = explM[1].trim();
+      }
+      continue;
+    }
 
     const ansM = line.match(ansRe);
     if(ansM) {
@@ -1602,6 +1854,11 @@ function refreshFormFields(qi, q) {
   // Answers: compare count first
   const container = document.getElementById(`answers-${qi}`);
   if(!container) return;
+  // For fill/multifill types, just re-render the questions section entirely
+  if(q.type==='fill' || q.type==='multifill') {
+    renderQuestions();
+    return;
+  }
   const oldRows = container.querySelectorAll('.answer-row');
   if(oldRows.length !== (q.answers||[]).length) {
     // Re-render answers section only
@@ -1636,27 +1893,52 @@ function renderQuestionItem(q, qi, container, isInline) {
         <select class="q-type-select" onchange="editQType(${qi},this.value)">
           <option value="single" ${q.type==='single'?'selected':''}>Chọn 1</option>
           <option value="multi" ${q.type==='multi'?'selected':''}>Nhiều đáp án</option>
+          <option value="fill" ${q.type==='fill'?'selected':''}>Điền vào chỗ trống</option>
+          <option value="multifill" ${q.type==='multifill'?'selected':''}>Điền nhiều ô</option>
         </select>
       </div>
       <div class="form-row" style="gap:8px">
         <input type="url" class="form-input" style="font-size:.8rem" placeholder="🖼 URL hình ảnh (tùy chọn)" value="${escHtml(q.imageUrl||'')}" oninput="editQ(${qi},'imageUrl',this.value)">
-        <input type="url" class="form-input" style="font-size:.8rem" placeholder="🔊 URL âm thanh (tùy chọn)" value="${escHtml(q.audioUrl||'')}" oninput="editQ(${qi},'audioUrl',this.value)">
+        <input type="url" class="form-input" style="font-size:.8rem" placeholder="🔊 URL âm thanh câu hỏi (tự phát)" value="${escHtml(q.audioUrl||'')}" oninput="editQ(${qi},'audioUrl',this.value)">
       </div>
       <div class="answers-grid" id="answers-${qi}">
-        ${(q.answers||[]).map((a,ai)=>`
+        ${q.type==='fill' ? `
+          <div style="margin-top:4px">
+            <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án đúng (dùng | để phân cách)</label>
+            <input type="text" class="form-input" placeholder="VD: Hà Nội | hà nội"
+              value="${escHtml((q.answers||[]).filter(a=>a.correct).map(a=>a.text).join(' | '))}"
+              oninput="editFillAnswer(${qi},this.value)">
+          </div>` :
+        q.type==='multifill' ? `
+          <div style="margin-top:4px">
+            <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án từng ô /? (theo thứ tự)</label>
+            ${(q.answers&&q.answers.length?q.answers:[{text:'',correct:true}]).map((a,ai)=>`
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:.72rem;color:var(--text3);white-space:nowrap">Ô ${ai+1}</span>
+                <input type="text" class="form-input" style="font-size:.85rem" placeholder="Đáp án..." value="${escHtml(a.text||'')}" oninput="editMfAnswer(${qi},${ai},this.value)">
+              </div>`).join('')}
+            <button class="add-answer-btn" onclick="addMfAnswer(${qi})"><i class="fas fa-plus"></i> Thêm ô</button>
+          </div>` :
+        (q.answers||[]).map((a,ai)=>`
           <div class="answer-row" id="ans-${qi}-${ai}">
             <div class="answer-letter">${letters[ai]||'?'}</div>
             <input type="checkbox" class="answer-check" ${a.correct?'checked':''} onchange="editAns(${qi},${ai},'correct',this.checked,${q.type==='single'?'true':'false'})">
             <input type="text" class="answer-input" placeholder="Đáp án ${letters[ai]||ai+1}..." value="${escHtml(a.text||'')}" oninput="editAns(${qi},${ai},'text',this.value)">
+            <input type="url" class="answer-input" style="max-width:120px;font-size:.75rem" placeholder="🔊 audio..." value="${escHtml(a.audioUrl||'')}" oninput="editAns(${qi},${ai},'audioUrl',this.value)" title="URL âm thanh đáp án">
             ${(q.answers||[]).length>2?`<button class="answer-remove-btn" onclick="removeAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
           </div>`).join('')}
       </div>
-      <button class="add-answer-btn" onclick="addAnswer(${qi})"><i class="fas fa-plus"></i> Thêm đáp án</button>
+      ${(q.type!=='fill'&&q.type!=='multifill')?`<button class="add-answer-btn" onclick="addAnswer(${qi})"><i class="fas fa-plus"></i> Thêm đáp án</button>`:''}
       <div class="form-group" style="margin-top:10px;margin-bottom:0">
         <label>Giải thích (hiện sau khi trả lời)</label>
         <textarea class="form-textarea" style="min-height:52px" placeholder="Giải thích đáp án..." oninput="editQ(${qi},'explanation',this.value)">${escHtml(q.explanation||'')}</textarea>
-        <input type="url" class="form-input" style="margin-top:6px;font-size:.8rem" placeholder="🖼 URL ảnh minh họa giải thích (tùy chọn)" value="${escHtml(q.explImageUrl||'')}" oninput="editQ(${qi},'explImageUrl',this.value);updateExplImgPreview(this,'expl-img-${qi}')">
+        <input type="url" class="form-input" style="margin-top:6px;font-size:.8rem" placeholder="🖼 URL ảnh giải thích (tùy chọn)" value="${escHtml(q.explImageUrl||'')}" oninput="editQ(${qi},'explImageUrl',this.value);updateExplImgPreview(this,'expl-img-${qi}')">
+        <input type="url" class="form-input" style="margin-top:6px;font-size:.8rem" placeholder="🔊 URL âm thanh giải thích (tự phát)" value="${escHtml(q.explAudioUrl||'')}" oninput="editQ(${qi},'explAudioUrl',this.value)">
         <img id="expl-img-${qi}" class="expl-img-preview" src="${escHtml(q.explImageUrl||'')}" ${q.explImageUrl?'style="display:block"':''}>
+      </div>
+      <div class="form-group" style="margin-top:8px;margin-bottom:0">
+        <label>Gợi ý (hiện khi user nhấn 💡)</label>
+        <input type="text" class="form-input" style="font-size:.85rem" placeholder="VD: Nhớ lại quy tắc..." value="${escHtml(q.hint||'')}" oninput="editQ(${qi},'hint',this.value)">
       </div>`;
     return;
   }
@@ -1669,42 +1951,85 @@ function renderQuestionItem(q, qi, container, isInline) {
 
   // ---- LEFT: Form item ----
   const formItem = document.createElement('div');
-  formItem.className = 'question-item';
+  formItem.className = 'question-item' + (q.hidden ? ' is-hidden' : '');
   formItem.id = 'q-item-'+qi;
   formItem.innerHTML = `
     <button class="q-remove" onclick="removeQuestion(${qi})" title="Xóa câu"><i class="fas fa-times"></i></button>
     <div class="q-header">
-      <div class="q-num">Câu ${qi+1}</div>
+      <div class="q-num">Câu ${qi+1}${q.hidden?'<span class="q-hidden-badge"><i class="fas fa-eye-slash"></i> Ẩn</span>':''}</div>
       <input type="text" class="form-input" id="qinput-${qi}" style="flex:1" placeholder="Nội dung câu hỏi..."
         value="${escHtml(q.text||'')}"
         oninput="editQ(${qi},'text',this.value);syncFormToText(${qi})">
       <select class="q-type-select" id="qtype-${qi}" onchange="editQType(${qi},this.value);syncFormToText(${qi})">
         <option value="single" ${q.type==='single'?'selected':''}>Chọn 1</option>
         <option value="multi" ${q.type==='multi'?'selected':''}>Nhiều đáp án</option>
+        <option value="fill" ${q.type==='fill'?'selected':''}>Điền vào chỗ trống</option>
+        <option value="multifill" ${q.type==='multifill'?'selected':''}>Điền nhiều ô</option>
       </select>
     </div>
     <div class="form-row" style="gap:8px">
       <input type="url" class="form-input" style="font-size:.8rem" placeholder="🖼 URL hình ảnh (tùy chọn)" value="${escHtml(q.imageUrl||'')}" oninput="editQ(${qi},'imageUrl',this.value)">
-      <input type="url" class="form-input" style="font-size:.8rem" placeholder="🔊 URL âm thanh (tùy chọn)" value="${escHtml(q.audioUrl||'')}" oninput="editQ(${qi},'audioUrl',this.value)">
+      <input type="url" class="form-input" style="font-size:.8rem" placeholder="🔊 URL âm thanh câu hỏi (tự phát)" value="${escHtml(q.audioUrl||'')}" oninput="editQ(${qi},'audioUrl',this.value)">
     </div>
     <div class="answers-grid" id="answers-${qi}">
-      ${(q.answers||[]).map((a,ai)=>`
+      ${q.type==='fill' ? `
+        <div style="margin-top:4px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án đúng (dùng | để phân cách các đáp án chấp nhận được)</label>
+          <input type="text" class="form-input fill-correct-input" id="fillanswer-${qi}"
+            placeholder="VD: Mary said she was going to <finish> her homework."
+            value="${escHtml((q.answers||[]).filter(a=>a.correct).map(a=>a.text).join(' | '))}"
+            oninput="editFillAnswer(${qi},this.value);syncFormToText(${qi})">
+          <div style="font-size:.72rem;color:var(--text3);margin-top:4px;line-height:1.6">
+            <i class="fas fa-info-circle"></i> Dùng <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">&lt;từ_khoá&gt;</code> để đánh dấu từ quan trọng.<br>
+            Dùng <code style="color:var(--accent4);background:rgba(255,217,61,.1);padding:1px 4px;border-radius:3px">|</code> để phân cách nhiều đáp án chấp nhận. Dùng <code style="color:var(--accent);background:rgba(108,99,255,.1);padding:1px 4px;border-radius:3px">&lt;*Prefix*&gt;</code> để điền sẵn vào ô trả lời.
+          </div>
+        </div>` :
+      q.type==='multifill' ? `
+        <div style="margin-top:4px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án cho từng ô /? (theo thứ tự xuất hiện)</label>
+          <div id="mf-answers-${qi}" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            ${(q.answers&&q.answers.length?q.answers:[{text:'',correct:true}]).map((a,ai)=>`
+              <div style="display:flex;align-items:center;gap:4px" id="mfans-${qi}-${ai}">
+                <div style="font-size:.72rem;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0">Ô ${ai+1}</div>
+                <input type="text" class="form-input" style="width:110px;font-size:.85rem;padding:6px 8px" placeholder="Đáp án..." value="${escHtml(a.text||'')}" oninput="editMfAnswer(${qi},${ai},this.value)">
+                ${q.answers&&q.answers.length>1?`<button class="answer-remove-btn" onclick="removeMfAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
+              </div>`).join('')}
+          </div>
+          <button class="add-answer-btn" onclick="addMfAnswer(${qi})"><i class="fas fa-plus"></i> Thêm ô</button>
+          <div style="font-size:.72rem;color:var(--text3);margin-top:6px;line-height:1.6">
+            <i class="fas fa-info-circle"></i> Dùng <code style="color:var(--accent);background:rgba(108,99,255,.1);padding:1px 4px;border-radius:3px">/?</code> trong nội dung câu để đánh dấu ô trống. Chấm không phân biệt hoa/thường.
+          </div>
+        </div>` :
+      (q.answers||[]).map((a,ai)=>`
         <div class="answer-row" id="ans-${qi}-${ai}">
           <div class="answer-letter">${letters[ai]||'?'}</div>
           <input type="checkbox" class="answer-check" ${a.correct?'checked':''} onchange="editAns(${qi},${ai},'correct',this.checked,${q.type==='single'?'true':'false'});syncFormToText(${qi})">
           <input type="text" class="answer-input" id="ainput-${qi}-${ai}" placeholder="Đáp án ${letters[ai]||ai+1}..."
             value="${escHtml(a.text||'')}"
             oninput="editAns(${qi},${ai},'text',this.value);syncFormToText(${qi})">
+          <input type="url" class="answer-input" style="max-width:130px;font-size:.75rem" placeholder="🔊 audio..." value="${escHtml(a.audioUrl||'')}" oninput="editAns(${qi},${ai},'audioUrl',this.value)" title="URL âm thanh đáp án (user click để nghe)">
           ${(q.answers||[]).length>2?`<button class="answer-remove-btn" onclick="removeAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
         </div>`).join('')}
     </div>
-    <button class="add-answer-btn" onclick="addAnswer(${qi})"><i class="fas fa-plus"></i> Thêm đáp án</button>
+    ${(q.type!=='fill'&&q.type!=='multifill')?`<button class="add-answer-btn" onclick="addAnswer(${qi})"><i class="fas fa-plus"></i> Thêm đáp án</button>`:''}
     <div class="form-group" style="margin-top:10px;margin-bottom:0">
       <label>Giải thích (hiện sau khi trả lời)</label>
       <textarea class="form-textarea" id="qexpl-${qi}" style="min-height:52px" placeholder="Giải thích đáp án..."
         oninput="editQ(${qi},'explanation',this.value);syncFormToText(${qi})">${escHtml(q.explanation||'')}</textarea>
-      <input type="url" class="form-input" id="qexpl-img-${qi}" style="margin-top:6px;font-size:.8rem" placeholder="🖼 URL ảnh minh họa giải thích (tùy chọn)" value="${escHtml(q.explImageUrl||'')}" oninput="editQ(${qi},'explImageUrl',this.value);updateExplImgPreview(this,'expl-img-${qi}')">
+      <input type="url" class="form-input" id="qexpl-img-${qi}" style="margin-top:6px;font-size:.8rem" placeholder="🖼 URL ảnh giải thích (tùy chọn)" value="${escHtml(q.explImageUrl||'')}" oninput="editQ(${qi},'explImageUrl',this.value);updateExplImgPreview(this,'expl-img-${qi}')">
+      <input type="url" class="form-input" id="qexpl-audio-${qi}" style="margin-top:6px;font-size:.8rem" placeholder="🔊 URL âm thanh giải thích (tự phát khi hiện giải thích)" value="${escHtml(q.explAudioUrl||'')}" oninput="editQ(${qi},'explAudioUrl',this.value)">
       <img id="expl-img-${qi}" class="expl-img-preview" src="${escHtml(q.explImageUrl||'')}" ${q.explImageUrl?'style="display:block"':''}>
+    </div>
+    <div class="form-group" style="margin-top:8px;margin-bottom:0">
+      <label>Gợi ý (hiện khi user nhấn 💡 trong lúc làm bài)</label>
+      <input type="text" class="form-input" style="font-size:.85rem" placeholder="VD: Nhớ lại quy tắc..." value="${escHtml(q.hint||'')}" oninput="editQ(${qi},'hint',this.value)">
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+      <div>
+        <div class="toggle-label" style="font-size:.82rem">Ẩn câu hỏi này</div>
+        <div class="toggle-desc">Câu ẩn sẽ không xuất hiện khi làm bài</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="qhidden-${qi}" ${q.hidden?'checked':''} onchange="editQ(${qi},'hidden',this.checked);document.getElementById('q-item-${qi}').classList.toggle('is-hidden',this.checked)"><span class="toggle-slider"></span></label>
     </div>`;
 
   // ---- RIGHT: Text panel ----
@@ -1751,6 +2076,81 @@ window.toggleMathRef = function(qi) {
 };
 
 window.editQ = function(qi, field, val) { if(editQuestions[qi]) editQuestions[qi][field]=val; };
+window.editMfAnswer = function(qi, ai, val) {
+  if(!editQuestions[qi]) return;
+  if(!editQuestions[qi].answers) editQuestions[qi].answers = [];
+  while(editQuestions[qi].answers.length<=ai) editQuestions[qi].answers.push({text:'',correct:true});
+  editQuestions[qi].answers[ai].text = val;
+  editQuestions[qi].answers[ai].correct = true;
+};
+window.addMfAnswer = function(qi) {
+  if(!editQuestions[qi]) return;
+  if(!editQuestions[qi].answers) editQuestions[qi].answers=[];
+  editQuestions[qi].answers.push({text:'',correct:true});
+  renderQuestions();
+};
+window.removeMfAnswer = function(qi, ai) {
+  if(!editQuestions[qi]?.answers) return;
+  editQuestions[qi].answers.splice(ai,1);
+  renderQuestions();
+};
+
+// Live preview: update /? blank span as user types
+window.updateMfPreview = function(qi, ai, val) {
+  const span = document.getElementById('mf-preview-'+qi+'-'+ai);
+  if(span) {
+    span.textContent = val || '?';
+    span.classList.toggle('empty', !val);
+  }
+};
+
+// Submit multifill — check each blank case-insensitively
+window.submitMultiFill = function(qi) {
+  const q = quizQuestions[qi];
+  const correctAnswers = q.answers||[];
+  const blankCount = (q.text||'').match(/\/\?/g)?.length||0;
+  const count = Math.max(blankCount, correctAnswers.length||1);
+  const userAnswers = Array.from({length:count},(_,ai)=>{
+    return (document.getElementById('mf-inp-'+qi+'-'+ai)?.value||'').trim();
+  });
+  // Check all blanks
+  const allCorrect = userAnswers.every((ua,ai)=>{
+    const ca = correctAnswers[ai]?.text||'';
+    return normFill(ua)===normFill(ca);
+  });
+  answers[qi] = { selected:[], correct:allCorrect, userAnswers };
+  playTone(allCorrect?'correct':'wrong');
+  showQuestion(qi);
+  if(allCorrect) spawnConfetti();
+  updateSidebarStats();
+};
+
+// Play answer audio on click
+let _answerAudioEl = null;
+window.playAnswerAudio = function(btn, encodedUrl) {
+  // Stop previous
+  if(_answerAudioEl) { _answerAudioEl.pause(); _answerAudioEl=null; }
+  document.querySelectorAll('.answer-audio-btn.playing').forEach(b=>b.classList.remove('playing'));
+  const url = decodeURIComponent(encodedUrl);
+  const audio = new Audio(url);
+  _answerAudioEl = audio;
+  btn.classList.add('playing');
+  audio.play().catch(()=>{});
+  audio.onended = ()=>{ btn.classList.remove('playing'); _answerAudioEl=null; };
+  audio.onerror = ()=>{ btn.classList.remove('playing'); _answerAudioEl=null; };
+};
+
+// Apply renderMath to element innerHTML
+function applyMathInner(el) {
+  el.innerHTML = renderMath(el.innerHTML);
+}
+
+window.editFillAnswer = function(qi, val) {
+  if(!editQuestions[qi]) return;
+  const parts = val.split('|').map(s=>s.trim()).filter(Boolean);
+  editQuestions[qi].answers = parts.map((t)=>({text:t,correct:true}));
+  if(editQuestions[qi].answers.length===0) editQuestions[qi].answers=[{text:'',correct:true}];
+};
 window.syncFormToText = syncFormToText;
 window.syncTextToForm = syncTextToForm;
 window.editQType = function(qi, type) {
@@ -1811,8 +2211,12 @@ window.saveQuiz = async function() {
   for(let i=0; i<editQuestions.length; i++){
     const q = editQuestions[i];
     if(!q.text.trim()){ showToast(`Câu ${i+1}: Chưa có nội dung câu hỏi`,'error'); return; }
-    if(!q.answers.some(a=>a.correct)){ showToast(`Câu ${i+1}: Chưa chọn đáp án đúng`,'error'); return; }
-    if(!q.answers.some(a=>a.text.trim())){ showToast(`Câu ${i+1}: Chưa có nội dung đáp án`,'error'); return; }
+    if(q.type==='fill'){
+      if(!q.answers||q.answers.length===0||!q.answers[0].text.trim()){ showToast(`Câu ${i+1}: Chưa nhập đáp án điền vào chỗ trống`,'error'); return; }
+    } else {
+      if(!q.answers.some(a=>a.correct)){ showToast(`Câu ${i+1}: Chưa chọn đáp án đúng`,'error'); return; }
+      if(!q.answers.some(a=>a.text.trim())){ showToast(`Câu ${i+1}: Chưa có nội dung đáp án`,'error'); return; }
+    }
   }
   const btn = document.getElementById('save-btn');
   btn.disabled = true;
@@ -1829,6 +2233,8 @@ window.saveQuiz = async function() {
       shuffleA: document.getElementById('shuffle-answers').checked,
       targetSessions: parseInt(document.getElementById('quiz-target-sessions').value)||1,
       allowedUsers: getSelectedUserAssign(),
+      defaultType: document.getElementById('quiz-default-type')?.value||'single',
+      showNewBadge: document.getElementById('quiz-show-new-badge')?.checked||false,
     },
     questions: editQuestions,
     updatedAt: Date.now()
@@ -1856,8 +2262,8 @@ window.startQuiz = function(id) {
   isReviewMode = false;
   answers = {};
   currentQIndex = 0;
-  // shuffle questions
-  let qs = JSON.parse(JSON.stringify(q.questions));
+  // shuffle questions — filter hidden first
+  let qs = JSON.parse(JSON.stringify(q.questions)).filter(qq => !qq.hidden);
   if(q.settings?.shuffleQ!==false) qs = shuffle(qs);
   // shuffle answers per question
   if(q.settings?.shuffleA!==false) {
@@ -1909,11 +2315,74 @@ function showQuestion(idx) {
 
   let mediaHtml = '';
   if(q.imageUrl) mediaHtml += `<div class="question-media"><img class="question-img" src="${escHtml(q.imageUrl)}" loading="lazy"></div>`;
-  if(q.audioUrl) mediaHtml += `<div class="question-media"><audio class="question-audio" controls src="${escHtml(q.audioUrl)}"></audio></div>`;
+  if(q.audioUrl) mediaHtml += `<div class="question-media"><audio class="question-audio" id="q-audio-${idx}" controls ${!done?'autoplay':''} src="${escHtml(q.audioUrl)}"></audio></div>`;
 
-  const typeLabel = q.type==='multi' ? '<i class="fas fa-check-double"></i> Chọn nhiều đáp án' : '<i class="fas fa-dot-circle"></i> Chọn một đáp án';
+  const typeLabel = q.type==='multi' ? '<i class="fas fa-check-double"></i> Chọn nhiều đáp án' 
+    : q.type==='fill' ? '<i class="fas fa-keyboard"></i> Điền vào chỗ trống'
+    : q.type==='multifill' ? '<i class="fas fa-th-list"></i> Điền nhiều ô'
+    : '<i class="fas fa-dot-circle"></i> Chọn một đáp án';
 
-  let answersHtml = q.answers.map((a, ai) => {
+  let answersHtml = '';
+  if(q.type==='multifill') {
+    const correctAnswers = q.answers||[];
+    const st = answers[idx];
+    if(st) {
+      answersHtml = `<div class="multifill-question-display" id="mf-qdisplay-${idx}"></div>
+        <div class="multifill-inputs" style="margin-top:10px">
+          ${correctAnswers.map((a,ai)=>{
+            const ua=st.userAnswers?.[ai]||'';
+            const ok=normFill(ua)===normFill(a.text||'');
+            return `<div class="mf-input-group">
+              <div class="mf-input-label">Ô ${ai+1}</div>
+              <input class="mf-input ${ok?'correct':'wrong'}" value="${escHtml(ua)}" disabled>
+              ${!ok?`<div style="font-size:.68rem;color:var(--correct);margin-top:2px;text-align:center">✓ ${escHtml(a.text)}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>`;
+    } else {
+      const blankCount = Math.max((q.text||'').match(/\/\?/g)?.length||0, correctAnswers.length||1);
+      answersHtml = `<div class="multifill-question-display" id="mf-qdisplay-${idx}"></div>
+        <div class="multifill-inputs">
+          ${Array.from({length:blankCount},(_,ai)=>`
+            <div class="mf-input-group">
+              <div class="mf-input-label">Ô ${ai+1}</div>
+              <input class="mf-input" id="mf-inp-${idx}-${ai}" placeholder="..." oninput="updateMfPreview(${idx},${ai},this.value)" onkeydown="if(event.key==='Enter'){var nx=document.getElementById('mf-inp-${idx}-${ai+1}');nx?nx.focus():submitMultiFill(${idx})}">
+            </div>`).join('')}
+          <button class="fill-submit-btn" style="align-self:flex-end;margin-left:4px" onclick="submitMultiFill(${idx})"><i class="fas fa-check"></i> Trả lời</button>
+        </div>`;
+    }
+  } else if(q.type==='fill') {
+    const st = answers[idx];
+    if(st) {
+      // Answered: show diff result
+      const userAns = st.userText||'';
+      const correctAnswers = q.answers.filter(a=>a.correct).map(a=>a.text);
+      const diffResult = st.diffHtml || '';
+      const pct = st.pct !== undefined ? st.pct : (st.correct ? 100 : 0);
+      const pctColor = pct>=80 ? 'var(--correct)' : pct>=50 ? 'var(--accent4)' : 'var(--wrong)';
+      answersHtml = `<div class="fill-answer-wrap">
+        <div class="fill-diff-wrap">
+          <div class="fill-diff-display">${diffResult || escHtml(userAns)}</div>
+          <div class="fill-pct-bar-wrap">
+            <div class="fill-pct-bar"><div class="fill-pct-fill" style="width:${pct}%;background:${pctColor}"></div></div>
+            <div class="fill-pct-label" style="color:${pctColor}">${pct}%</div>
+          </div>
+          ${pct<100 ? `<div class="fill-expected" style="margin-top:6px"><i class="fas fa-key"></i> Đáp án mẫu: <strong>${correctAnswers.map(a=>escHtml(a.replace(/<\*([^*>]+)\*>/g,'$1').replace(/<([^>]+)>/g,'$1'))).join('</strong> &nbsp;|&nbsp; <strong>')}</strong></div>` : ''}
+        </div>
+      </div>`;
+    } else {
+      const firstCorrect = q.answers.find(a=>a.correct);
+      const { prefill } = firstCorrect ? parseAnswerTemplate(firstCorrect.text) : { prefill:'' };
+      const prefillAttr = prefill ? ` data-prefill="${escHtml(prefill)}"` : '';
+      answersHtml = `<div class="fill-answer-wrap">
+        <div class="fill-input-row">
+          <input type="text" class="fill-input" id="fill-input-${idx}" placeholder="Nhập câu trả lời của bạn..." onkeydown="if(event.key==='Enter')submitFill(${idx})"${prefillAttr}>
+          <button class="fill-submit-btn" onclick="submitFill(${idx})"><i class="fas fa-check"></i> Trả lời</button>
+        </div>
+      </div>`;
+    }
+  } else {
+  let answersHtml_mc = q.answers.map((a, ai) => {
     let cls = 'answer-option';
     let icon = '';
     if(done) {
@@ -1926,9 +2395,12 @@ function showQuestion(idx) {
     return `<div class="${cls}" onclick="${done?'':'selectAnswer('+idx+','+ai+')'}" id="opt-${idx}-${ai}">
       <div class="answer-key">${letters[ai]||ai+1}</div>
       <div class="answer-text" data-text="${encodeURIComponent(a.text||'(Chưa có nội dung)')}"></div>
+      ${a.audioUrl?`<button class="answer-audio-btn" onclick="event.stopPropagation();playAnswerAudio(this,'${encodeURIComponent(a.audioUrl)}')" title="Nghe"><i class="fas fa-volume-up"></i></button>`:''}
       ${icon}
     </div>`;
   }).join('');
+  answersHtml = answersHtml_mc;
+  }
 
   let praiseHtml = '';
   if(done) {
@@ -1937,7 +2409,7 @@ function showQuestion(idx) {
   }
 
   let explanHtml = '';
-  if(done && q.explanation) explanHtml = `<div class="explanation-box" id="expl-display-${idx}" data-expl="${encodeURIComponent(q.explanation)}">${q.explImageUrl?`<br><img src="${escHtml(q.explImageUrl)}" style="max-width:100%;max-height:220px;object-fit:contain;margin-top:8px;border-radius:8px" onerror="this.style.display='none'">`:''}</div>`;
+  if(done && q.explanation) explanHtml = `<div class="explanation-box" id="expl-display-${idx}" data-expl="${encodeURIComponent(q.explanation)}">${q.explImageUrl?`<br><img src="${escHtml(q.explImageUrl)}" style="max-width:100%;max-height:220px;object-fit:contain;margin-top:8px;border-radius:8px" onerror="this.style.display='none'">`:''}</div>${q.explAudioUrl?`<audio id="expl-audio-${idx}" src="${escHtml(q.explAudioUrl)}" style="display:none" autoplay></audio>`:''}`;
 
   display.innerHTML = `
     <div class="question-card">
@@ -1952,6 +2424,7 @@ function showQuestion(idx) {
       <div class="question-type-badge">${typeLabel}</div>
       <div class="question-text" id="qtext-display-${idx}"></div>
       ${mediaHtml}
+      ${q.hint ? `<div id="hint-area-${idx}"><button class="hint-btn" onclick="toggleHint(${idx})"><i class="fas fa-lightbulb"></i> Gợi ý</button><div class="hint-box" id="hint-box-${idx}" style="display:none"><i class="fas fa-lightbulb"></i><span data-hint="${encodeURIComponent(q.hint||'')}"></span></div></div>` : ''}
       <div class="answers-list">${answersHtml}</div>
       ${praiseHtml}
       ${explanHtml}
@@ -1965,10 +2438,51 @@ function showQuestion(idx) {
 
   // Set text content after render — áp dụng renderMath cho ký hiệu đặc biệt
   const qtd = document.getElementById('qtext-display-'+idx);
-  if(qtd) applyMath(qtd, q.text || '');
+  if(qtd) {
+    // For multifill: hide the plain text (display is inside the answers section)
+    if(q.type==='multifill') qtd.style.display='none';
+    else applyMath(qtd, q.text || '');
+  }
+  if(q.type==='multifill') {
+    const mfDisp = document.getElementById('mf-qdisplay-'+idx);
+    if(mfDisp) {
+      const st = answers[idx];
+      let bi=0;
+      let rendered = renderMath(q.text||'');
+      rendered = rendered.replace(/\/\?/g, () => {
+        const ai2 = bi++;
+        if(st) {
+          const ca = q.answers?.[ai2]?.text||'';
+          const ua = st.userAnswers?.[ai2]||'';
+          const ok = normFill(ua)===normFill(ca);
+          const display = escHtml(ua)||'&nbsp;';
+          return `<span class="mf-blank ${ok?'correct':'wrong'}" title="${ok?'✓ Đúng':'✗ Đáp án: '+escHtml(ca)}">${display}</span>`;
+        } else {
+          return `<span class="mf-blank empty" id="mf-preview-${idx}-${ai2}">?</span>`;
+        }
+      });
+      mfDisp.innerHTML = rendered;
+    }
+    if(!answers[idx]) setTimeout(()=>document.getElementById('mf-inp-'+idx+'-0')?.focus(), 50);
+  }
+  if(q.type!=='fill'&&q.type!=='multifill') {
   display.querySelectorAll('.answer-text[data-text]').forEach(el => {
     applyMath(el, decodeURIComponent(el.dataset.text));
   });
+  }
+  // Auto focus fill input + set prefill value
+  if(q.type==='fill' && !answers[idx]) {
+    setTimeout(()=>{
+      const inp = document.getElementById('fill-input-'+idx);
+      if(!inp) return;
+      const pf = inp.dataset.prefill;
+      if(pf) { inp.value = pf + ' '; inp.setSelectionRange(inp.value.length, inp.value.length); }
+      inp.focus();
+    }, 50);
+  }
+  // Render hint text
+  const hintSpan = display.querySelector(`#hint-box-${idx} span[data-hint]`);
+  if(hintSpan) applyMath(hintSpan, decodeURIComponent(hintSpan.dataset.hint));
   const explEl = document.getElementById('expl-display-'+idx);
   if(explEl) {
     const prefix = '<strong><i class="fas fa-lightbulb"></i> Giải thích:</strong> ';
@@ -1985,7 +2499,6 @@ function updateNavButtons(idx) {
   const btnNext = document.getElementById('btn-next');
   const isLast = idx === quizQuestions.length-1;
   btnPrev.disabled = idx===0;
-  // Fix 6: last question => submit button
   if(isLast) {
     btnNext.disabled = false;
     btnNext.className = 'quiz-nav-btn submit';
@@ -1995,12 +2508,18 @@ function updateNavButtons(idx) {
     btnNext.className = 'quiz-nav-btn next';
     btnNext.innerHTML = 'Câu tiếp <i class="fas fa-chevron-right"></i>';
     btnNext.onclick = nextQuestion;
+    const q = quizQuestions[idx];
+    const answered = !!answers[idx];
+    if(!answered && (q.type==='fill' || q.type==='multi' || q.type==='multifill')) {
+      btnNext.classList.add('needs-confirm');
+    }
   }
 }
 
 window.selectAnswer = function(qi, ai) {
   const q = quizQuestions[qi];
   if(answers[qi]) return;
+  if(q.type==='fill') return; // fill uses submitFill()
   if(q.type==='single') {
     const correct = q.answers[ai].correct;
     answers[qi] = { selected:[ai], correct };
@@ -2033,6 +2552,228 @@ window.selectAnswer = function(qi, ai) {
   }
 };
 
+// ===== FILL ANSWER SMART COMPARE ENGINE =====
+
+// Normalize: lowercase, strip Vietnamese accents, strip punctuation, collapse spaces
+function normFill(s) {
+  if(!s) return '';
+  let r = s.toLowerCase();
+  r = r.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/\u0111/g,'d');
+  r = r.replace(/[.,!?;:'"()\[\]{}\-–—\/\\]/g,' ');
+  r = r.replace(/\s+/g,' ').trim();
+  return r;
+}
+
+// Tokenize preserving original form for display
+function tokenize(s) {
+  return s.trim().split(/\s+/).filter(Boolean);
+}
+
+// Edit distance (Levenshtein) between two strings — for fuzzy token matching
+function editDist(a, b) {
+  if(a===b) return 0;
+  const la=a.length, lb=b.length;
+  if(la===0) return lb; if(lb===0) return la;
+  const prev=Array.from({length:lb+1},(_,i)=>i);
+  for(let i=1;i<=la;i++){
+    const cur=[i];
+    for(let j=1;j<=lb;j++){
+      cur[j]=a[i-1]===b[j-1]?prev[j-1]:1+Math.min(prev[j-1],prev[j],cur[j-1]);
+    }
+    prev.splice(0,prev.length,...cur);
+  }
+  return prev[lb];
+}
+
+// Fuzzy match: returns similarity 0..1 between two normalized tokens
+// Uses edit distance ratio; threshold: ≤30% of longer string's length = match
+function fuzzyMatch(na, nb) {
+  if(na===nb) return 1;
+  const maxLen = Math.max(na.length, nb.length);
+  if(maxLen===0) return 1;
+  const dist = editDist(na, nb);
+  const sim = 1 - dist/maxLen;
+  return sim; // 1=perfect, 0=totally different
+}
+
+// Fuzzy token similarity score (0..1): 1 if exact, partial if close enough
+function tokenSim(na, nb) {
+  const sim = fuzzyMatch(na, nb);
+  // Accept as "correct" if sim >= 0.7 (e.g. "woulds"→"would" = 5/6 = 0.83 ✓)
+  return sim;
+}
+
+// Parse answer template:
+//   <keyword>   → keyword for scoring (weight 70%)
+//   <*prefix*>  → pre-filled text shown IN the input (user continues typing after it)
+//   plain text  → non-keyword (weight 30%)
+// Returns { template, keywords, prefill, hasKeywords }
+function parseAnswerTemplate(raw) {
+  const keywords = new Set();
+  let prefill = '';
+
+  // Extract <*...*> pre-fill text (first one wins, stripped from scoring template)
+  const withoutPrefill = raw.replace(/<\*([^*>]+)\*>/g, (_, txt) => {
+    if(!prefill) prefill = txt; // only first <*...*> is prefill
+    return txt; // keep text in template for scoring alignment
+  });
+
+  // Build template (strip <> markers, keep text) and collect keywords
+  const template = withoutPrefill.replace(/<([^>]+)>/g, (_, kw) => {
+    keywords.add(normFill(kw));
+    return kw;
+  });
+
+  return { template, keywords, hasKeywords: keywords.size > 0, prefill };
+}
+
+// Intra-word diff: highlight correct chars green, wrong chars red
+// e.g. "woulds" vs "would" → <green>would</green><red>s</red>
+function intraWordDiff(userWord, expWord) {
+  const u = userWord, e = expWord;
+  // Find common prefix
+  let pLen = 0;
+  while(pLen < u.length && pLen < e.length && u[pLen].toLowerCase()===e[pLen].toLowerCase()) pLen++;
+  // Find common suffix (from end, not overlapping prefix)
+  let sLen = 0;
+  while(sLen < u.length-pLen && sLen < e.length-pLen &&
+        u[u.length-1-sLen].toLowerCase()===e[e.length-1-sLen].toLowerCase()) sLen++;
+
+  const prefix  = escHtml(u.slice(0, pLen));
+  const uMid    = escHtml(u.slice(pLen, sLen>0 ? u.length-sLen : undefined));
+  const eMid    = escHtml(e.slice(pLen, sLen>0 ? e.length-sLen : undefined));
+  const suffix  = sLen>0 ? escHtml(u.slice(u.length-sLen)) : '';
+
+  let html = '';
+  if(prefix)  html += `<span class="tok-ok">${prefix}</span>`;
+  if(uMid)    html += `<span class="tok-err">${uMid}</span>`;
+  if(eMid)    html += `<span class="tok-missing">${eMid}</span>`; // expected chars shown faded
+  if(suffix)  html += `<span class="tok-ok">${suffix}</span>`;
+  return html || `<span class="tok-err">${escHtml(u)}</span>`;
+}
+
+// Build hint HTML for display: buildHintHtml is no longer used for visual box,
+// prefill is injected directly into the input value instead.
+// Keep function for backward compat but return empty.
+function buildHintHtml(raw) { return ''; }
+
+// Compute token-level diff between user tokens and expected tokens.
+// Returns { html, pct, correct }
+// Scoring: keywords worth 70%, non-keywords worth 30% (when hasKeywords)
+function computeFillDiff(userText, expectedText, hasKeywords, keywords) {
+  const userToks = tokenize(userText);
+  const expToks  = tokenize(expectedText);
+
+  const nu = userToks.map(normFill);
+  const ne = expToks.map(normFill);
+
+  // Build LCS table using fuzzy equality (sim >= 0.65 = match)
+  const U = nu.length, E = ne.length;
+  const dp = Array.from({length:U+1}, ()=>new Array(E+1).fill(0));
+  for(let i=U-1;i>=0;i--) for(let j=E-1;j>=0;j--) {
+    if(tokenSim(nu[i],ne[j])>=0.65) dp[i][j]=dp[i+1][j+1]+1;
+    else dp[i][j]=Math.max(dp[i+1][j],dp[i][j+1]);
+  }
+
+  // Trace back alignment
+  const ops = [];
+  let i=0,j=0;
+  while(i<U||j<E){
+    if(i<U&&j<E&&tokenSim(nu[i],ne[j])>=0.65){
+      const sim = tokenSim(nu[i],ne[j]);
+      ops.push({type:'ok', tok:userToks[i], expTok:expToks[j], sim});
+      i++;j++;
+    } else if(j<E&&(i>=U||dp[i][j+1]>=dp[i+1][j])){
+      const isKw = !hasKeywords || keywords.has(ne[j]);
+      ops.push({type: isKw?'missing':'soft_missing', tok:expToks[j]});
+      j++;
+    } else {
+      const isKw = !hasKeywords;
+      ops.push({type: isKw?'extra':'soft', tok:userToks[i]});
+      i++;
+    }
+  }
+
+  // Build HTML and compute score
+  let html = '';
+  let kwScore=0, kwTotal=0;
+  let nonKwScore=0, nonKwTotal=0;
+
+  ops.forEach(op => {
+    const t = escHtml(op.tok);
+    const isKw = !hasKeywords || keywords.has(normFill(op.expTok||op.tok));
+    if(op.type==='ok'){
+      const sim = op.sim||1;
+      const isPerfect = sim >= 0.99;
+      if(isPerfect) {
+        html += `<span class="tok-ok">${t}</span> `;
+      } else {
+        // Near-match: show intra-word diff (green correct part, red wrong part)
+        html += intraWordDiff(op.tok, op.expTok) + ' ';
+      }
+      if(isKw){ kwTotal++; kwScore+=sim; }
+      else { nonKwTotal++; nonKwScore+=sim; }
+    } else if(op.type==='extra'){
+      html += `<span class="tok-extra" title="thừa từ này">${t}</span> `;
+      if(isKw) kwTotal++;
+      else nonKwTotal++;
+    } else if(op.type==='soft'){
+      html += `<span class="tok-soft" title="từ thừa (không ảnh hưởng điểm)">${t}</span> `;
+    } else if(op.type==='missing'){
+      html += `<span class="tok-err" title="thiếu từ này">${t}</span> `;
+      if(isKw) kwTotal++;
+      else nonKwTotal++;
+    } else if(op.type==='soft_missing'){
+      html += `<span class="tok-soft" style="opacity:.45" title="thiếu (không quan trọng)">${t}</span> `;
+    }
+  });
+
+  let pct;
+  if(hasKeywords) {
+    const kwPct  = kwTotal>0  ? (kwScore/kwTotal)   : 1;
+    const nkPct  = nonKwTotal>0 ? (nonKwScore/nonKwTotal) : 1;
+    pct = Math.round((kwPct*0.7 + nkPct*0.3) * 100);
+  } else {
+    const total = kwTotal + nonKwTotal;
+    const score = kwScore + nonKwScore;
+    pct = total>0 ? Math.round(score/total*100) : 0;
+  }
+  pct = Math.min(100, Math.max(0, pct));
+  const correct = pct >= 100;
+  return { html: html.trim(), pct, correct };
+}
+
+window.submitFill = function(qi) {
+  const input = document.getElementById('fill-input-'+qi);
+  if(!input) return;
+  const typedText = input.value.trim();
+  const prefill = input.dataset.prefill || '';
+  // Combine prefill + typed for scoring (if prefill exists)
+  const userText = prefill ? (prefill + ' ' + typedText).trim() : typedText;
+  if(!typedText && !prefill) { input.focus(); input.style.borderColor='var(--accent)'; return; }
+  if(!typedText) { input.focus(); input.style.borderColor='var(--accent)'; return; }
+
+  const q = quizQuestions[qi];
+  const correctAnswers = (q.answers||[]).filter(a=>a.correct).map(a=>a.text);
+
+  // Try each accepted answer, pick best score
+  let bestPct = 0, bestHtml = '', bestCorrect = false;
+  correctAnswers.forEach(raw => {
+    const { template, keywords, hasKeywords } = parseAnswerTemplate(raw);
+    const { html, pct, correct } = computeFillDiff(userText, template, hasKeywords, keywords);
+    if(pct > bestPct || (pct===bestPct && correct)) {
+      bestPct = pct; bestHtml = html; bestCorrect = correct || pct >= 100;
+    }
+  });
+  // 100% = correct for scoring
+  const finalCorrect = bestPct >= 100;
+  answers[qi] = { selected:[], correct: finalCorrect, userText, diffHtml: bestHtml, pct: bestPct };
+  playTone(finalCorrect ? 'correct' : 'wrong');
+  showQuestion(qi);
+  if(finalCorrect) spawnConfetti();
+  updateSidebarStats();
+};
+
 window.confirmMulti = function(qi) {
   const q = quizQuestions[qi];
   const sel = window._multiSel?.[qi] ? [...window._multiSel[qi]] : [];
@@ -2054,6 +2795,112 @@ window.undoAnswer = function(qi) {
   updateSidebarStats();
   updateNavItem(qi);
 };
+
+// ===== HINT =====
+window.toggleHint = function(idx) {
+  const box = document.getElementById('hint-box-'+idx);
+  const btn = document.querySelector(`#hint-area-${idx} .hint-btn`);
+  if(!box) return;
+  const open = box.style.display !== 'none';
+  box.style.display = open ? 'none' : '';
+  if(btn) btn.innerHTML = open
+    ? '<i class="fas fa-lightbulb"></i> Gợi ý'
+    : '<i class="fas fa-lightbulb"></i> Ẩn gợi ý';
+};
+
+// ===== SORT MODE =====
+let _sortMode = false;
+let _sortDragId = null;
+let _quizOrder = []; // array of firebase IDs in display order
+
+function getQuizOrder() {
+  // Use stored order or fall back to Object.keys order
+  const stored = JSON.parse(localStorage.getItem('qm_quiz_order')||'null');
+  const allIds = Object.keys(quizzesCache);
+  if(stored && Array.isArray(stored)) {
+    // Merge: keep stored order for existing ids, append any new ones
+    const ordered = stored.filter(id => allIds.includes(id));
+    allIds.forEach(id => { if(!ordered.includes(id)) ordered.push(id); });
+    return ordered;
+  }
+  return allIds;
+}
+
+async function saveQuizOrder(order) {
+  _quizOrder = order;
+  localStorage.setItem('qm_quiz_order', JSON.stringify(order));
+  try { await set(ref(db, 'app_data/quiz_order'), order); } catch(e) { console.warn('saveOrder err', e); }
+}
+
+function subscribeQuizOrder() {
+  onValue(ref(db, 'app_data/quiz_order'), snap => {
+    const val = snap.val();
+    if(val && Array.isArray(val)) {
+      localStorage.setItem('qm_quiz_order', JSON.stringify(val));
+      _quizOrder = val;
+    }
+    renderQuizGrid();
+  });
+}
+
+window.toggleSortMode = function() {
+  _sortMode = !_sortMode;
+  const banner = document.getElementById('sort-mode-banner');
+  const btn = document.getElementById('drag-sort-btn');
+  const grid = document.getElementById('quiz-grid');
+  if(banner) banner.classList.toggle('visible', _sortMode);
+  if(btn) btn.classList.toggle('active', _sortMode);
+  if(grid) grid.classList.toggle('sort-mode', _sortMode);
+  // add/remove drag handles visibility already handled by CSS .sort-mode .sort-handle
+};
+
+window.exitSortMode = function() {
+  _sortMode = false;
+  const banner = document.getElementById('sort-mode-banner');
+  const btn = document.getElementById('drag-sort-btn');
+  const grid = document.getElementById('quiz-grid');
+  if(banner) banner.classList.remove('visible');
+  if(btn) btn.classList.remove('active');
+  if(grid) grid.classList.remove('sort-mode');
+};
+
+// Attach drag events to a card
+function attachDragSort(card, id) {
+  card.setAttribute('draggable','true');
+  card.addEventListener('dragstart', e => {
+    _sortDragId = id;
+    card.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  card.addEventListener('dragend', () => {
+    card.style.opacity = '';
+    document.querySelectorAll('.quiz-card').forEach(c => c.classList.remove('drag-over'));
+  });
+  card.addEventListener('dragover', e => {
+    if(!_sortMode) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.quiz-card').forEach(c => c.classList.remove('drag-over'));
+    card.classList.add('drag-over');
+  });
+  card.addEventListener('drop', async e => {
+    e.preventDefault();
+    if(!_sortDragId || _sortDragId === id) return;
+    card.classList.remove('drag-over');
+    // Reorder
+    const order = getQuizOrder();
+    const fromIdx = order.indexOf(_sortDragId);
+    const toIdx   = order.indexOf(id);
+    if(fromIdx === -1 || toIdx === -1) return;
+    order.splice(fromIdx, 1);
+    order.splice(toIdx, 0, _sortDragId);
+    await saveQuizOrder(order);
+    renderQuizGrid();
+    // Keep sort mode on
+    const grid = document.getElementById('quiz-grid');
+    if(grid && _sortMode) grid.classList.add('sort-mode');
+  });
+}
 
 window.prevQuestion = function() { if(currentQIndex>0){ showQuestion(currentQIndex-1); } };
 // Fix 5+6: called by arrow key right
@@ -2095,10 +2942,17 @@ function updateNavItem(i) {
 
 function updateSidebarStats() {
   let correct=0, wrong=0;
-  Object.values(answers).forEach(a=>{ if(a.correct) correct++; else wrong++; });
-  document.getElementById('s-correct').textContent=correct;
-  document.getElementById('s-wrong').textContent=wrong;
-  document.getElementById('s-unseen').textContent=quizQuestions.length-Object.keys(answers).length;
+  Object.values(answers).forEach(a=>{
+    if(a.correct) correct++;
+    else if(a.pct !== undefined) {
+      // fill question: count as partial — show in correct proportionally (visual only)
+      correct += a.pct/100;
+      if(a.pct < 100) wrong += 1 - a.pct/100;
+    } else wrong++;
+  });
+  document.getElementById('s-correct').textContent = Number.isInteger(correct) ? correct : correct.toFixed(1);
+  document.getElementById('s-wrong').textContent = Number.isInteger(wrong) ? wrong : wrong.toFixed(1);
+  document.getElementById('s-unseen').textContent = quizQuestions.length - Object.keys(answers).length;
 }
 
 // ===== SIDEBAR TOGGLE =====
@@ -2155,6 +3009,17 @@ function subscribeSessions() {
 
 function getSessionCount(quizId) {
   return _sessionsCache[quizId] || 0;
+}
+
+// Track last played timestamp per quiz (for NEW badge)
+function getLastPlayedTime(quizId) {
+  const data = JSON.parse(localStorage.getItem('qm_last_played')||'{}');
+  return data[quizId] || 0;
+}
+function setLastPlayedTime(quizId) {
+  const data = JSON.parse(localStorage.getItem('qm_last_played')||'{}');
+  data[quizId] = Date.now();
+  localStorage.setItem('qm_last_played', JSON.stringify(data));
 }
 async function incrementSession(quizId) {
   _sessionsCache[quizId] = (_sessionsCache[quizId] || 0) + 1;
@@ -2245,17 +3110,34 @@ window.finishQuiz = function() {
 window.doFinishQuiz = async function() {
   document.getElementById('submit-confirm-modal').classList.remove('visible');
   clearInterval(timerInterval);
-  let correct=0, wrong=0;
-  Object.values(answers).forEach(a=>{ if(a.correct) correct++; else wrong++; });
+
   const total = quizQuestions.length;
-  const pct = total>0 ? Math.round(correct/total*100) : 0;
-  // Calculate time used
+  let scoreSum = 0; // sum of per-question scores (0..1 each)
+  let correctCount = 0, wrongCount = 0, partialCount = 0;
+
+  Object.entries(answers).forEach(([idx, a]) => {
+    const q = quizQuestions[parseInt(idx)];
+    if(q && q.type === 'fill' && a.pct !== undefined) {
+      const s = a.pct / 100;
+      scoreSum += s;
+      if(a.pct >= 100) correctCount++;
+      else if(a.pct > 0) { partialCount++; wrongCount++; } // partial = wrong for count but adds to score
+      else wrongCount++;
+    } else {
+      if(a.correct) { scoreSum += 1; correctCount++; }
+      else wrongCount++;
+    }
+  });
+
+  const pct = total > 0 ? Math.round(scoreSum / total * 100) : 0;
   const timeLimitSec = (currentQuizMeta?.settings?.timeLimit||30)*60;
   const timeUsedSec = timeLimitSec - timeLeft;
+
   document.getElementById('result-score').textContent = pct+'%';
-  document.getElementById('r-correct').textContent = correct;
-  document.getElementById('r-wrong').textContent = wrong;
+  document.getElementById('r-correct').textContent = correctCount + (partialCount > 0 ? ` (+${partialCount} gần đúng)` : '');
+  document.getElementById('r-wrong').textContent = wrongCount;
   document.getElementById('r-total').textContent = total;
+
   let emoji='😐', grade='Cần cố gắng thêm';
   if(pct>=90){ emoji='🏆'; grade='Xuất sắc!'; }
   else if(pct>=70){ emoji='🎉'; grade='Giỏi!'; }
@@ -2264,11 +3146,12 @@ window.doFinishQuiz = async function() {
   document.getElementById('result-grade').textContent=grade;
   document.getElementById('result-overlay').classList.add('visible');
   if(pct>=70) spawnConfetti(30);
-  // Increment session count, save history, refresh cards
+
   if(currentQuizMeta?.id) {
     await incrementSession(currentQuizMeta.id);
-    await saveQuizHistory(currentQuizMeta.id, { correct, wrong, total, pct, timeUsedSec, ts: Date.now() });
-    renderQuizGrid(); // refresh progress bars
+    setLastPlayedTime(currentQuizMeta.id);
+    await saveQuizHistory(currentQuizMeta.id, { correct: correctCount, wrong: wrongCount, total, pct, timeUsedSec, ts: Date.now() });
+    renderQuizGrid();
   }
 };
 
@@ -2385,12 +3268,12 @@ const MATH_SYMBOLS = [
   // ── Mũ / Superscript ────────────────────────────────────────────
   { input:'x^2',         output:'x<sup class="math-sup">2</sup>',              label:'Mũ 1 ký tự — x²' },
   { input:'x^{2a}',      output:'x<sup class="math-sup">2a</sup>',             label:'Mũ nhóm — x^(2a)' },
-  { input:'U^2/I',       output:'U<sup class="math-sup">2</sup>/I',            label:'Chỉ ^ lên 1 ký tự (2), không lên /I' },
-  { input:'U^{2/I}',     output:'U<sup class="math-sup">2/I</sup>',            label:'^ lên cả nhóm 2/I' },
+  { input:'U^2/I',       output:'U<sup class="math-sup">2</sup>/I',            label:'Chỉ ^ lên 1 ký tự' },
+  { input:'U^{2/I}',     output:'U<sup class="math-sup">2/I</sup>',            label:'^ lên cả nhóm' },
   // ── Chỉ số dưới / Subscript ──────────────────────────────────────
-  { input:'H_2O',        output:'H<sub class="math-sub">2</sub>O',             label:'Chỉ số dưới 1 ký tự — H₂O' },
-  { input:'C_3O_4',      output:'C<sub class="math-sub">3</sub>O<sub class="math-sub">4</sub>', label:'Nhiều chỉ số đơn — C₃O₄' },
-  { input:'H_{2SO4}',    output:'H<sub class="math-sub">2SO4</sub>',           label:'Chỉ số dưới nhóm — H₂SO₄ kiểu nhóm' },
+  { input:'H_2O',        output:'H<sub class="math-sub">2</sub>O',             label:'Chỉ số 1 ký tự' },
+  { input:'C_3O_4',      output:'C<sub class="math-sub">3</sub>O<sub class="math-sub">4</sub>', label:'Nhiều chỉ số đơn' },
+  { input:'H_{2SO4}',    output:'H<sub class="math-sub">2SO4</sub>',           label:'Chỉ số dưới nhóm' },
   { input:'_t^o',        output:'<sup class="math-sup">t°</sup>',              label:'Điều kiện nhiệt độ' },
   // ── Mũi tên ─────────────────────────────────────────────────────
   { input:'->',          output:'→',   label:'Mũi tên phương trình' },
@@ -2420,7 +3303,7 @@ const MATH_SYMBOLS = [
   { input:'/phi',    output:'φ',  label:'Phi φ' },
   { input:'/omega',  output:'ω',  label:'Omega ω' },
   { input:'/Omega',  output:'Ω',  label:'Omega hoa Ω' },
-  { input:'/ell',    output:'ℓ',  label:'ℓ — chiều dài (khác l và I)' },
+  { input:'/ell',    output:'ℓ',  label:'ℓ — L viết tay' },
   { input:'/inf',    output:'∞',  label:'Vô cực ∞' },
   { input:'/deg',    output:'°',  label:'Độ ° (góc / nhiệt độ)' },
 ];
@@ -2480,7 +3363,7 @@ function renderMath(text) {
     '/nu':'ν','/xi':'ξ','/pi':'π','/rho':'ρ','/sigma':'σ',
     '/tau':'τ','/phi':'φ','/chi':'χ','/psi':'ψ','/omega':'ω',
     '/Delta':'Δ','/Sigma':'Σ','/Omega':'Ω','/Pi':'Π','/Phi':'Φ',
-    '/inf':'∞','/deg':'°','/sum':'Σ','/ell':'ℓ',
+    '/inf':'∞','/deg':'°','/sum':'Σ','/ell':'<span class="math-ell">ℓ</span>',
   };
   // Thay thế dài trước để tránh /Delta bị match thành /delta + a
   const greekKeys = Object.keys(greekMap).sort((a,b) => b.length - a.length);
@@ -2547,11 +3430,11 @@ function shuffle(arr) {
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function getCorrectPraise(){
-  const p=['🎉 Xuất sắc! Đúng rồi!','✅ Chính xác! Tuyệt vời!','🌟 Quá giỏi! Đúng!','💯 Hoàn hảo!','🔥 Xuất sắc!', '🍗 Người đâu, ban khô gà cho ta!'];
+  const p=['🎉 Xuất sắc! Đúng rồi!','✅ Chính xác! Tuyệt vời!','🌟 Quá giỏi! Đúng!','💯 Hoàn hảo!','🔥 Xuất sắc!', '🍗 Bạn được thưởng khô gà!'];
   return p[Math.floor(Math.random()*p.length)];
 }
 function getWrongPraise(){
-  const p=['❌ Chời ơi chời, sai rồi','😛 Chưa đúng, lêu lêu!','😝 Đồ gà, học thêm đi!','🤔 Sai rồi chế ơi!', '🍗 Nà nà ná nà sai rồi bạn ơi!'];
+  const p=['❌ Chời ơi chời, sai rồi','😛 Chưa đúng, lêu lêu!','😝 Đồ gà, học thêm đi!','🤔 Sai rồi chế ơi!', '🍗 Chăm chỉ lên nào!'];
   return p[Math.floor(Math.random()*p.length)];
 }
 
