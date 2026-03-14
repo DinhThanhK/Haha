@@ -246,7 +246,6 @@
     background:linear-gradient(135deg,var(--accent),var(--accent2));
     color:#fff; font-family:'Lexend Deca',sans-serif; font-size:1rem; font-weight:700;
     transition:all .25s; display:flex; align-items:center; justify-content:center; gap:8px;
-    position:sticky; bottom:16px; z-index:100;
     box-shadow: 0 4px 24px rgba(108,99,255,.45), 0 1px 4px rgba(0,0,0,.4);
     margin-top:8px;
   }
@@ -1636,6 +1635,11 @@ function updateHomeStats() {
 
 // ===== PAGES =====
 window.showPage = function(name) {
+  // Reset save-btn TRƯỚC khi ẩn trang — tránh sticky ghost do overflow-x:hidden trên body
+  if(name !== 'add') {
+    const saveBtn = document.getElementById('save-btn');
+    if(saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu bộ đề'; }
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
