@@ -449,12 +449,19 @@
     opacity:0; pointer-events:none; transition:opacity .3s;
   }
   .result-overlay.visible { opacity:1; pointer-events:all; }
-  .result-card {
-    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-    padding:32px; max-width:480px; width:100%; text-align:center;
+
+  /* Side-by-side container: result + rating */
+  .result-rating-wrap {
+    display:flex; gap:16px; align-items:stretch;
+    max-width:960px; width:100%;
     transform:scale(.9); transition:transform .3s;
   }
-  .result-overlay.visible .result-card { transform:scale(1); }
+  .result-overlay.visible .result-rating-wrap { transform:scale(1); }
+
+  .result-card {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:32px; width:100%; text-align:center; flex:1;
+  }
   .result-score { font-family:'Lexend Deca',sans-serif; font-size:3.5rem; font-weight:800; color:var(--accent); margin:16px 0 4px; }
   .result-grade { font-size:1rem; color:var(--text2); margin-bottom:20px; }
   .result-stats-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:20px 0; }
@@ -462,10 +469,24 @@
   .result-stat-val { font-family:'Lexend Deca',sans-serif; font-weight:700; font-size:1.3rem; }
   .result-stat-label { font-size:.75rem; color:var(--text3); margin-top:2px; }
   .result-btns { display:flex; gap:10px; flex-wrap:wrap; }
-  .result-btn { flex:1; min-width:120px; padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg3); color:var(--text); cursor:pointer; font-family:'Lexend Deca',sans-serif; font-weight:600; font-size:.85rem; transition:all .2s; }
+  .result-btn { flex:1; min-width:100px; padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg3); color:var(--text); cursor:pointer; font-family:'Lexend Deca',sans-serif; font-weight:600; font-size:.85rem; transition:all .2s; }
   .result-btn:hover { border-color:var(--accent); color:var(--accent); }
   .result-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
   .result-btn.primary:hover { background:#7d75ff; border-color:#7d75ff; color:#fff; }
+
+  /* Rating panel — inline (no separate overlay) */
+  .rating-panel {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:28px 24px; width:340px; flex-shrink:0; display:flex; flex-direction:column;
+    text-align:center;
+  }
+  .rating-panel.hidden { display:none; }
+
+  /* On mobile / small screens: stack vertically */
+  @media(max-width:720px) {
+    .result-rating-wrap { flex-direction:column; max-width:480px; }
+    .rating-panel { width:100%; }
+  }
 
   /* ===== SETTINGS PAGE ===== */
   .settings-wrap { max-width:800px; margin:0 auto; padding:24px; }
@@ -612,6 +633,47 @@
     opacity: 0.35;
     pointer-events: auto;
   }
+  /* ===== LIKE/DISLIKE ON QUESTION ===== */
+  .q-reaction-row {
+    display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px;
+    border-top:1px solid var(--border);
+  }
+  .q-reaction-label { font-size:.78rem; color:var(--text3); flex:1; }
+  .q-react-btn {
+    padding:5px 12px; border-radius:20px; border:1px solid var(--border);
+    background:var(--bg3); color:var(--text2); font-size:.82rem; cursor:pointer;
+    display:flex; align-items:center; gap:5px; transition:all .15s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .q-react-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .q-react-btn.liked { background:rgba(0,212,170,.15); border-color:var(--accent2); color:var(--accent2); }
+  .q-react-btn.disliked { background:rgba(255,107,107,.15); border-color:var(--wrong); color:var(--wrong); }
+  /* ===== RATING PANEL (inline in result overlay, no separate overlay) ===== */
+  .rating-title { font-family:'Lexend Deca',sans-serif; font-weight:800; font-size:1.1rem; margin-bottom:4px; }
+  .rating-subtitle { font-size:.82rem; color:var(--text2); margin-bottom:16px; }
+  .rating-stars { display:flex; justify-content:center; gap:8px; margin-bottom:14px; }
+  .rating-star {
+    font-size:2rem; cursor:pointer; transition:transform .15s, filter .15s;
+    color:var(--border); line-height:1; user-select:none;
+  }
+  .rating-star:hover, .rating-star.active { color:var(--accent4); filter:drop-shadow(0 0 6px rgba(255,217,61,.5)); transform:scale(1.2); }
+  .rating-comment { width:100%; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg3); color:var(--text); font-family:'DM Sans',sans-serif; font-size:.85rem; outline:none; resize:none; min-height:60px; margin-bottom:12px; transition:border-color .2s; }
+  .rating-comment:focus { border-color:var(--accent); }
+  .rating-btns { display:flex; gap:8px; justify-content:center; margin-top:auto; padding-top:10px; }
+  .rating-submit-btn { padding:9px 22px; border-radius:var(--radius-sm); border:none; cursor:pointer; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'Lexend Deca',sans-serif; font-weight:700; font-size:.85rem; transition:all .2s; }
+  .rating-submit-btn:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(108,99,255,.4); }
+  .rating-skip-btn { padding:9px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); background:transparent; color:var(--text2); cursor:pointer; font-family:'DM Sans',sans-serif; font-size:.85rem; transition:all .2s; }
+  .rating-skip-btn:hover { border-color:var(--accent); color:var(--accent); }
+  /* Liked questions summary in rating panel */
+  .liked-qs-section { margin-top:10px; text-align:left; max-height:120px; overflow-y:auto; }
+  .liked-qs-title { font-size:.74rem; font-weight:700; color:var(--text2); margin-bottom:4px; display:flex; align-items:center; gap:5px; }
+  .liked-q-item { font-size:.73rem; padding:4px 7px; border-radius:5px; margin-bottom:3px; display:flex; align-items:flex-start; gap:5px; }
+  .liked-q-item.like { background:rgba(0,212,170,.08); border-left:3px solid var(--accent2); }
+  .liked-q-item.dislike { background:rgba(255,107,107,.08); border-left:3px solid var(--wrong); }
+  /* Rating display in history */
+  .history-rating { display:flex; align-items:center; gap:4px; margin-top:4px; }
+  .history-rating-stars { color:var(--accent4); font-size:.9rem; }
+  .history-rating-comment { font-size:.75rem; color:var(--text2); font-style:italic; }
   /* ===== MULTI-FILL (Điền nhiều ô) ===== */
   .multifill-question-display {
     font-size:1.05rem; line-height:2.2; padding:12px 0 4px;
@@ -1077,24 +1139,44 @@
 </div>
 
 <div class="result-overlay" id="result-overlay">
-  <div class="result-card">
-    <div style="font-size:3rem" id="result-emoji">🎉</div>
-    <div class="result-score" id="result-score">0%</div>
-    <div class="result-grade" id="result-grade">Chưa xác định</div>
-    <div class="result-stats-grid">
-      <div class="result-stat"><div class="result-stat-val" style="color:var(--correct)" id="r-correct">0</div><div class="result-stat-label">Câu đúng</div></div>
-      <div class="result-stat"><div class="result-stat-val" style="color:var(--wrong)" id="r-wrong">0</div><div class="result-stat-label">Câu sai</div></div>
-      <div class="result-stat"><div class="result-stat-val" id="r-total">0</div><div class="result-stat-label">Tổng câu</div></div>
+  <div class="result-rating-wrap">
+    <!-- Left: Result card -->
+    <div class="result-card">
+      <div style="font-size:3rem" id="result-emoji">🎉</div>
+      <div class="result-score" id="result-score">0%</div>
+      <div class="result-grade" id="result-grade">Chưa xác định</div>
+      <div class="result-stats-grid">
+        <div class="result-stat"><div class="result-stat-val" style="color:var(--correct)" id="r-correct">0</div><div class="result-stat-label">Câu đúng</div></div>
+        <div class="result-stat"><div class="result-stat-val" style="color:var(--wrong)" id="r-wrong">0</div><div class="result-stat-label">Câu sai</div></div>
+        <div class="result-stat"><div class="result-stat-val" id="r-total">0</div><div class="result-stat-label">Tổng câu</div></div>
+      </div>
+      <div class="result-btns">
+        <button class="result-btn" onclick="retryQuiz()"><i class="fas fa-redo"></i> Làm lại</button>
+        <button class="result-btn" onclick="reviewQuiz()"><i class="fas fa-eye"></i> Xem lại</button>
+        <button class="result-btn primary" onclick="exitQuiz()"><i class="fas fa-home"></i> Về nhà</button>
+      </div>
     </div>
-    <div class="result-btns">
-      <button class="result-btn" onclick="retryQuiz()"><i class="fas fa-redo"></i> Làm lại</button>
-      <button class="result-btn" onclick="reviewQuiz()"><i class="fas fa-eye"></i> Xem lại</button>
-      <button class="result-btn primary" onclick="exitQuiz()"><i class="fas fa-home"></i> Về nhà</button>
+    <!-- Right: Rating panel (shown after finish) -->
+    <div class="rating-panel hidden" id="rating-panel">
+      <div style="font-size:2rem;margin-bottom:6px">⭐</div>
+      <div class="rating-title">Đánh giá bộ đề</div>
+      <div class="rating-subtitle" id="rating-quiz-name">Bạn cảm thấy thế nào?</div>
+      <div class="rating-stars" id="rating-stars">
+        <span class="rating-star" data-val="1">★</span>
+        <span class="rating-star" data-val="2">★</span>
+        <span class="rating-star" data-val="3">★</span>
+        <span class="rating-star" data-val="4">★</span>
+        <span class="rating-star" data-val="5">★</span>
+      </div>
+      <textarea class="rating-comment" id="rating-comment" placeholder="Nhận xét (tùy chọn)..."></textarea>
+      <div id="rating-liked-summary"></div>
+      <div class="rating-btns">
+        <button class="rating-skip-btn" onclick="skipRating()"><i class="fas fa-forward"></i> Bỏ qua</button>
+        <button class="rating-submit-btn" onclick="submitRating()"><i class="fas fa-star"></i> Gửi</button>
+      </div>
     </div>
   </div>
 </div>
-
-<div id="toast-container"></div>
 
 <!-- SUBMIT CONFIRM MODAL -->
 <div class="modal-overlay" id="submit-confirm-modal">
@@ -1115,9 +1197,20 @@
       <div class="history-modal-title"><i class="fas fa-history"></i> Lịch sử làm bài</div>
       <button class="sidebar-close-btn" onclick="document.getElementById('history-modal').classList.remove('visible')"><i class="fas fa-times"></i></button>
     </div>
-    <div style="font-size:.82rem;color:var(--text3);margin-bottom:12px" id="history-modal-quiz-name"></div>
-    <div id="history-modal-entries"></div>
-    <button class="history-clear-btn" id="history-clear-btn" onclick="promptClearHistory()"><i class="fas fa-trash-alt"></i> Xóa lịch sử bộ đề này</button>
+    <div style="font-size:.82rem;color:var(--text3);margin-bottom:8px" id="history-modal-quiz-name"></div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+      <button class="history-tab-btn active" id="htab-history" onclick="switchHistoryTab('history')" style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:rgba(108,99,255,.12);color:var(--accent);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s"><i class="fas fa-clock"></i> Lịch sử</button>
+      <button class="history-tab-btn" id="htab-ratings" onclick="switchHistoryTab('ratings')" style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s"><i class="fas fa-star"></i> Đánh giá</button>
+    </div>
+    <div id="history-tab-history">
+      <div id="history-modal-entries"></div>
+      <button class="history-clear-btn" id="history-clear-btn" onclick="promptClearHistory()"><i class="fas fa-trash-alt"></i> Xóa lịch sử bộ đề này</button>
+    </div>
+    <div id="history-tab-ratings" style="display:none">
+      <div id="ratings-modal-entries"></div>
+      <button class="history-clear-btn" style="margin-top:10px;border-color:var(--wrong);color:var(--wrong)" onclick="promptClearRatings()"><i class="fas fa-trash-alt"></i> Xóa tất cả đánh giá</button>
+    </div>
   </div>
 </div>
 
@@ -1164,6 +1257,7 @@ let quizQuestions = []; // shuffled for current session
 let currentQuizMeta = null;
 let currentQIndex = 0;
 let answers = {}; // {qIndex: {selected:[], correct:bool}}
+let questionReactions = {}; // {qIndex: 'like'|'dislike'|null}
 let timerInterval = null;
 let timeLeft = 0;
 let sidebarVisible = true;
@@ -1456,6 +1550,7 @@ function init() {
   subscribeUsers();
   subscribeSessions();
   subscribeQuizOrder();
+  subscribeLastPlayed();
   // keyboard arrow navigation
   document.addEventListener('keydown', e => {
     if(document.getElementById('page-quiz').classList.contains('active')) {
@@ -1857,7 +1952,7 @@ function renderQuestions() {
 
 /** Serialize question data → plain text */
 function qToText(q, qi) {
-  const letters = 'ABCDEFGHIJ';
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let lines = [`Câu ${qi+1}: ${q.text||''}`];
   if(q.type==='fill') {
     const corrects = (q.answers||[]).filter(a=>a.correct).map(a=>a.text);
@@ -1878,7 +1973,7 @@ function qToText(q, qi) {
 /** Parse plain text → question data object (partial merge with existing q) */
 function textToQ(raw, qi, existingQ) {
   const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
-  const letters = 'ABCDEFGHIJ';
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const result = {
     text: existingQ?.text||'',
     type: existingQ?.type||'single',
@@ -1888,9 +1983,9 @@ function textToQ(raw, qi, existingQ) {
     audioUrl: existingQ?.audioUrl||'',
   };
 
-  // Answer detection regex: starts with letter (A-J) then optionally * then . or , or ) or :
+  // Answer detection regex: starts with letter (A-Z) then optionally * then . or , or ) or :
   // e.g.: A. B* . A,  B*. C*) D: etc.
-  const ansRe = /^([A-Ja-j])([*]?)\s*[.,):\-]\s*(.*)/;
+  const ansRe = /^([A-Za-z])([*]?)\s*[.,):\-]\s*(.*)/;
   // Question line: "Câu N:" or "Câu N." or just first non-answer line
   const qRe = /^[Cc][aâ]u\s*\d+\s*[:.)?\-]?\s*(.*)/;
   // Explanation line: starts with => or # or Giải thích:
@@ -1981,7 +2076,7 @@ function syncFormToText(qi) {
 
 /** Update form fields in-place after text parse (avoids full re-render losing focus) */
 function refreshFormFields(qi, q) {
-  const letters = 'ABCDEFGHIJ';
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   // Question text input
   const qInput = document.getElementById(`qinput-${qi}`);
   if(qInput && qInput !== document.activeElement) qInput.value = q.text||'';
@@ -2026,7 +2121,7 @@ function refreshFormFields(qi, q) {
 function renderQuestionItem(q, qi, container, isInline) {
   // Inline mode (modal edit) — unchanged simple render
   if(isInline) {
-    const letters = 'ABCDEFGHIJ';
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     container.innerHTML = `
       <div class="q-header">
         <div class="q-num">Câu ${qi+1}</div>
@@ -2085,7 +2180,7 @@ function renderQuestionItem(q, qi, container, isInline) {
   }
 
   // Normal editor mode: split layout row
-  const letters = 'ABCDEFGHIJ';
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const rowWrap = document.createElement('div');
   rowWrap.className = 'q-row-wrap';
   rowWrap.id = 'q-row-'+qi;
@@ -2402,6 +2497,7 @@ window.startQuiz = function(id) {
   currentQuizMeta = {...q, id, questions: JSON.parse(JSON.stringify(q.questions||[]))};
   isReviewMode = false;
   answers = {};
+  questionReactions = {};
   currentQIndex = 0;
   // shuffle questions — filter hidden first
   let qs = JSON.parse(JSON.stringify(q.questions)).filter(qq => !qq.hidden);
@@ -2451,7 +2547,7 @@ function showQuestion(idx) {
   const q = quizQuestions[idx];
   const state = answers[idx];
   const done = !!state;
-  const letters = 'ABCDEFGHIJ';
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const display = document.getElementById('question-display');
 
   let mediaHtml = '';
@@ -2549,6 +2645,16 @@ function showQuestion(idx) {
     else praiseHtml = `<div class="praise-box praise-wrong">${getWrongPraise()}</div>`;
   }
 
+  // Like/Dislike reaction (always visible after question loads)
+  const qReaction = questionReactions[idx];
+  const likedCls = qReaction === 'like' ? ' liked' : '';
+  const dislikedCls = qReaction === 'dislike' ? ' disliked' : '';
+  const reactionHtml = `<div class="q-reaction-row">
+    <span class="q-reaction-label"><i class="fas fa-tag" style="margin-right:4px"></i>Đánh dấu câu này:</span>
+    <button class="q-react-btn${likedCls}" id="react-like-${idx}" onclick="reactQuestion(${idx},'like')"><i class="fas fa-thumbs-up"></i> Hay</button>
+    <button class="q-react-btn${dislikedCls}" id="react-dislike-${idx}" onclick="reactQuestion(${idx},'dislike')"><i class="fas fa-thumbs-down"></i> Khó/Sai</button>
+  </div>`;
+
   let explanHtml = '';
   if(done && q.explanation) explanHtml = `<div class="explanation-box" id="expl-display-${idx}" data-expl="${encodeURIComponent(q.explanation)}">${q.explImageUrl?`<br><img src="${escHtml(q.explImageUrl)}" style="max-width:100%;max-height:220px;object-fit:contain;margin-top:8px;border-radius:8px" onerror="this.style.display='none'">`:''}</div>${q.explAudioUrl?`<audio id="expl-audio-${idx}" src="${escHtml(q.explAudioUrl)}" style="display:none" autoplay></audio>`:''}`;
 
@@ -2569,6 +2675,7 @@ function showQuestion(idx) {
       <div class="answers-list">${answersHtml}</div>
       ${praiseHtml}
       ${explanHtml}
+      ${reactionHtml}
     </div>
   `;
 
@@ -2935,6 +3042,275 @@ window.undoAnswer = function(qi) {
   updateNavItem(qi);
 };
 
+// ===== LIKE / DISLIKE REACTIONS =====
+window.reactQuestion = function(qi, type) {
+  const prev = questionReactions[qi];
+  // Toggle off if same
+  questionReactions[qi] = (prev === type) ? null : type;
+  // Update buttons in-place without re-rendering whole question
+  const likeBtn = document.getElementById('react-like-'+qi);
+  const dislikeBtn = document.getElementById('react-dislike-'+qi);
+  if(likeBtn) likeBtn.className = 'q-react-btn' + (questionReactions[qi]==='like' ? ' liked' : '');
+  if(dislikeBtn) dislikeBtn.className = 'q-react-btn' + (questionReactions[qi]==='dislike' ? ' disliked' : '');
+};
+
+// ===== RATING SYSTEM =====
+let _currentRatingVal = 0;
+
+function openRatingModal(quizId, likedQs) {
+  _currentRatingVal = 0;
+  const quiz = quizzesCache[quizId];
+  document.getElementById('rating-quiz-name').textContent = quiz?.name || 'Bộ đề này';
+  document.getElementById('rating-comment').value = '';
+  // Reset stars
+  document.querySelectorAll('.rating-star').forEach(s => { s.classList.remove('active'); s.style.color = ''; });
+  // Liked/disliked summary
+  const summaryEl = document.getElementById('rating-liked-summary');
+  const likes = likedQs.filter(r => r.reaction === 'like');
+  const dislikes = likedQs.filter(r => r.reaction === 'dislike');
+  let summaryHtml = '';
+  if(likes.length > 0 || dislikes.length > 0) {
+    summaryHtml = '<div class="liked-qs-section">';
+    if(likes.length > 0) {
+      summaryHtml += `<div class="liked-qs-title"><i class="fas fa-thumbs-up" style="color:var(--accent2)"></i> Câu hay (${likes.length}):</div>`;
+      likes.forEach(r => {
+        summaryHtml += `<div class="liked-q-item like"><i class="fas fa-check" style="color:var(--accent2);flex-shrink:0;margin-top:2px"></i><span>${escHtml(r.text)}</span></div>`;
+      });
+    }
+    if(dislikes.length > 0) {
+      summaryHtml += `<div class="liked-qs-title" style="margin-top:6px"><i class="fas fa-thumbs-down" style="color:var(--wrong)"></i> Câu khó/sai (${dislikes.length}):</div>`;
+      dislikes.forEach(r => {
+        summaryHtml += `<div class="liked-q-item dislike"><i class="fas fa-exclamation" style="color:var(--wrong);flex-shrink:0;margin-top:2px"></i><span>${escHtml(r.text)}</span></div>`;
+      });
+    }
+    summaryHtml += '</div>';
+  }
+  summaryEl.innerHTML = summaryHtml;
+  // Show the panel
+  document.getElementById('rating-panel').classList.remove('hidden');
+  // Star click handlers
+  document.querySelectorAll('.rating-star').forEach(star => {
+    star.onclick = () => {
+      _currentRatingVal = parseInt(star.dataset.val);
+      document.querySelectorAll('.rating-star').forEach((s, i) => {
+        s.classList.toggle('active', i < _currentRatingVal);
+        s.style.color = i < _currentRatingVal ? 'var(--accent4)' : '';
+      });
+    };
+    star.onmouseenter = () => {
+      const v = parseInt(star.dataset.val);
+      document.querySelectorAll('.rating-star').forEach((s, i) => {
+        s.style.color = i < v ? 'var(--accent4)' : (i < _currentRatingVal ? 'var(--accent4)' : '');
+      });
+    };
+    star.onmouseleave = () => {
+      document.querySelectorAll('.rating-star').forEach((s, i) => {
+        s.style.color = i < _currentRatingVal ? 'var(--accent4)' : '';
+      });
+    };
+  });
+}
+
+window.skipRating = function() {
+  document.getElementById('rating-panel').classList.add('hidden');
+};
+
+window.submitRating = async function() {
+  const quizId = currentQuizMeta?.id;
+  if(!quizId) return;
+  const stars = _currentRatingVal;
+  const comment = document.getElementById('rating-comment').value.trim();
+  if(stars === 0) {
+    showToast('Hãy chọn số sao đánh giá!', 'error');
+    return;
+  }
+  // Build liked questions list
+  const likedQs = buildReactionList();
+  const entry = {
+    stars,
+    comment,
+    likedQs,
+    ts: Date.now(),
+    user: getCurrentUser() || 'anonymous'
+  };
+  try {
+    await push(ref(db, 'app_data/ratings/'+quizId), entry);
+  } catch(e) {
+    const data = JSON.parse(localStorage.getItem('qm_ratings')||'{}');
+    if(!data[quizId]) data[quizId] = [];
+    data[quizId].push(entry);
+    localStorage.setItem('qm_ratings', JSON.stringify(data));
+  }
+  document.getElementById('rating-panel').classList.add('hidden');
+  showToast('Cảm ơn bạn đã đánh giá! ⭐', 'success');
+};
+
+function buildReactionList() {
+  return Object.entries(questionReactions)
+    .filter(([, r]) => r !== null)
+    .map(([qi, reaction]) => {
+      const q = quizQuestions[parseInt(qi)];
+      const text = (q?.text||'').substring(0, 80);
+      // Try to find the original index in the unshuffled quiz for reliable edit navigation
+      const origQuestions = currentQuizMeta ? (quizzesCache[currentQuizMeta.id]?.questions || []) : [];
+      const origIdx = origQuestions.findIndex(oq => oq.text === q?.text);
+      return {
+        qi: origIdx >= 0 ? origIdx : parseInt(qi), // prefer original index
+        text,
+        reaction
+      };
+    });
+}
+
+async function showRatingsForQuiz(quizId) {
+  let entries = [];
+  try {
+    const snap = await get(ref(db, 'app_data/ratings/'+quizId));
+    const val = snap.val();
+    if(val && typeof val === 'object') {
+      entries = Object.entries(val).map(([k,v])=>({key:k, data:v})).sort((a,b)=>b.data.ts-a.data.ts);
+    }
+  } catch(e) {
+    const data = JSON.parse(localStorage.getItem('qm_ratings')||'{}');
+    entries = (data[quizId]||[]).slice().reverse().map((v,i)=>({key:String(i),data:v}));
+  }
+  return entries;
+}
+
+window.switchHistoryTab = function(tab) {
+  const tabHistory = document.getElementById('history-tab-history');
+  const tabRatings = document.getElementById('history-tab-ratings');
+  const btnHistory = document.getElementById('htab-history');
+  const btnRatings = document.getElementById('htab-ratings');
+  if(tab === 'history') {
+    tabHistory.style.display = ''; tabRatings.style.display = 'none';
+    btnHistory.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:rgba(108,99,255,.12);color:var(--accent);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
+    btnRatings.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
+  } else {
+    tabHistory.style.display = 'none'; tabRatings.style.display = '';
+    btnRatings.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:rgba(108,99,255,.12);color:var(--accent);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
+    btnHistory.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
+    // Lazy load ratings
+    loadRatingsTab(_currentHistoryQuizId);
+  }
+};
+
+async function loadRatingsTab(quizId) {
+  const el = document.getElementById('ratings-modal-entries');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+  const entries = await showRatingsForQuiz(quizId);
+  if(entries.length === 0) {
+    el.innerHTML = '<div class="history-empty"><i class="fas fa-star" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có đánh giá nào</div>';
+    return;
+  }
+  // Tổng hợp sao
+  const avg = entries.reduce((s, e) => s + (e.data.stars||0), 0) / entries.length;
+  const starsStr = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
+  el.innerHTML = `<div style="text-align:center;padding:10px 0 16px;border-bottom:1px solid var(--border);margin-bottom:12px">
+    <div style="font-size:1.5rem;color:var(--accent4);letter-spacing:4px">${starsStr}</div>
+    <div style="font-size:.85rem;color:var(--text2);margin-top:4px">${avg.toFixed(1)} / 5 &nbsp;·&nbsp; ${entries.length} đánh giá</div>
+  </div>` + entries.map(item => {
+    const en = item.data;
+    const date = new Date(en.ts);
+    const dateStr = date.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const starsHtml = '★'.repeat(en.stars||0) + '☆'.repeat(5-(en.stars||0));
+    const likes = (en.likedQs||[]).filter(r=>r.reaction==='like');
+    const dislikes = (en.likedQs||[]).filter(r=>r.reaction==='dislike');
+    let reactSummary = '';
+    if(likes.length > 0) reactSummary += `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:.7rem;color:var(--accent2);flex-shrink:0"><i class="fas fa-thumbs-up"></i></span>${likes.map(r=>`<span onclick="openQuizEditAtQuestion('${quizId}',${r.qi})" title="Nhấn để chỉnh sửa câu này" style="font-size:.7rem;padding:2px 8px;border-radius:12px;background:rgba(0,212,170,.1);border:1px solid var(--accent2);color:var(--accent2);cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(0,212,170,.25)'" onmouseout="this.style.background='rgba(0,212,170,.1)'">${escHtml((r.text||'').substring(0,40)+((r.text||'').length>40?'…':''))}</span>`).join('')}</div>`;
+    if(dislikes.length > 0) reactSummary += `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:.7rem;color:var(--wrong);flex-shrink:0"><i class="fas fa-thumbs-down"></i></span>${dislikes.map(r=>`<span onclick="openQuizEditAtQuestion('${quizId}',${r.qi})" title="Nhấn để chỉnh sửa câu này" style="font-size:.7rem;padding:2px 8px;border-radius:12px;background:rgba(255,107,107,.1);border:1px solid var(--wrong);color:var(--wrong);cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,107,107,.25)'" onmouseout="this.style.background='rgba(255,107,107,.1)'">${escHtml((r.text||'').substring(0,40)+((r.text||'').length>40?'…':''))}</span>`).join('')}</div>`;
+    return `<div class="history-entry" id="rating-entry-${item.key}" style="align-items:flex-start">
+      <div style="flex:1">
+        <div style="color:var(--accent4);font-size:1rem;letter-spacing:2px">${starsHtml}</div>
+        ${en.comment ? `<div style="margin-top:4px;font-size:.85rem;color:var(--text);font-style:italic">"${escHtml(en.comment)}"</div>` : ''}
+        ${reactSummary}
+        <div style="margin-top:5px;font-size:.72rem;color:var(--text3)"><i class="fas fa-calendar-alt"></i> ${dateStr}</div>
+      </div>
+      <button onclick="promptDeleteRatingEntry('${quizId}','${item.key}')" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:8px" title="Xóa đánh giá này" onmouseover="this.style.background='var(--wrong)';this.style.color='#fff'" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text3)'"><i class="fas fa-times"></i></button>
+    </div>`;
+  }).join('');
+}
+
+window.promptDeleteRatingEntry = function(quizId, entryKey) {
+  openPwdModal(
+    'Xóa đánh giá này',
+    'Nhập mật khẩu để xóa đánh giá này.',
+    async () => {
+      try { await remove(ref(db, `app_data/ratings/${quizId}/${entryKey}`)); } catch(e2) {}
+      document.getElementById('rating-entry-'+entryKey)?.remove();
+      const remaining = document.querySelectorAll('#ratings-modal-entries .history-entry');
+      if(!remaining.length) {
+        document.getElementById('ratings-modal-entries').innerHTML =
+          '<div class="history-empty"><i class="fas fa-star" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có đánh giá nào</div>';
+      }
+      showToast('Đã xóa đánh giá', 'success');
+    }
+  );
+};
+
+window.promptClearRatings = function() {
+  if(!_currentHistoryQuizId) return;
+  const quiz = quizzesCache[_currentHistoryQuizId];
+  openPwdModal(
+    'Xóa tất cả đánh giá',
+    `Xóa toàn bộ đánh giá của "${quiz?.name||'bộ đề này'}"? Không thể hoàn tác.`,
+    async () => {
+      try { await remove(ref(db, 'app_data/ratings/'+_currentHistoryQuizId)); } catch(e) {}
+      const data = JSON.parse(localStorage.getItem('qm_ratings')||'{}');
+      delete data[_currentHistoryQuizId];
+      localStorage.setItem('qm_ratings', JSON.stringify(data));
+      showToast('Đã xóa tất cả đánh giá', 'success');
+      document.getElementById('ratings-modal-entries').innerHTML =
+        '<div class="history-empty"><i class="fas fa-star" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có đánh giá nào</div>';
+    }
+  );
+};
+
+// ===== JUMP TO QUESTION IN EDIT FORM =====
+// qi here is the shuffled session index stored in reactions — we match by question text
+// against the original (unshuffled) quiz questions array
+window.openQuizEditAtQuestion = function(quizId, sessionQi) {
+  const quiz = quizzesCache[quizId];
+  if(!quiz) { showToast('Không tìm thấy bộ đề', 'error'); return; }
+
+  // The sessionQi is the index in quizQuestions (shuffled during play).
+  // We need to find the matching question in the original array via text match.
+  // quizQuestions may no longer exist (different session), so we rely on
+  // the text stored in the reaction entry — but we don't have it here.
+  // Instead: open the quiz in edit mode, then scroll to the question whose
+  // index in the ORIGINAL array matches. If qi < original length, use it directly.
+  const origQuestions = quiz.questions || [];
+  const targetOrigIdx = Math.min(sessionQi, origQuestions.length - 1);
+
+  // Close history modal
+  document.getElementById('history-modal').classList.remove('visible');
+
+  // Open edit form (reuses editQuiz)
+  editQuiz(quizId);
+
+  // After render, scroll to and highlight the target question
+  setTimeout(() => {
+    const rowEl = document.getElementById('q-row-' + targetOrigIdx) ||
+                  document.getElementById('q-item-' + targetOrigIdx);
+    if(rowEl) {
+      rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Flash highlight
+      const item = document.getElementById('q-item-' + targetOrigIdx);
+      if(item) {
+        item.style.transition = 'box-shadow .3s, border-color .3s';
+        item.style.boxShadow = '0 0 0 3px var(--accent)';
+        item.style.borderColor = 'var(--accent)';
+        setTimeout(() => {
+          item.style.boxShadow = '';
+          item.style.borderColor = '';
+        }, 2200);
+      }
+    } else {
+      showToast('Không tìm thấy câu hỏi (có thể đã được sắp xếp lại)', 'error');
+    }
+  }, 320);
+};
+
 // ===== HINT =====
 window.toggleHint = function(idx) {
   const box = document.getElementById('hint-box-'+idx);
@@ -3150,15 +3526,37 @@ function getSessionCount(quizId) {
   return _sessionsCache[quizId] || 0;
 }
 
-// Track last played timestamp per quiz (for NEW badge)
+// Track last played timestamp per quiz (for NEW badge) — Firebase backed
+let _lastPlayedCache = {};
+function subscribeLastPlayed() {
+  onValue(ref(db, 'app_data/last_played'), snap => {
+    const val = snap.val();
+    if(val && typeof val === 'object') {
+      _lastPlayedCache = val;
+      // Migrate old localStorage data
+      const local = JSON.parse(localStorage.getItem('qm_last_played')||'{}');
+      let needMigrate = false;
+      Object.entries(local).forEach(([id, ts]) => {
+        if(!_lastPlayedCache[id] && ts > 0) { _lastPlayedCache[id] = ts; needMigrate = true; }
+      });
+      if(needMigrate) set(ref(db, 'app_data/last_played'), _lastPlayedCache).catch(()=>{});
+      renderQuizGrid();
+    } else {
+      const local = JSON.parse(localStorage.getItem('qm_last_played')||'{}');
+      if(Object.keys(local).length > 0) {
+        _lastPlayedCache = local;
+        set(ref(db, 'app_data/last_played'), local).catch(()=>{});
+      }
+    }
+  });
+}
 function getLastPlayedTime(quizId) {
-  const data = JSON.parse(localStorage.getItem('qm_last_played')||'{}');
-  return data[quizId] || 0;
+  return _lastPlayedCache[quizId] || 0;
 }
 function setLastPlayedTime(quizId) {
-  const data = JSON.parse(localStorage.getItem('qm_last_played')||'{}');
-  data[quizId] = Date.now();
-  localStorage.setItem('qm_last_played', JSON.stringify(data));
+  _lastPlayedCache[quizId] = Date.now();
+  localStorage.setItem('qm_last_played', JSON.stringify(_lastPlayedCache));
+  set(ref(db, 'app_data/last_played/'+quizId), _lastPlayedCache[quizId]).catch(()=>{});
 }
 async function incrementSession(quizId) {
   _sessionsCache[quizId] = (_sessionsCache[quizId] || 0) + 1;
@@ -3193,6 +3591,8 @@ window.showQuizHistory = async function(quizId, e) {
   nameEl.textContent = quiz?.name || 'Bộ đề';
   entriesEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
   modal.classList.add('visible');
+  // Always reset to history tab
+  switchHistoryTab('history');
 
   let entries = []; // [{key, data}]
   try {
@@ -3228,11 +3628,19 @@ function renderHistoryEntries(quizId, entries) {
     const scoreClass = en.pct>=70 ? 'good' : en.pct>=50 ? 'ok' : 'bad';
     const passClass = en.pct>=50 ? 'pass' : 'fail';
     const passLabel = en.pct>=50 ? 'Đạt' : 'Chưa đạt';
+    // Liked/disliked questions summary
+    const likedQs = en.likedQs || [];
+    const likes = likedQs.filter(r => r.reaction === 'like');
+    const dislikes = likedQs.filter(r => r.reaction === 'dislike');
+    let reactSummary = '';
+    if(likes.length > 0) reactSummary += `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:.7rem;color:var(--accent2);flex-shrink:0"><i class="fas fa-thumbs-up"></i></span>${likes.map(r=>`<span onclick="openQuizEditAtQuestion('${quizId}',${r.qi})" title="Nhấn để chỉnh sửa câu này" style="font-size:.7rem;padding:2px 7px;border-radius:12px;background:rgba(0,212,170,.1);border:1px solid var(--accent2);color:var(--accent2);cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(0,212,170,.25)'" onmouseout="this.style.background='rgba(0,212,170,.1)'">${escHtml((r.text||'').substring(0,35)+((r.text||'').length>35?'…':''))}</span>`).join('')}</div>`;
+    if(dislikes.length > 0) reactSummary += `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:.7rem;color:var(--wrong);flex-shrink:0"><i class="fas fa-thumbs-down"></i></span>${dislikes.map(r=>`<span onclick="openQuizEditAtQuestion('${quizId}',${r.qi})" title="Nhấn để chỉnh sửa câu này" style="font-size:.7rem;padding:2px 7px;border-radius:12px;background:rgba(255,107,107,.1);border:1px solid var(--wrong);color:var(--wrong);cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,107,107,.25)'" onmouseout="this.style.background='rgba(255,107,107,.1)'">${escHtml((r.text||'').substring(0,35)+((r.text||'').length>35?'…':''))}</span>`).join('')}</div>`;
     return `<div class="history-entry" id="hentry-${item.key}">
       <div style="flex:1">
         <div class="history-entry-time"><i class="fas fa-calendar-alt"></i>${dateStr} &nbsp;<i class="fas fa-clock"></i>${timeStr}</div>
         <div class="history-entry-meta"><i class="fas fa-check-circle" style="color:var(--correct)"></i> ${en.correct} đúng &nbsp; <i class="fas fa-times-circle" style="color:var(--wrong)"></i> ${en.wrong} sai &nbsp; / ${en.total} câu</div>
         <div class="history-entry-duration"><i class="fas fa-stopwatch"></i> ${durStr}</div>
+        ${reactSummary ? `<div style="margin-top:5px;display:flex;flex-direction:column;gap:3px">${reactSummary}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <button onclick="promptDeleteHistoryEntry('${quizId}','${item.key}')" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s" title="Xóa lần này" onmouseover="this.style.background='var(--wrong)';this.style.color='#fff'" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text3)'"><i class="fas fa-times"></i></button>
@@ -3299,23 +3707,32 @@ window.doFinishQuiz = async function() {
   if(currentQuizMeta?.id) {
     await incrementSession(currentQuizMeta.id);
     setLastPlayedTime(currentQuizMeta.id);
-    await saveQuizHistory(currentQuizMeta.id, { correct: correctCount, wrong: wrongCount, total, pct, timeUsedSec, ts: Date.now() });
+    const likedQs = buildReactionList();
+    await saveQuizHistory(currentQuizMeta.id, {
+      correct: correctCount, wrong: wrongCount, total, pct, timeUsedSec, ts: Date.now(),
+      likedQs
+    });
     renderQuizGrid();
+    // Show rating modal after a short delay
+    setTimeout(() => openRatingModal(currentQuizMeta.id, likedQs), 600);
   }
 };
 
 window.retryQuiz = function() {
   document.getElementById('result-overlay').classList.remove('visible');
+  document.getElementById('rating-panel').classList.add('hidden');
   if(currentQuizMeta?.id) startQuiz(currentQuizMeta.id);
 };
 window.reviewQuiz = function() {
   document.getElementById('result-overlay').classList.remove('visible');
+  document.getElementById('rating-panel').classList.add('hidden');
   isReviewMode = true;
   showQuestion(0);
 };
 window.exitQuiz = function() {
   clearInterval(timerInterval);
   document.getElementById('result-overlay').classList.remove('visible');
+  document.getElementById('rating-panel').classList.add('hidden');
   document.getElementById('quiz-sidebar').classList.remove('mobile-visible');
   showPage('home');
 };
