@@ -2652,7 +2652,7 @@ function showQuestion(idx) {
   const reactionHtml = `<div class="q-reaction-row">
     <span class="q-reaction-label"><i class="fas fa-tag" style="margin-right:4px"></i>Đánh dấu câu này:</span>
     <button class="q-react-btn${likedCls}" id="react-like-${idx}" onclick="reactQuestion(${idx},'like')"><i class="fas fa-thumbs-up"></i> Hay</button>
-    <button class="q-react-btn${dislikedCls}" id="react-dislike-${idx}" onclick="reactQuestion(${idx},'dislike')"><i class="fas fa-thumbs-down"></i> Khó/Sai</button>
+    <button class="q-react-btn${dislikedCls}" id="react-dislike-${idx}" onclick="reactQuestion(${idx},'dislike')"><i class="fas fa-thumbs-down"></i> Dở</button>
   </div>`;
 
   let explanHtml = '';
@@ -3078,7 +3078,7 @@ function openRatingModal(quizId, likedQs) {
       });
     }
     if(dislikes.length > 0) {
-      summaryHtml += `<div class="liked-qs-title" style="margin-top:6px"><i class="fas fa-thumbs-down" style="color:var(--wrong)"></i> Câu khó/sai (${dislikes.length}):</div>`;
+      summaryHtml += `<div class="liked-qs-title" style="margin-top:6px"><i class="fas fa-thumbs-down" style="color:var(--wrong)"></i> Câu dở (${dislikes.length}):</div>`;
       dislikes.forEach(r => {
         summaryHtml += `<div class="liked-q-item dislike"><i class="fas fa-exclamation" style="color:var(--wrong);flex-shrink:0;margin-top:2px"></i><span>${escHtml(r.text)}</span></div>`;
       });
