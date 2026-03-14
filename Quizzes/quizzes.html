@@ -1134,7 +1134,7 @@
       <button class="sidebar-close-btn" onclick="closeInlineEdit()"><i class="fas fa-times"></i></button>
     </div>
     <div id="inline-edit-content"></div>
-    <button class="save-btn" style="margin-top:12px" onclick="saveInlineEdit()"><i class="fas fa-save"></i> Lưu thay đổi</button>
+    <button class="save-btn" id="inline-save-btn" style="margin-top:12px" onclick="saveInlineEdit()"><i class="fas fa-save"></i> Lưu thay đổi</button>
   </div>
 </div>
 
@@ -1794,6 +1794,9 @@ window.editQuiz = function(id, e) {
   if(!q) return;
   currentEditId = id;
   editQuestions = JSON.parse(JSON.stringify(q.questions||[]));
+  // FIX: Always reset save button state when opening edit form
+  const btn = document.getElementById('save-btn');
+  if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Lưu bộ đề'; }
   document.getElementById('form-title').textContent = 'Chỉnh sửa bộ trắc nghiệm';
   document.getElementById('quiz-name').value = q.name||'';
   document.getElementById('quiz-image-url').value = q.imageUrl||'';
@@ -1969,13 +1972,19 @@ function qToText(q, qi) {
       lines.push(`${lbl}${a.correct?'*':''}. ${a.text||''}`);
     });
   }
-  if(q.explanation) lines.push(`=> ${q.explanation}`);
+  if(q.explanation) {
+    // Multiline explanation: dòng đầu có prefix =>, các dòng sau indent bằng 3 space
+    const explLines = q.explanation.split('\n');
+    lines.push(`=> ${explLines[0]}`);
+    for(let i=1; i<explLines.length; i++) lines.push(`   ${explLines[i]}`);
+  }
   return lines.join('\n');
 }
 
 /** Parse plain text → question data object (partial merge with existing q) */
 function textToQ(raw, qi, existingQ) {
-  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  // Không filter dòng rỗng khi split, để giữ xuống dòng trong explanation
+  const lines = raw.split('\n');
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const result = {
     text: existingQ?.text||'',
@@ -1987,7 +1996,6 @@ function textToQ(raw, qi, existingQ) {
   };
 
   // Answer detection regex: starts with letter (A-Z) then optionally * then . or , or ) or :
-  // e.g.: A. B* . A,  B*. C*) D: etc.
   const ansRe = /^([A-Za-z])([*]?)\s*[.,):\-]\s*(.*)/;
   // Question line: "Câu N:" or "Câu N." or just first non-answer line
   const qRe = /^[Cc][aâ]u\s*\d+\s*[:.)?\-]?\s*(.*)/;
@@ -1996,12 +2004,29 @@ function textToQ(raw, qi, existingQ) {
 
   let parsedAnswers = [];
   let foundQ = false;
-  let multiCorrect = false;
+  let explLines = null; // null = chưa gặp =>, array = đang thu thập explanation
 
   for(let line of lines) {
-    const explM = line.match(explRe);
+    const trimmed = line.trim();
+
+    // Nếu đang trong explanation block, thu thập tiếp (kể cả dòng rỗng giữa)
+    if(explLines !== null) {
+      // Dòng indent (bắt đầu bằng space) hoặc dòng rỗng = continuation của explanation
+      const isIndented = line.startsWith('   ') || line.startsWith('\t') || !trimmed;
+      // Nhưng nếu là answer line mới rõ ràng (không indent) thì dừng explanation
+      if(!isIndented && trimmed && ansRe.test(trimmed)) {
+        explLines = null;
+      } else {
+        // Trim leading indent (3 spaces) nếu có, nhưng giữ nội dung
+        explLines.push(isIndented && trimmed ? line.replace(/^ {0,3}/, '') : line);
+        continue;
+      }
+    }
+
+    if(!trimmed) continue; // bỏ qua dòng rỗng ngoài explanation block
+
+    const explM = trimmed.match(explRe);
     if(explM) {
-      // Check for fill/multifill special lines
       const fillM = explM[1].match(/^\[Điền\]\s*(.*)/);
       const mfM = explM[1].match(/^\[Điền nhiều ô\]\s*(.*)/);
       if(fillM) {
@@ -2013,31 +2038,38 @@ function textToQ(raw, qi, existingQ) {
         result.answers = parts.map(t=>({text:t,correct:true}));
         result.type = 'multifill';
       } else {
-        result.explanation = explM[1].trim();
+        // Bắt đầu thu thập explanation (hỗ trợ nhiều dòng)
+        explLines = [explM[1]];
       }
       continue;
     }
 
-    const ansM = line.match(ansRe);
+    const ansM = trimmed.match(ansRe);
     if(ansM) {
       const correct = ansM[2]==='*';
       const text = ansM[3].trim();
-      if(correct && parsedAnswers.some(a=>a.correct)) multiCorrect=true;
       parsedAnswers.push({text, correct});
       continue;
     }
 
-    const qM = line.match(qRe);
+    const qM = trimmed.match(qRe);
     if(qM) { result.text = qM[1].trim(); foundQ=true; continue; }
 
-    // First non-matching line before any answers = question text
     if(!foundQ && parsedAnswers.length===0) {
-      result.text = line; foundQ=true;
+      result.text = trimmed; foundQ=true;
     }
   }
 
+  // Gộp explanation lines lại (trim trailing empty lines)
+  if(explLines !== null) {
+    let joined = explLines.join('\n');
+    // Trim trailing newlines only
+    joined = joined.replace(/\n+$/, '');
+    result.explanation = joined;
+  }
+
   if(parsedAnswers.length > 0) result.answers = parsedAnswers;
-  if(multiCorrect) result.type='multi'; else if(parsedAnswers.length>0) result.type='single';
+  // Không tự động chuyển loại câu — giữ nguyên type do user chọn trên dropdown
 
   return result;
 }
@@ -2660,7 +2692,7 @@ function showQuestion(idx) {
   const reactionHtml = `<div class="q-reaction-row">
     <span class="q-reaction-label"><i class="fas fa-tag" style="margin-right:4px"></i>Đánh dấu câu này:</span>
     <button class="q-react-btn${likedCls}" id="react-like-${idx}" onclick="reactQuestion(${idx},'like')"><i class="fas fa-thumbs-up"></i> Hay</button>
-    <button class="q-react-btn${dislikedCls}" id="react-dislike-${idx}" onclick="reactQuestion(${idx},'dislike')"><i class="fas fa-thumbs-down"></i> Khó/Sai</button>
+    <button class="q-react-btn${dislikedCls}" id="react-dislike-${idx}" onclick="reactQuestion(${idx},'dislike')"><i class="fas fa-thumbs-down"></i> Dở</button>
   </div>`;
 
   let explanHtml = '';
@@ -3086,7 +3118,7 @@ function openRatingModal(quizId, likedQs) {
       });
     }
     if(dislikes.length > 0) {
-      summaryHtml += `<div class="liked-qs-title" style="margin-top:6px"><i class="fas fa-thumbs-down" style="color:var(--wrong)"></i> Câu khó/sai (${dislikes.length}):</div>`;
+      summaryHtml += `<div class="liked-qs-title" style="margin-top:6px"><i class="fas fa-thumbs-down" style="color:var(--wrong)"></i> Câu Dở (${dislikes.length}):</div>`;
       dislikes.forEach(r => {
         summaryHtml += `<div class="liked-q-item dislike"><i class="fas fa-exclamation" style="color:var(--wrong);flex-shrink:0;margin-top:2px"></i><span>${escHtml(r.text)}</span></div>`;
       });
@@ -3765,6 +3797,9 @@ window.closeInlineEdit = function() {
 window.saveInlineEdit = async function() {
   const qi = inlineEditQIndex;
   if(qi===null||!editQuestions[0]) return;
+  const inlineBtn = document.getElementById('inline-save-btn');
+  const setInlineBtn = (disabled, html) => { if(inlineBtn){ inlineBtn.disabled=disabled; inlineBtn.innerHTML=html; } };
+  setInlineBtn(true, '<div class="spinner"></div> Đang lưu...');
   const updated = editQuestions[0];
   const meta = currentQuizMeta;
 
@@ -3797,7 +3832,6 @@ window.saveInlineEdit = async function() {
 
         if(origIdx >= 0) {
           await update(ref(db, 'quizzes/'+meta.id+'/questions/'+origIdx), updated);
-          // Also update cache
           if(quizzesCache[meta.id]?.questions) quizzesCache[meta.id].questions[origIdx] = updated;
           showToast('Đã lưu thay đổi vào bộ đề!', 'success');
         } else {
@@ -3808,9 +3842,12 @@ window.saveInlineEdit = async function() {
       }
     } catch(e) {
       showToast('Lỗi lưu: '+e.message, 'error');
+      setInlineBtn(false, '<i class="fas fa-save"></i> Lưu thay đổi');
+      return; // Dừng lại, không đóng modal khi lỗi
     }
   }
 
+  setInlineBtn(false, '<i class="fas fa-save"></i> Lưu thay đổi');
   delete answers[qi];
   closeInlineEdit();
   showQuestion(qi);
