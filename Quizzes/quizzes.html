@@ -1906,9 +1906,13 @@ window.resetSettings = function() {
 };
 
 // ===== FIREBASE SUBSCRIPTION (single listener, cached) =====
+// Flag to suppress Firebase bounce-back after self-writes
+let _suppressQuizzesUpdate = false;
+
 function subscribeQuizzes() {
   const r = ref(db, 'quizzes');
   onValue(r, snap => {
+    if(_suppressQuizzesUpdate) return; // skip our own write echo
     quizzesCache = snap.val() || {};
     renderQuizGrid();
     updateHomeStats();
@@ -1950,6 +1954,7 @@ window.showPage = function(name) {
   const nb = document.getElementById('nav-'+name);
   if(nb) nb.classList.add('active');
   if(name === 'add' && !_navigatingFromEdit) resetForm();
+  if(name === 'home') { renderQuizGrid(); updateHomeStats(); }
   if(name === 'settings') { renderColorSettings(); renderUsersSettings(); }
   if(name === 'links') { initLinksListener(); renderLinksGrid(); }
   _navigatingFromEdit = false;
@@ -2148,6 +2153,11 @@ window.confirmDeleteQuiz = function(id, e) {
 
 async function deleteQuiz(id) {
   try {
+    // Optimistic: remove from cache immediately and re-render
+    delete quizzesCache[id];
+    _suppressQuizzesUpdate = true;
+    renderQuizGrid();
+    updateHomeStats();
     await remove(ref(db, 'quizzes/'+id));
     // Also delete history
     try { await remove(ref(db, 'app_data/history/'+id)); } catch(e2) {}
@@ -2156,7 +2166,11 @@ async function deleteQuiz(id) {
     delete data[id];
     localStorage.setItem('qm_history', JSON.stringify(data));
     showToast('Đã xóa bộ đề và lịch sử', 'success');
-  } catch(e) { showToast('Lỗi: '+e.message,'error'); }
+    setTimeout(() => { _suppressQuizzesUpdate = false; }, 2000);
+  } catch(e) {
+    _suppressQuizzesUpdate = false;
+    showToast('Lỗi: '+e.message,'error');
+  }
 }
 
 window.closeModal = function() { document.getElementById('confirm-modal').classList.remove('visible'); };
@@ -2823,15 +2837,25 @@ window.saveQuiz = async function() {
   };
   try {
     if(currentEditId) {
+      // Optimistic update: patch cache immediately
+      quizzesCache[currentEditId] = { ...(quizzesCache[currentEditId]||{}), ...data };
+      _suppressQuizzesUpdate = true;
       await update(ref(db,'quizzes/'+currentEditId), data);
       showToast('Đã cập nhật bộ đề!','success');
     } else {
-      await push(ref(db,'quizzes'), {...data, createdAt:Date.now()});
+      // For new quiz, push and get the new key
+      _suppressQuizzesUpdate = true;
+      const newRef = await push(ref(db,'quizzes'), {...data, createdAt:Date.now()});
+      quizzesCache[newRef.key] = {...data, createdAt:Date.now()};
       showToast('Đã thêm bộ đề mới!','success');
     }
+    // Navigate immediately with fresh data already in cache
     showPage('home');
     setBtns(false, '<i class="fas fa-save"></i> Lưu bộ đề');
+    // Re-enable listener after a short delay (Firebase echo window)
+    setTimeout(() => { _suppressQuizzesUpdate = false; }, 2000);
   } catch(e) {
+    _suppressQuizzesUpdate = false;
     showToast('Lỗi lưu dữ liệu: '+e.message,'error');
     setBtns(false, '<i class="fas fa-save"></i> Lưu bộ đề');
   }
@@ -3689,14 +3713,19 @@ function getQuizOrder() {
   return allIds;
 }
 
+let _suppressOrderUpdate = false;
+
 async function saveQuizOrder(order) {
   _quizOrder = order;
   localStorage.setItem('qm_quiz_order', JSON.stringify(order));
+  _suppressOrderUpdate = true;
   try { await set(ref(db, 'app_data/quiz_order'), order); } catch(e) { console.warn('saveOrder err', e); }
+  setTimeout(() => { _suppressOrderUpdate = false; }, 2000);
 }
 
 function subscribeQuizOrder() {
   onValue(ref(db, 'app_data/quiz_order'), snap => {
+    if(_suppressOrderUpdate) return;
     const val = snap.val();
     if(val && Array.isArray(val)) {
       localStorage.setItem('qm_quiz_order', JSON.stringify(val));
@@ -3845,9 +3874,11 @@ function updateSidebarVisibility() {
 
 // ===== SESSION TRACKING (Firebase-backed) =====
 let _sessionsCache = {};
+let _suppressSessionsUpdate = false;
 
 function subscribeSessions() {
   onValue(ref(db, 'app_data/sessions'), snap => {
+    if(_suppressSessionsUpdate) return;
     const val = snap.val();
     if(val && typeof val === 'object') {
       _sessionsCache = val;
@@ -3876,8 +3907,11 @@ function getSessionCount(quizId) {
 
 // Track last played timestamp per quiz (for NEW badge) — Firebase backed
 let _lastPlayedCache = {};
+let _suppressLastPlayedUpdate = false;
+
 function subscribeLastPlayed() {
   onValue(ref(db, 'app_data/last_played'), snap => {
+    if(_suppressLastPlayedUpdate) return;
     const val = snap.val();
     if(val && typeof val === 'object') {
       _lastPlayedCache = val;
@@ -3904,16 +3938,20 @@ function getLastPlayedTime(quizId) {
 function setLastPlayedTime(quizId) {
   _lastPlayedCache[quizId] = Date.now();
   localStorage.setItem('qm_last_played', JSON.stringify(_lastPlayedCache));
+  _suppressLastPlayedUpdate = true;
   set(ref(db, 'app_data/last_played/'+quizId), _lastPlayedCache[quizId]).catch(()=>{});
+  setTimeout(() => { _suppressLastPlayedUpdate = false; }, 2000);
 }
 async function incrementSession(quizId) {
   _sessionsCache[quizId] = (_sessionsCache[quizId] || 0) + 1;
+  _suppressSessionsUpdate = true;
   try { await set(ref(db, 'app_data/sessions/'+quizId), _sessionsCache[quizId]); } catch(e) {
     // fallback localStorage
     const data = JSON.parse(localStorage.getItem('qm_sessions')||'{}');
     data[quizId] = _sessionsCache[quizId];
     localStorage.setItem('qm_sessions', JSON.stringify(data));
   }
+  setTimeout(() => { _suppressSessionsUpdate = false; }, 2000);
 }
 
 // ===== QUIZ HISTORY =====
@@ -4390,31 +4428,35 @@ const LINK_TAGS_META = {
 };
 
 // ---- Storage: Firebase app_data/links ----
-let _linksCache = [];
+let _linksCache = []; // array, maintains order
 let _linksListening = false;
-let _linkWriting = false; // suppress listener bounce while writing
+let _suppressLinksUpdate = false; // suppress self-write echo
 
 function initLinksListener() {
   if(_linksListening) return;
   _linksListening = true;
   onValue(ref(db, 'app_data/links'), snap => {
-    if(_linkWriting) return; // we already updated cache+UI optimistically
+    if(_suppressLinksUpdate) return; // skip our own write echo
     const val = snap.val();
     _linksCache = Array.isArray(val) ? val : (val ? Object.values(val) : []);
+    // Re-render only if links page is active
     if(document.getElementById('page-links')?.classList.contains('active')) {
       renderLinksGrid();
     }
   });
 }
 
-// Optimistic-first: update cache & UI immediately, then push to Firebase silently
-function saveLinks(links) {
+async function saveLinksToFirebase(links) {
   _linksCache = links;
-  renderLinksGrid();
-  _linkWriting = true;
-  set(ref(db, 'app_data/links'), links)
-    .catch(e => { console.warn('saveLinks err', e); showToast('Lỗi lưu dữ liệu!', 'error'); })
-    .finally(() => { setTimeout(() => { _linkWriting = false; }, 2000); });
+  _suppressLinksUpdate = true;
+  try {
+    await set(ref(db, 'app_data/links'), links);
+  } catch(e) {
+    console.warn('saveLinks FB err', e);
+    showToast('Lỗi lưu dữ liệu!', 'error');
+  }
+  // Re-enable listener after echo window
+  setTimeout(() => { _suppressLinksUpdate = false; }, 2000);
 }
 
 function loadLinks() { return _linksCache; }
@@ -4495,7 +4537,10 @@ window.toggleLinkDone = function(id) {
   const idx = links.findIndex(l => l.id === id);
   if(idx === -1) return;
   links[idx].done = !links[idx].done;
-  saveLinks(links);
+  saveLinksToFirebase(links);
+  // Optimistic local re-render
+  _linksCache = links;
+  renderLinksGrid();
   showToast(links[idx].done ? '✅ Đã làm xong!' : 'Bỏ đánh dấu làm xong');
 };
 
@@ -4558,7 +4603,9 @@ function attachLinkDragSort(card, id) {
     if(fromIdx === -1 || toIdx === -1) return;
     const [item] = fresh.splice(fromIdx, 1);
     fresh.splice(toIdx, 0, item);
-    saveLinks(fresh); // updates cache + renders optimistically
+    _linksCache = fresh;
+    renderLinksGrid(); // optimistic
+    saveLinksToFirebase(fresh);
   });
 }
 
@@ -4618,8 +4665,10 @@ window.saveLinkItem = function() {
   } else {
     links.unshift({ id: 'lnk_' + Date.now(), name, url, tag: _linkCurrentTag, done: false, createdAt: Date.now() });
   }
-  saveLinks(links);
+  _linksCache = links;
+  saveLinksToFirebase(links);
   closeLinkModal();
+  renderLinksGrid();
   showToast(_linkEditId ? 'Đã cập nhật link!' : 'Đã thêm link!');
 };
 
@@ -4641,7 +4690,9 @@ window.deleteLinkItem = function(id) {
   } else {
     if(confirm(`Xoá link "${link.name}"?`)) {
       const updated = loadLinks().filter(l => l.id !== id);
-      saveLinks(updated);
+      _linksCache = updated;
+      saveLinksToFirebase(updated);
+      renderLinksGrid();
       showToast('Đã xoá link!');
     }
   }
@@ -4649,7 +4700,9 @@ window.deleteLinkItem = function(id) {
 
 window.confirmDeleteLink = function(id) {
   const updated = loadLinks().filter(l => l.id !== id);
-  saveLinks(updated);
+  _linksCache = updated;
+  saveLinksToFirebase(updated);
+  renderLinksGrid();
   closeModal();
   showToast('Đã xoá link!');
 };
