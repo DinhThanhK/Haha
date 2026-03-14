@@ -4390,30 +4390,31 @@ const LINK_TAGS_META = {
 };
 
 // ---- Storage: Firebase app_data/links ----
-let _linksCache = []; // array, maintains order
+let _linksCache = [];
 let _linksListening = false;
+let _linkWriting = false; // suppress listener bounce while writing
 
 function initLinksListener() {
   if(_linksListening) return;
   _linksListening = true;
   onValue(ref(db, 'app_data/links'), snap => {
+    if(_linkWriting) return; // we already updated cache+UI optimistically
     const val = snap.val();
     _linksCache = Array.isArray(val) ? val : (val ? Object.values(val) : []);
-    // Re-render only if links page is active
     if(document.getElementById('page-links')?.classList.contains('active')) {
       renderLinksGrid();
     }
   });
 }
 
-async function saveLinksToFirebase(links) {
+// Optimistic-first: update cache & UI immediately, then push to Firebase silently
+function saveLinks(links) {
   _linksCache = links;
-  try {
-    await set(ref(db, 'app_data/links'), links);
-  } catch(e) {
-    console.warn('saveLinks FB err', e);
-    showToast('Lỗi lưu dữ liệu!', 'error');
-  }
+  renderLinksGrid();
+  _linkWriting = true;
+  set(ref(db, 'app_data/links'), links)
+    .catch(e => { console.warn('saveLinks err', e); showToast('Lỗi lưu dữ liệu!', 'error'); })
+    .finally(() => { setTimeout(() => { _linkWriting = false; }, 2000); });
 }
 
 function loadLinks() { return _linksCache; }
@@ -4494,10 +4495,7 @@ window.toggleLinkDone = function(id) {
   const idx = links.findIndex(l => l.id === id);
   if(idx === -1) return;
   links[idx].done = !links[idx].done;
-  saveLinksToFirebase(links);
-  // Optimistic local re-render
-  _linksCache = links;
-  renderLinksGrid();
+  saveLinks(links);
   showToast(links[idx].done ? '✅ Đã làm xong!' : 'Bỏ đánh dấu làm xong');
 };
 
@@ -4560,9 +4558,7 @@ function attachLinkDragSort(card, id) {
     if(fromIdx === -1 || toIdx === -1) return;
     const [item] = fresh.splice(fromIdx, 1);
     fresh.splice(toIdx, 0, item);
-    _linksCache = fresh;
-    renderLinksGrid(); // optimistic
-    saveLinksToFirebase(fresh);
+    saveLinks(fresh); // updates cache + renders optimistically
   });
 }
 
@@ -4622,10 +4618,8 @@ window.saveLinkItem = function() {
   } else {
     links.unshift({ id: 'lnk_' + Date.now(), name, url, tag: _linkCurrentTag, done: false, createdAt: Date.now() });
   }
-  _linksCache = links;
-  saveLinksToFirebase(links);
+  saveLinks(links);
   closeLinkModal();
-  renderLinksGrid();
   showToast(_linkEditId ? 'Đã cập nhật link!' : 'Đã thêm link!');
 };
 
@@ -4647,9 +4641,7 @@ window.deleteLinkItem = function(id) {
   } else {
     if(confirm(`Xoá link "${link.name}"?`)) {
       const updated = loadLinks().filter(l => l.id !== id);
-      _linksCache = updated;
-      saveLinksToFirebase(updated);
-      renderLinksGrid();
+      saveLinks(updated);
       showToast('Đã xoá link!');
     }
   }
@@ -4657,9 +4649,7 @@ window.deleteLinkItem = function(id) {
 
 window.confirmDeleteLink = function(id) {
   const updated = loadLinks().filter(l => l.id !== id);
-  _linksCache = updated;
-  saveLinksToFirebase(updated);
-  renderLinksGrid();
+  saveLinks(updated);
   closeModal();
   showToast('Đã xoá link!');
 };
