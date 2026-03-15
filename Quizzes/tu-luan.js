@@ -647,7 +647,8 @@ function handleHintTab(e) {
   const bulb=document.getElementById('hint-bulb');
   if (!bulb||bulb.style.display==='none') return;
   e.preventDefault();
-  if (hintPopupOpen) { insertHintText(); closeHintPopup(); }
+  if (hintPopupOpen) {  closeHintPopup(); }
+  //insertHintText(); 
   else openHintPopup();
 }
 
