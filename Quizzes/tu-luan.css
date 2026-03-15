@@ -319,8 +319,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text)
   animation: popup-in .15s ease forwards;
 }
 @keyframes popup-in {
-  from { opacity:0; transform:translateX(-5px); }
-  to   { opacity:1; transform:translateX(0); }
+  from { opacity:0; transform:translateX(400px); }
+  to   { opacity:1; transform:translateX(405px); }
 }
 .hint-popup-label { font-size:.72rem; font-weight:700; color:var(--accent4); display:flex; align-items:center; gap:5px; margin-bottom:8px; }
 .hint-popup-text  { font-size:.9rem; color:var(--text); font-weight:600; line-height:1.5; word-break:break-word; margin-bottom:10px; }
