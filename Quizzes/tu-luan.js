@@ -1,28 +1,33 @@
 // ========================================
 // QuizMaster — tu-luan.js
+// Lưu trữ: Firebase Realtime Database
+// Path: app_data/tu_luan_docs  |  app_data/tu_luan_history
 // ========================================
 
-const STORAGE_KEY = 'qm_tu_luan_docs';
-const HISTORY_KEY = 'qm_tu_luan_history';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, remove, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-// ─── DATA ────────────────────────────────
-function loadDocs()  { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
-function saveDocs(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
-function getDoc(id)  { return loadDocs().find(d => d.id === id) || null; }
+const firebaseConfig = {
+  apiKey: "AIzaSyARyxrxmbNLaxSdDP14S5YQES5AJnLj-XU",
+  authDomain: "mylife-ddd6a.firebaseapp.com",
+  databaseURL: "https://mylife-ddd6a-default-rtdb.firebaseio.com",
+  projectId: "mylife-ddd6a",
+  storageBucket: "mylife-ddd6a.firebasestorage.app",
+  messagingSenderId: "969759088030",
+  appId: "1:969759088030:web:69155b992b0cea296e4a8f",
+};
 
-function loadHistory()  { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || {}; } catch { return {}; } }
-function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
-function addHistoryEntry(docId, entry) {
-  const h = loadHistory();
-  if (!h[docId]) h[docId] = [];
-  h[docId].unshift(entry);
-  if (h[docId].length > 50) h[docId].length = 50;
-  saveHistory(h);
-}
-function getBestScore(docId) {
-  const e = (loadHistory()[docId] || []);
-  return e.length ? Math.max(...e.map(x => x.score)) : null;
-}
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ─── Firebase paths ───────────────────────
+const DOCS_PATH = 'app_data/tu_luan_docs';
+const HIST_PATH = 'app_data/tu_luan_history';
+
+// ─── In-memory cache (realtime sync từ Firebase) ──
+let _docsCache    = {};  // { id: doc }
+let _historyCache = {};  // { docId: { entryKey: entry } }
+let _dbReady      = false;
 
 // ─── STATE ───────────────────────────────
 let currentDocId      = null;
@@ -34,9 +39,72 @@ let refPanelOpen      = false;
 let testSubmitted     = false;
 
 // Hint state
-let hintTimer       = null;
-let currentHintStr  = '';
-let hintPopupOpen   = false;
+let hintTimer      = null;
+let currentHintStr = '';
+let hintPopupOpen  = false;
+
+// ─── FIREBASE SUBSCRIBE ──────────────────
+function subscribeFirebase() {
+  // Docs
+  onValue(ref(db, DOCS_PATH), snap => {
+    _docsCache = snap.val() || {};
+    _dbReady   = true;
+    // Re-render nếu đang ở list view
+    if (document.getElementById('view-list').style.display !== 'none') {
+      renderList(document.getElementById('tl-search').value);
+    }
+  });
+
+  // History
+  onValue(ref(db, HIST_PATH), snap => {
+    _historyCache = snap.val() || {};
+    if (document.getElementById('view-list').style.display !== 'none') {
+      renderList(document.getElementById('tl-search').value);
+    }
+  });
+}
+
+// ─── DATA HELPERS ────────────────────────
+function getAllDocs() {
+  return Object.entries(_docsCache)
+    .map(([id, doc]) => ({ ...doc, id }))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+function getDoc(id) {
+  return _docsCache[id] ? { ..._docsCache[id], id } : null;
+}
+
+async function saveDocToFB(id, data) {
+  try {
+    await set(ref(db, `${DOCS_PATH}/${id}`), data);
+  } catch (e) { console.warn('saveDoc err', e); }
+}
+
+async function deleteDocFromFB(id) {
+  try {
+    await remove(ref(db, `${DOCS_PATH}/${id}`));
+    await remove(ref(db, `${HIST_PATH}/${id}`));
+  } catch (e) { console.warn('deleteDoc err', e); }
+}
+
+function getBestScore(docId) {
+  const entries = _historyCache[docId] || {};
+  const scores  = Object.values(entries).map(e => e.score);
+  return scores.length ? Math.max(...scores) : null;
+}
+
+async function addHistoryEntryFB(docId, entry) {
+  try {
+    await push(ref(db, `${HIST_PATH}/${docId}`), entry);
+  } catch (e) { console.warn('addHistory err', e); }
+}
+
+async function clearHistoryFB(docId) {
+  try {
+    await remove(ref(db, `${HIST_PATH}/${docId}`));
+  } catch (e) { console.warn('clearHistory err', e); }
+}
 
 // ─── TOAST ───────────────────────────────
 window.showToast = function(msg, type = 'success') {
@@ -50,8 +118,8 @@ window.showToast = function(msg, type = 'success') {
 
 // ─── VIEW SWITCHING ──────────────────────
 function showView(name) {
-  document.getElementById('tl-hero').style.display  = name === 'list'   ? '' : 'none';
-  document.getElementById('view-list').style.display = name === 'list'   ? '' : 'none';
+  document.getElementById('tl-hero').style.display     = name === 'list'   ? '' : 'none';
+  document.getElementById('view-list').style.display   = name === 'list'   ? '' : 'none';
   document.getElementById('view-editor').style.display = name === 'editor' ? 'flex' : 'none';
   document.getElementById('view-test').style.display   = name === 'test'   ? 'flex' : 'none';
 }
@@ -60,22 +128,32 @@ function showView(name) {
 function renderList(filterText = '') {
   const grid  = document.getElementById('tl-grid');
   const empty = document.getElementById('tl-empty');
-  const query = filterText.trim().toLowerCase();
-  const sorted = [...loadDocs()].sort((a, b) => b.updatedAt - a.updatedAt);
-  const filtered = query
-    ? sorted.filter(d => (d.title||'').toLowerCase().includes(query) || stripHTML(d.content||'').toLowerCase().includes(query))
-    : sorted;
 
-  if (!filtered.length) { grid.innerHTML = ''; empty.style.display = 'flex'; return; }
+  if (!_dbReady) {
+    grid.innerHTML = '<div class="tl-loading"><i class="fas fa-spinner"></i> Đang tải...</div>';
+    empty.style.display = 'none';
+    return;
+  }
+
+  const query  = filterText.trim().toLowerCase();
+  const docs   = getAllDocs();
+  const filtered = query
+    ? docs.filter(d => (d.title || '').toLowerCase().includes(query) || stripHTML(d.content || '').toLowerCase().includes(query))
+    : docs;
+
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
   empty.style.display = 'none';
 
   grid.innerHTML = filtered.map(doc => {
-    const preview   = stripHTML(doc.content || '').slice(0,160) || 'Chưa có nội dung...';
+    const preview   = stripHTML(doc.content || '').slice(0, 160) || 'Chưa có nội dung...';
     const best      = getBestScore(doc.id);
     const titleHtml = doc.title ? escapeHTML(doc.title) : '<em style="color:var(--text3)">Không có tiêu đề</em>';
     const scoreBadge = best !== null
-      ? `<span class="doc-card-score ${best>=80?'good':best>=50?'mid':'bad'}">⭐ ${best}%</span>`
-      : '';
+      ? `<span class="doc-card-score ${best>=80?'good':best>=50?'mid':'bad'}">⭐ ${best}%</span>` : '';
     return `
       <div class="doc-card" onclick="openDoc('${doc.id}')">
         <div class="doc-card-title">${titleHtml}</div>
@@ -96,14 +174,16 @@ function renderList(filterText = '') {
 window.filterDocs = () => renderList(document.getElementById('tl-search').value);
 
 // ─── EDITOR ──────────────────────────────
-window.openNew = function() {
-  const doc = { id:'doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), title:'', content:'', createdAt:Date.now(), updatedAt:Date.now() };
-  const docs = loadDocs(); docs.unshift(doc); saveDocs(docs);
-  openDoc(doc.id);
+window.openNew = async function() {
+  const id  = 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const doc = { title:'', content:'', createdAt:Date.now(), updatedAt:Date.now() };
+  await saveDocToFB(id, doc);
+  openDoc(id);
 };
+
 window.openDoc = function(id) {
   const doc = getDoc(id);
-  if (!doc) { showToast('Không tìm thấy văn bản','error'); return; }
+  if (!doc) { showToast('Không tìm thấy văn bản', 'error'); return; }
   currentDocId = id; hasUnsavedChanges = false;
   document.getElementById('doc-title').value = doc.title || '';
   const ed = document.getElementById('doc-editor');
@@ -111,19 +191,25 @@ window.openDoc = function(id) {
   showView('editor'); updateWordCount(); updateStatus('Đã lưu');
   ed.focus(); placeCursorAtEnd(ed);
 };
+
 window.backToList = function() {
   if (hasUnsavedChanges) saveDoc(true);
   currentDocId = null; clearTimeout(autoSaveTimer);
   showView('list'); renderList(document.getElementById('tl-search').value);
 };
-window.saveDoc = function(silent=false) {
+
+window.saveDoc = async function(silent = false) {
   if (!currentDocId) return;
-  const docs = loadDocs(), idx = docs.findIndex(d => d.id === currentDocId);
-  if (idx===-1) return;
-  docs[idx].title   = document.getElementById('doc-title').value.trim();
-  docs[idx].content = document.getElementById('doc-editor').innerHTML;
-  docs[idx].updatedAt = Date.now();
-  saveDocs(docs); hasUnsavedChanges = false; updateStatus('Đã lưu');
+  const existing = getDoc(currentDocId);
+  if (!existing) return;
+  const data = {
+    title:     document.getElementById('doc-title').value.trim(),
+    content:   document.getElementById('doc-editor').innerHTML,
+    createdAt: existing.createdAt || Date.now(),
+    updatedAt: Date.now(),
+  };
+  await saveDocToFB(currentDocId, data);
+  hasUnsavedChanges = false; updateStatus('Đã lưu');
   const btn = document.getElementById('save-btn');
   if (btn) {
     btn.classList.add('saved');
@@ -132,6 +218,7 @@ window.saveDoc = function(silent=false) {
   }
   if (!silent) showToast('Đã lưu văn bản!');
 };
+
 function scheduleAutoSave() {
   hasUnsavedChanges = true; updateStatus('Chưa lưu...');
   clearTimeout(autoSaveTimer);
@@ -139,39 +226,36 @@ function scheduleAutoSave() {
 }
 
 // ─── DELETE ──────────────────────────────
-window.deleteDocCard = (e,id) => { e.stopPropagation(); openDeleteModal(id,false); };
-window.confirmDelete = () => { if (currentDocId) openDeleteModal(currentDocId,true); };
-function openDeleteModal(id,fromEditor) {
+window.deleteDocCard = (e, id) => { e.stopPropagation(); openDeleteModal(id, false); };
+window.confirmDelete = () => { if (currentDocId) openDeleteModal(currentDocId, true); };
+
+function openDeleteModal(id, fromEditor) {
   document.getElementById('tl-modal').classList.add('visible');
   const old = document.getElementById('tl-modal-confirm-btn');
-  const nb  = old.cloneNode(true); old.parentNode.replaceChild(nb,old);
-  nb.addEventListener('click', () => { doDelete(id,fromEditor); closeModal(); });
+  const nb  = old.cloneNode(true); old.parentNode.replaceChild(nb, old);
+  nb.addEventListener('click', () => { doDelete(id, fromEditor); closeModal(); });
 }
-function doDelete(id,fromEditor) {
-  saveDocs(loadDocs().filter(d=>d.id!==id));
-  const h=loadHistory(); delete h[id]; saveHistory(h);
-  showToast('Đã xóa văn bản','error');
-  if (fromEditor) { currentDocId=null; clearTimeout(autoSaveTimer); showView('list'); }
+async function doDelete(id, fromEditor) {
+  await deleteDocFromFB(id);
+  showToast('Đã xóa văn bản', 'error');
+  if (fromEditor) { currentDocId = null; clearTimeout(autoSaveTimer); showView('list'); }
   renderList(document.getElementById('tl-search').value);
 }
 window.closeModal = () => document.getElementById('tl-modal').classList.remove('visible');
 
 // ─── EDITOR COMMANDS ─────────────────────
-window.execCmd      = cmd => { document.getElementById('doc-editor').focus(); document.execCommand(cmd,false,null); updateToolbarState(); };
-window.removeFormat = () => { const ed=document.getElementById('doc-editor'); ed.focus(); document.execCommand('removeFormat',false,null); document.execCommand('formatBlock',false,'p'); updateToolbarState(); };
-window.changeFontSize = val => {
-  if (!val) return;
-  document.getElementById('doc-editor').focus(); document.execCommand('fontSize',false,val);
-  setTimeout(()=>{ document.getElementById('font-size-sel').value=''; },50);
-};
+window.execCmd      = cmd  => { document.getElementById('doc-editor').focus(); document.execCommand(cmd, false, null); updateToolbarState(); };
+window.removeFormat = ()   => { const ed=document.getElementById('doc-editor'); ed.focus(); document.execCommand('removeFormat',false,null); document.execCommand('formatBlock',false,'p'); updateToolbarState(); };
+window.changeFontSize = v  => { if(!v) return; document.getElementById('doc-editor').focus(); document.execCommand('fontSize',false,v); setTimeout(()=>{document.getElementById('font-size-sel').value='';},50); };
+
 function updateToolbarState() {
   [['bold','btn-bold'],['italic','btn-italic'],['underline','btn-underline']].forEach(([cmd,id])=>{
-    const b=document.getElementById(id); if(b) b.classList.toggle('active', document.queryCommandState(cmd));
+    const b=document.getElementById(id); if(b) b.classList.toggle('active',document.queryCommandState(cmd));
   });
 }
 function updateWordCount() {
   const el=document.getElementById('word-count');
-  if (el) el.textContent = countWords(stripHTML(document.getElementById('doc-editor').innerHTML))+' từ';
+  if(el) el.textContent=countWords(stripHTML(document.getElementById('doc-editor').innerHTML))+' từ';
 }
 function updateStatus(msg) {
   const el=document.getElementById('editor-status'); if(!el) return;
@@ -181,233 +265,193 @@ function updateStatus(msg) {
 }
 
 // ════════════════════════════════════════
-//  NORMALIZE & TOKENIZE
-//
-//  Quy tắc:
-//  - Bỏ dấu tiếng Việt, lowercase
-//  - GIỮ LẠI: + - * / = ( ) { } [ ] và dấu chấm x.x (kẹp giữa 2 ký tự)
-//  - Bỏ: dấu , ; : ! ? " ' và dấu chấm đứng đầu/cuối word
+//  TÁCH DÒNG — DOM walker (chính xác nhất)
 // ════════════════════════════════════════
-function normalize(str) {
-  return str
-    .toLowerCase()
-    .replace(/đ/g,'d')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    // Bỏ các dấu không cần: , ; : ! ? " ' ` ~ @ # $ % ^ & _ \ | < >
-    .replace(/[,;:!?"'`~@#$%^&_\\|<>]/g,'')
-    .replace(/\s+/g,' ').trim();
-}
+const BLOCK_TAGS = new Set(['DIV','P','LI','H1','H2','H3','H4','H5','H6','BLOCKQUOTE','TR','TD','TH']);
 
-// Tách văn bản thành tokens — mỗi token là 1 "từ" (có thể chứa math ký tự)
-function tokenize(str) {
-  return normalize(str).split(' ').filter(w=>w.length>0);
-}
-
-// ─── Tách văn bản thành DÒNG ─────────────
-// Dùng DOM walker để đảm bảo đúng với mọi cấu trúc contenteditable:
-//   <div>line1</div><div>line2</div>  ← Chrome style
-//   line1<br>line2                    ← Firefox style  
-//   <p>line1</p><p>line2</p>          ← pasted content
 function splitLines(html) {
   if (!html || !html.trim()) return [];
-
-  // Parse thành DOM để walk chính xác
   const root = document.createElement('div');
   root.innerHTML = html;
-
   const lines = [];
-  let currentLine = '';
+  let cur = '';
 
-  function flushLine() {
-    const t = currentLine.replace(/\u00a0/g, ' ').trim(); // decode &nbsp;
+  function flush() {
+    const t = cur.replace(/\u00a0/g, ' ').trim();
     if (t) lines.push(t);
-    currentLine = '';
+    cur = '';
   }
-
-  // Block-level tags — khi gặp opening sẽ flush dòng hiện tại
-  const BLOCK = new Set(['DIV','P','LI','H1','H2','H3','H4','H5','H6',
-                         'BLOCKQUOTE','TR','TD','TH']);
-
   function walk(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      currentLine += node.textContent;
-      return;
-    }
+    if (node.nodeType === Node.TEXT_NODE) { cur += node.textContent; return; }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-    const tag = node.tagName.toUpperCase();
-
-    if (tag === 'BR') {
-      flushLine();
-      return;
-    }
-
-    const isBlock = BLOCK.has(tag);
-    // Nếu là block và đang có nội dung → flush trước khi vào
-    if (isBlock && currentLine.trim()) flushLine();
-
+    const tag = node.tagName;
+    if (tag === 'BR') { flush(); return; }
+    const isBlock = BLOCK_TAGS.has(tag);
+    if (isBlock && cur.trim()) flush();
     for (const child of node.childNodes) walk(child);
-
-    // Sau khi hết block → flush
-    if (isBlock) flushLine();
+    if (isBlock) flush();
   }
-
   walk(root);
-  flushLine(); // flush phần còn lại
-
+  flush();
   return lines.filter(l => l.length > 0);
 }
+
+function getEditorLines(el) { return splitLines(el.innerHTML); }
 
 // ════════════════════════════════════════
 //  TEST MODE
 // ════════════════════════════════════════
-window.quickTest = function(e,id) {
+window.quickTest = function(e, id) {
   e.stopPropagation();
-  const doc=getDoc(id); if(!doc) return;
+  const doc = getDoc(id); if (!doc) return;
   if (!splitLines(doc.content||'').length) { showToast('Văn bản chưa có nội dung!','error'); return; }
-  currentDocId=id; testFromEditor=false; _enterTestMode(doc);
+  currentDocId = id; testFromEditor = false; _enterTestMode(doc);
 };
 window.openTestMode = function() {
   if (!currentDocId) return;
   saveDoc(true);
-  const doc=getDoc(currentDocId);
-  if (!doc||!splitLines(doc.content||'').length) { showToast('Hãy soạn nội dung trước!','error'); return; }
-  testFromEditor=true; _enterTestMode(doc);
+  const doc = getDoc(currentDocId);
+  if (!doc || !splitLines(doc.content||'').length) { showToast('Hãy soạn nội dung trước!','error'); return; }
+  testFromEditor = true; _enterTestMode(doc);
 };
 
 function _enterTestMode(doc) {
-  testSubmitted=false;
-  clearTimeout(hintTimer);
-  _hideHintUI();
-
-  const testEd=document.getElementById('test-editor');
-  const diffView=document.getElementById('test-diff-view');
-  testEd.innerHTML=''; testEd.contentEditable='true'; testEd.style.display='';
-  diffView.innerHTML=''; diffView.style.display='none';
-  document.getElementById('test-doc-title-display').textContent = doc.title||'Không có tiêu đề';
-  document.getElementById('btn-submit-test').style.display='';
-  document.getElementById('btn-retry-test').style.display='none';
-  document.getElementById('test-instruction-bar').style.display='';
-  document.getElementById('test-result-bar').style.display='none';
-  document.getElementById('test-word-count').innerHTML='<i class="fas fa-file-word" style="color:var(--text3)"></i> 0 từ';
+  testSubmitted = false;
+  clearTimeout(hintTimer); _hideHintUI();
+  const testEd   = document.getElementById('test-editor');
+  const diffView = document.getElementById('test-diff-view');
+  testEd.innerHTML = ''; testEd.contentEditable = 'true'; testEd.style.display = '';
+  diffView.innerHTML = ''; diffView.style.display = 'none';
+  document.getElementById('test-doc-title-display').textContent = doc.title || 'Không có tiêu đề';
+  document.getElementById('btn-submit-test').style.display = '';
+  document.getElementById('btn-retry-test').style.display  = 'none';
+  document.getElementById('test-instruction-bar').style.display = '';
+  document.getElementById('test-result-bar').style.display      = 'none';
+  document.getElementById('test-word-count').innerHTML = '<i class="fas fa-file-word" style="color:var(--text3)"></i> 0 từ';
   showView('test'); testEd.focus();
 }
 
 window.backFromTest = function() {
   if (refPanelOpen) toggleRefPanel();
-  clearTimeout(hintTimer);
-  _hideHintUI();
+  clearTimeout(hintTimer); _hideHintUI();
   if (testFromEditor && currentDocId) openDoc(currentDocId);
-  else { currentDocId=null; showView('list'); renderList(document.getElementById('tl-search').value); }
+  else { currentDocId = null; showView('list'); renderList(document.getElementById('tl-search').value); }
 };
 window.retryTest = function() { const doc=getDoc(currentDocId); if(doc) _enterTestMode(doc); };
 
 // ─── NỘP BÀI ─────────────────────────────
-window.submitTest = function() {
-  const doc=getDoc(currentDocId); if(!doc) return;
+window.submitTest = async function() {
+  const doc = getDoc(currentDocId); if (!doc) return;
   if (refPanelOpen) toggleRefPanel();
-  clearTimeout(hintTimer);
-  _hideHintUI();
+  clearTimeout(hintTimer); _hideHintUI();
 
   const userHTML = document.getElementById('test-editor').innerHTML;
-  const userText = stripHTML(userHTML);
-  if (!userText.trim()) { showToast('Hãy gõ nội dung trước!','error'); return; }
+  if (!stripHTML(userHTML).trim()) { showToast('Hãy gõ nội dung trước!','error'); return; }
 
-  // ── Tính điểm theo DÒNG ──
-  const refLines  = splitLines(doc.content||'');
+  const refLines  = splitLines(doc.content || '');
   const userLines = splitLines(userHTML);
   const result    = scoreByLines(refLines, userLines);
 
-  addHistoryEntry(currentDocId, { score:result.score, correct:result.correct, wrong:result.wrong, total:result.total, ts:Date.now() });
-  testSubmitted=true;
+  await addHistoryEntryFB(currentDocId, { score:result.score, correct:result.correct, wrong:result.wrong, total:result.total, ts:Date.now() });
+  testSubmitted = true;
 
   // Result bar
   const pctEl=document.getElementById('trb-pct'), gradeEl=document.getElementById('trb-grade');
-  pctEl.textContent=result.score+'%';
-  if (result.score>=90)      { pctEl.style.color='var(--correct)'; gradeEl.textContent='🏆 Xuất sắc!';    gradeEl.style.color='var(--correct)'; }
+  pctEl.textContent = result.score+'%';
+  if      (result.score>=90) { pctEl.style.color='var(--correct)'; gradeEl.textContent='🏆 Xuất sắc!';    gradeEl.style.color='var(--correct)'; }
   else if (result.score>=75) { pctEl.style.color='var(--correct)'; gradeEl.textContent='🎉 Tốt lắm!';    gradeEl.style.color='var(--correct)'; }
   else if (result.score>=50) { pctEl.style.color='var(--accent4)'; gradeEl.textContent='💪 Cần cố thêm'; gradeEl.style.color='var(--accent4)'; }
   else                        { pctEl.style.color='var(--wrong)';   gradeEl.textContent='📖 Ôn lại nhé!'; gradeEl.style.color='var(--wrong)'; }
-  document.getElementById('trb-correct').textContent=result.correct;
-  document.getElementById('trb-wrong').textContent=result.wrong;
-  document.getElementById('trb-total').textContent=result.total;
-  document.getElementById('test-instruction-bar').style.display='none';
-  document.getElementById('test-result-bar').style.display='';
+  document.getElementById('trb-correct').textContent = result.correct;
+  document.getElementById('trb-wrong').textContent   = result.wrong;
+  document.getElementById('trb-total').textContent   = result.total;
+  document.getElementById('test-instruction-bar').style.display = 'none';
+  document.getElementById('test-result-bar').style.display      = '';
 
-  // Inline diff — theo từng DÒNG
-  const diffView=document.getElementById('test-diff-view');
-  diffView.innerHTML=buildLineDiff(result.lineDiffs);
-  diffView.style.display='';
-  document.getElementById('test-editor').style.display='none';
-  document.getElementById('btn-submit-test').style.display='none';
-  document.getElementById('btn-retry-test').style.display='';
-  renderList(document.getElementById('tl-search').value);
+  const diffView = document.getElementById('test-diff-view');
+  diffView.innerHTML = buildLineDiff(result.lineDiffs);
+  diffView.style.display = '';
+  document.getElementById('test-editor').style.display   = 'none';
+  document.getElementById('btn-submit-test').style.display = 'none';
+  document.getElementById('btn-retry-test').style.display  = '';
 };
 
-// ─── SCORE BY LINES ───────────────────────
-function scoreByLines(refLines, userLines) {
-  let totalCorrect=0, totalWrong=0, totalRef=0;
-  const lineDiffs=[];
-
-  const maxLines=Math.max(refLines.length, userLines.length);
-  for (let i=0; i<maxLines; i++) {
-    const refLine  = refLines[i]  || '';
-    const userLine = userLines[i] || '';
-    const refToks  = tokenize(refLine);
-    const userToks = tokenize(userLine);
-    totalRef += refToks.length;
-
-    if (!refToks.length && !userToks.length) continue;
-
-    const diff = lcsWordDiff(refToks, userToks);
-    const ok   = diff.filter(t=>t.type==='ok').length;
-    const miss = diff.filter(t=>t.type==='miss').length;
-    totalCorrect += ok;
-    totalWrong   += miss;
-
-    lineDiffs.push({ lineNum:i+1, refLine, diff });
-  }
-
-  const score = totalRef>0 ? Math.round((totalCorrect/totalRef)*100) : 100;
-  return { score, correct:totalCorrect, wrong:totalWrong, total:totalRef, lineDiffs };
+// ─── SCORING ─────────────────────────────
+function normalize(str) {
+  return str
+    .toLowerCase().replace(/đ/g,'d')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[,;:!?"'`~@#$%^&_\\|<>]/g,'')
+    .replace(/\s+/g,' ').trim();
 }
+function tokenize(str) { return normalize(str).split(' ').filter(w=>w.length>0); }
 
-// LCS diff giống cũ nhưng tái sử dụng
-function lcsWordDiff(refWords, userWords) {
-  const R=refWords.length, U=userWords.length;
-  if (!R && !U) return [];
+// lcsWordDiff nhận thêm refOrigWords và userOrigWords (chữ gốc có dấu)
+// để hiển thị đẹp, nhưng so sánh bằng normalized tokens
+function lcsWordDiff(refToks, userToks, refOrig, userOrig) {
+  const R=refToks.length, U=userToks.length;
+  if (!R&&!U) return [];
   const dp=Array.from({length:R+1},()=>new Int32Array(U+1));
-  for (let i=1;i<=R;i++) for (let j=1;j<=U;j++)
-    dp[i][j] = refWords[i-1]===userWords[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j],dp[i][j-1]);
+  for(let i=1;i<=R;i++) for(let j=1;j<=U;j++)
+    dp[i][j]=refToks[i-1]===userToks[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
   const ops=[]; let i=R,j=U;
-  while (i>0||j>0) {
-    if (i>0&&j>0&&refWords[i-1]===userWords[j-1]) { ops.push({type:'ok',   word:refWords[i-1]}); i--;j--; }
-    else if (j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])){ ops.push({type:'extra',word:userWords[j-1]}); j--; }
-    else                                             { ops.push({type:'miss', word:refWords[i-1]}); i--; }
+  while(i>0||j>0){
+    if(i>0&&j>0&&refToks[i-1]===userToks[j-1]){
+      ops.push({type:'ok',   word:refOrig[i-1]});  // chữ gốc có dấu
+      i--;j--;
+    } else if(j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])){
+      ops.push({type:'extra',word:userOrig[j-1]}); // chữ user gõ
+      j--;
+    } else {
+      ops.push({type:'miss', word:refOrig[i-1]});  // chữ gốc bị thiếu
+      i--;
+    }
   }
   return ops.reverse();
 }
 
-// ─── BUILD LINE DIFF HTML ─────────────────
-// Mỗi dòng gốc = 1 `diff-line`, có số dòng ở lề
+// Tách từ gốc (giữ nguyên dấu, chỉ split khoảng trắng)
+function tokenizeOrig(str) {
+  // Bỏ các dấu câu không cần giống normalize nhưng GIỮ dấu tiếng Việt
+  return str
+    .replace(/[,;:!?"'`~@#$%^&_\\|<>]/g,'')
+    .replace(/\s+/g,' ').trim()
+    .split(' ').filter(w=>w.length>0);
+}
+
+function scoreByLines(refLines, userLines) {
+  let totalCorrect=0, totalWrong=0, totalRef=0;
+  const lineDiffs=[];
+  const maxLines=Math.max(refLines.length, userLines.length);
+  for(let i=0;i<maxLines;i++){
+    const refLine  = refLines[i]  || '';
+    const userLine = userLines[i] || '';
+    const refToks  = tokenize(refLine);       // normalized để so sánh
+    const userToks = tokenize(userLine);
+    const refOrig  = tokenizeOrig(refLine);   // gốc có dấu để hiển thị
+    const userOrig = tokenizeOrig(userLine);
+    totalRef += refToks.length;
+    if(!refToks.length && !userToks.length) continue;
+    const diff = lcsWordDiff(refToks, userToks, refOrig, userOrig);
+    totalCorrect += diff.filter(t=>t.type==='ok').length;
+    totalWrong   += diff.filter(t=>t.type==='miss').length;
+    lineDiffs.push({ lineNum:i+1, refLine, diff });
+  }
+  const score = totalRef>0 ? Math.round((totalCorrect/totalRef)*100) : 100;
+  return { score, correct:totalCorrect, wrong:totalWrong, total:totalRef, lineDiffs };
+}
+
 function buildLineDiff(lineDiffs) {
   if (!lineDiffs.length) return '<em style="color:var(--text3)">Không có dữ liệu</em>';
   return lineDiffs.map(({lineNum, refLine, diff}) => {
+    if (!diff.length) return '';
     const inner = diff.map(t => {
-      if (t.type==='ok')    return `<span class="dw-ok">${escapeHTML(t.word)}</span>`;
-      if (t.type==='miss')  return `<span class="dw-miss">${escapeHTML(t.word)}</span>`;
-      if (t.type==='extra') return `<span class="dw-extra">${escapeHTML(t.word)}</span>`;
+      if(t.type==='ok')    return `<span class="dw-ok">${escapeHTML(t.word)}</span>`;
+      if(t.type==='miss')  return `<span class="dw-miss">${escapeHTML(t.word)}</span>`;
+      if(t.type==='extra') return `<span class="dw-extra">${escapeHTML(t.word)}</span>`;
       return '';
     }).join(' ');
-
-    // Nếu diff trống (cả 2 dòng trống) thì skip
-    if (!inner.trim() && !refLine.trim()) return '';
-
-    // Nếu dòng người dùng không tồn tại → cả dòng đều miss
-    const lineClass = diff.every(t=>t.type==='miss') ? ' diff-line-all-miss'
-                    : diff.every(t=>t.type==='ok')   ? ' diff-line-all-ok' : '';
-
-    return `<div class="diff-line${lineClass}"><span class="diff-line-num">${lineNum}</span><span class="diff-line-content">${inner||'<span class="dw-miss">(trống)</span>'}</span></div>`;
+    return `<div class="diff-line"><span class="diff-line-num">${lineNum}</span><span class="diff-line-content">${inner}</span></div>`;
   }).join('');
 }
 
@@ -415,31 +459,23 @@ function buildLineDiff(lineDiffs) {
 window.toggleRefPanel = function() {
   const panel=document.getElementById('ref-panel'), overlay=document.getElementById('ref-panel-overlay');
   refPanelOpen=!refPanelOpen;
-  if (refPanelOpen) {
+  if(refPanelOpen){
     const doc=getDoc(currentDocId);
-    document.getElementById('ref-panel-body').innerHTML = doc?(doc.content||'<em style="color:var(--text3)">Trống</em>'):'';
+    document.getElementById('ref-panel-body').innerHTML=doc?(doc.content||'<em style="color:var(--text3)">Trống</em>'):'';
     panel.classList.add('open'); overlay.classList.add('show');
   } else { panel.classList.remove('open'); overlay.classList.remove('show'); }
 };
 
 function updateTestWordCount() {
-  const words=countWords(stripHTML(document.getElementById('test-editor').innerHTML));
-  document.getElementById('test-word-count').innerHTML=`<i class="fas fa-file-word" style="color:var(--text3)"></i> ${words} từ`;
+  const w=countWords(stripHTML(document.getElementById('test-editor').innerHTML));
+  document.getElementById('test-word-count').innerHTML=`<i class="fas fa-file-word" style="color:var(--text3)"></i> ${w} từ`;
 }
 
 // ════════════════════════════════════════
-//  GỢI Ý THÔNG MINH — icon 💡 theo dòng cursor
-//
-//  Flow:
-//  1. Khi cursor di chuyển (input/click/arrow) → tính hint text + đặt vị trí icon 💡
-//  2. Icon 💡 xuất hiện ở lề trái, thẳng hàng với dòng cursor
-//  3. Click 💡 → mở popup bên trái hiện gợi ý
-//  4. Click "Chèn (Tab)" hoặc nhấn Tab → chèn text vào editor
+//  GỢI Ý THÔNG MINH — icon 💡 fixed theo cursor
 // ════════════════════════════════════════
-
 const HINT_WORDS = 3;
 
-// ─── Tính hint cho dòng hiện tại ─────────
 function computeHint() {
   if (testSubmitted) { _hideHintUI(); return; }
   const doc = getDoc(currentDocId); if (!doc) { _hideHintUI(); return; }
@@ -447,16 +483,19 @@ function computeHint() {
   if (!refLines.length) { _hideHintUI(); return; }
 
   const testEd = document.getElementById('test-editor');
-  // Nếu editor không có focus → ẩn bulb nhưng KHÔNG đóng popup nếu đang mở
+  // Editor phải đang focus
   if (document.activeElement !== testEd) {
-    const bulb = document.getElementById('hint-bulb');
-    if (bulb && !hintPopupOpen) bulb.style.display = 'none';
+    // Ẩn bulb nhưng không đóng popup (user đang hover)
+    if (!hintPopupOpen) {
+      const bulb=document.getElementById('hint-bulb');
+      if(bulb) bulb.style.display='none';
+    }
     return;
   }
 
   const cursorLineIdx = getCursorLineIndex(testEd);
-  const refLine      = refLines[cursorLineIdx] || '';
-  const refToks      = tokenize(refLine);
+  const refLine = refLines[cursorLineIdx] || '';
+  const refToks = tokenize(refLine);
   if (!refToks.length) { _hideHintUI(); return; }
 
   const userLines   = getEditorLines(testEd);
@@ -464,85 +503,69 @@ function computeHint() {
   const userToks    = tokenize(userLineRaw);
 
   let hint = '';
-
   if (userToks.length === 0) {
     hint = refToks.slice(0, HINT_WORDS).join(' ') + (refToks.length > HINT_WORDS ? ' ...' : '');
   } else {
-    // Tìm prefix match dài nhất (userToks khớp đầu refToks)
     let matchLen = 0;
-    for (let k = Math.min(userToks.length, refToks.length); k >= 1; k--) {
-      if (userToks.slice(0, k).join('|') === refToks.slice(0, k).join('|')) { matchLen = k; break; }
+    for (let k=Math.min(userToks.length,refToks.length); k>=1; k--) {
+      if (userToks.slice(0,k).join('|') === refToks.slice(0,k).join('|')) { matchLen=k; break; }
     }
-
     if (matchLen > 0) {
-      const nextIdx = matchLen;
-      if (nextIdx >= refToks.length) {
-        hint = '✓ Dòng đã hoàn chỉnh!';
-      } else {
-        hint = refToks.slice(nextIdx, nextIdx + HINT_WORDS).join(' ') + (refToks.length - nextIdx > HINT_WORDS ? ' ...' : '');
-      }
+      const next = matchLen;
+      hint = next >= refToks.length
+        ? '✓ Dòng đã hoàn chỉnh!'
+        : refToks.slice(next, next+HINT_WORDS).join(' ') + (refToks.length-next>HINT_WORDS?' ...':'');
     } else {
-      const lastTok      = userToks[userToks.length - 1];
-      const lastMatchIdx = refToks.indexOf(lastTok);
-      if (lastMatchIdx >= 0 && lastMatchIdx + 1 < refToks.length) {
-        hint = refToks.slice(lastMatchIdx + 1, lastMatchIdx + 1 + HINT_WORDS).join(' ')
-             + (refToks.length - lastMatchIdx - 1 > HINT_WORDS ? ' ...' : '');
+      const lastIdx = refToks.indexOf(userToks[userToks.length-1]);
+      if (lastIdx>=0 && lastIdx+1<refToks.length) {
+        hint = refToks.slice(lastIdx+1, lastIdx+1+HINT_WORDS).join(' ') + (refToks.length-lastIdx-1>HINT_WORDS?' ...':'');
       } else {
-        hint = refToks.slice(0, HINT_WORDS).join(' ') + (refToks.length > HINT_WORDS ? ' ...' : '');
+        hint = refToks.slice(0,HINT_WORDS).join(' ') + (refToks.length>HINT_WORDS?' ...':'');
       }
     }
   }
 
   currentHintStr = hint;
-  placeBulbAtCursorLine(testEd);
-
-  // Nếu popup đang mở → cập nhật nội dung
+  placeBulbFixed();
   if (hintPopupOpen) updatePopupContent();
 }
 
-// Helper: ẩn bulb VÀ đóng popup
-function _hideHintUI() {
-  currentHintStr = '';
-  const bulb = document.getElementById('hint-bulb');
-  if (bulb) bulb.style.display = 'none';
-  closeHintPopup();
-}
+// ─── Đặt bulb cố định ở lề trái editor, chỉ thay đổi top theo dòng cursor ─
+function placeBulbFixed() {
+  const bulb   = document.getElementById('hint-bulb');
+  const testEd = document.getElementById('test-editor');
+  if (!bulb || !testEd) return;
 
-// ─── Đặt icon bóng đèn thẳng hàng dòng cursor ─
-function placeBulbAtCursorLine(editorEl) {
-  const bulb = document.getElementById('hint-bulb');
-  if (!bulb) return;
-
-  // Lấy bounding rect của cursor
+  // Lấy vị trí cursor để biết top
   const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) { bulb.style.display = 'none'; return; }
-
-  const range     = sel.getRangeAt(0).cloneRange();
+  if (!sel || !sel.rangeCount) { bulb.style.display='none'; return; }
+  const range = sel.getRangeAt(0).cloneRange();
   range.collapse(true);
-  let rect;
-  try { rect = range.getBoundingClientRect(); } catch { bulb.style.display = 'none'; return; }
+  let cursorRect;
+  try { cursorRect = range.getBoundingClientRect(); } catch { bulb.style.display='none'; return; }
+  if (!cursorRect || cursorRect.height === 0) { bulb.style.display='none'; return; }
 
-  if (!rect || rect.height === 0) { bulb.style.display = 'none'; return; }
+  // Left = lề trái của test-editor trên viewport - 34px (ngoài lề)
+  const edRect    = testEd.getBoundingClientRect();
+  const BULB_W    = 28;
+  const GAP       = 6;
+  const fixedLeft = Math.max(2, edRect.left - BULB_W - GAP);
+  const topPx     = cursorRect.top + (cursorRect.height / 2) - (BULB_W / 2);
 
-  // Vị trí relative so với editor-body (parent = .editor-body[style="position:relative"])
-  const editorBody = editorEl.closest('.editor-body') || editorEl.parentElement;
-  const bodyRect   = editorBody.getBoundingClientRect();
-
-  // scrollTop của editorBody
-  const scrollTop  = editorBody.scrollTop;
-
-  const topPx = (rect.top - bodyRect.top) + scrollTop + (rect.height / 2) - 13; // 13 = half bulb height
-
+  bulb.style.left    = fixedLeft + 'px';
   bulb.style.top     = topPx + 'px';
   bulb.style.display = 'flex';
 
-  // Nếu popup đang mở, reposition nó cũng
-  if (hintPopupOpen) positionPopup(bulb, topPx);
+  if (hintPopupOpen) _positionPopup(fixedLeft, topPx);
 }
 
+function _hideHintUI() {
+  currentHintStr = '';
+  const bulb=document.getElementById('hint-bulb'); if(bulb) bulb.style.display='none';
+  closeHintPopup();
+}
 
-
-// ─── Click bóng đèn → mở popup ────────────
+// ─── Click bulb ────────────────────────
 window.clickHintBulb = function() {
   if (hintPopupOpen) { closeHintPopup(); return; }
   openHintPopup();
@@ -556,132 +579,112 @@ function openHintPopup() {
   updatePopupContent();
   hintPopupOpen = true;
 
-  const topPx = parseFloat(bulb.style.top || '0');
-  positionPopup(bulb, topPx);
+  const leftPx = parseFloat(bulb.style.left || '0');
+  const topPx  = parseFloat(bulb.style.top  || '0');
+  _positionPopup(leftPx, topPx);
 
   popup.style.display = 'block';
-  // Re-trigger animation
-  popup.style.animation = 'none';
-  requestAnimationFrame(() => { popup.style.animation = ''; });
+  // Reset animation
+  popup.classList.remove('visible');
+  requestAnimationFrame(() => popup.classList.add('visible'));
 
-  // Bulb sáng hơn khi popup mở
   bulb.classList.add('active');
 }
 
-function positionPopup(bulb, topPx) {
-  const popup = document.getElementById('hint-popup');
+// Popup luôn bên PHẢI bulb (bulb ở lề trái → popup vào phía trong editor)
+function _positionPopup(bulbLeft, bulbTop) {
+  const popup   = document.getElementById('hint-popup');
   if (!popup) return;
-  // Popup nằm ở top = topPx, right = calc(100% + 12px) — đã handle bởi CSS position:absolute
-  popup.style.top = topPx + 'px';
+  const BULB_W  = 28, GAP = 8;
+  const popupW  = 220;
+  const viewW   = window.innerWidth;
+
+  let left = bulbLeft + BULB_W + GAP;
+  // Nếu popup tràn phải màn hình → đẩy lại
+  if (left + popupW > viewW - 8) left = Math.max(4, viewW - popupW - 8);
+
+  popup.style.left = left + 'px';
+  popup.style.top  = Math.max(68, bulbTop - 8) + 'px';
 }
+// alias cũ (compat)
+function positionPopupFixed(l, t) { _positionPopup(l, t); }
 
 function updatePopupContent() {
-  const textEl = document.getElementById('hint-popup-text');
+  const textEl=document.getElementById('hint-popup-text'); if(!textEl) return;
   const isDone = currentHintStr.startsWith('✓');
   textEl.textContent = currentHintStr || '...';
-  textEl.className   = 'hint-popup-text' + (isDone ? ' is-done' : '');
-
-  // Ẩn nút Chèn nếu dòng hoàn chỉnh
-  const acceptBtn = document.querySelector('.hint-accept-btn');
-  if (acceptBtn) acceptBtn.style.display = isDone ? 'none' : '';
+  textEl.className   = 'hint-popup-text' + (isDone?' is-done':'');
+  const acceptBtn=document.querySelector('.hint-accept-btn');
+  if(acceptBtn) acceptBtn.style.display = isDone?'none':'';
 }
 
 window.closeHintPopup = function() {
-  hintPopupOpen = false;
-  const popup = document.getElementById('hint-popup');
-  const bulb  = document.getElementById('hint-bulb');
-  if (popup) popup.style.display = 'none';
-  if (bulb)  bulb.classList.remove('active');
+  hintPopupOpen=false;
+  const popup=document.getElementById('hint-popup'); if(popup) popup.style.display='none';
+  const bulb=document.getElementById('hint-bulb');  if(bulb) bulb.classList.remove('active');
 };
 
-// ─── Chèn gợi ý vào editor ────────────────
-window.acceptHintFromPopup = function() {
-  insertHintText();
-  closeHintPopup();
-};
+window.acceptHintFromPopup = function() { insertHintText(); closeHintPopup(); };
 
 function insertHintText() {
   if (!currentHintStr || currentHintStr.startsWith('✓')) return;
   const hint   = currentHintStr.replace(/ \.\.\.$/,'');
   const testEd = document.getElementById('test-editor');
   testEd.focus();
-
-  const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  range.collapse(false);
-
-  const before   = getCharBeforeCursor(testEd);
-  const preSpace = (before === ' ' || before === '') ? '' : ' ';
-  const node     = document.createTextNode(preSpace + hint + ' ');
-  range.insertNode(node);
-  range.setStartAfter(node); range.collapse(true);
+  const sel=window.getSelection(); if(!sel||!sel.rangeCount) return;
+  const range=sel.getRangeAt(0); range.collapse(false);
+  const before=getCharBeforeCursor(testEd);
+  const pre = (before===' '||before==='') ? '' : ' ';
+  const node=document.createTextNode(pre+hint+' ');
+  range.insertNode(node); range.setStartAfter(node); range.collapse(true);
   sel.removeAllRanges(); sel.addRange(range);
-
-  testEd.dispatchEvent(new Event('input', { bubbles: true }));
-  clearTimeout(hintTimer);
-  hintTimer = setTimeout(computeHint, 200);
+  testEd.dispatchEvent(new Event('input',{bubbles:true}));
+  clearTimeout(hintTimer); hintTimer=setTimeout(computeHint,200);
 }
 
-// Tab key shortcut
 function handleHintTab(e) {
-  if (e.key !== 'Tab') return;
-  const bulb = document.getElementById('hint-bulb');
-  if (!bulb || bulb.style.display === 'none') return;
+  if (e.key!=='Tab') return;
+  const bulb=document.getElementById('hint-bulb');
+  if (!bulb||bulb.style.display==='none') return;
   e.preventDefault();
-  if (hintPopupOpen) {
-    insertHintText();
-    closeHintPopup();
-  } else {
-    // Tab khi popup chưa mở → mở popup trước
-    openHintPopup();
-  }
+  if (hintPopupOpen) { insertHintText(); closeHintPopup(); }
+  else openHintPopup();
 }
 
 // ─── Cursor helpers ───────────────────────
-
 function getCursorLineIndex(el) {
-  const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) return 0;
-  const range    = sel.getRangeAt(0).cloneRange();
-  range.collapse(true);
-  const preRange = document.createRange();
-  preRange.setStart(el, 0);
-  try { preRange.setEnd(range.startContainer, range.startOffset); } catch { return 0; }
-  const tmpDiv    = document.createElement('div');
-  tmpDiv.appendChild(preRange.cloneContents());
-  const preHtml   = tmpDiv.innerHTML
+  const sel=window.getSelection(); if(!sel||!sel.rangeCount) return 0;
+  const range=sel.getRangeAt(0).cloneRange(); range.collapse(true);
+  const pre=document.createRange(); pre.setStart(el,0);
+  try { pre.setEnd(range.startContainer,range.startOffset); } catch { return 0; }
+  const tmp=document.createElement('div'); tmp.appendChild(pre.cloneContents());
+  const html=tmp.innerHTML
     .replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n')
     .replace(/<\/div>/gi,'\n').replace(/<\/li>/gi,'\n');
-  const lines     = preHtml.split('\n');
-  return Math.max(0, lines.length - 1);
-}
-
-function getEditorLines(el) {
-  // Dùng lại splitLines với innerHTML của editor
-  return splitLines(el.innerHTML);
+  return Math.max(0, html.split('\n').length-1);
 }
 
 function getCharBeforeCursor(el) {
-  const sel = window.getSelection(); if (!sel || !sel.rangeCount) return '';
-  const r   = sel.getRangeAt(0).cloneRange(); r.collapse(true);
-  if (r.startOffset === 0) return '';
-  r.setStart(r.startContainer, r.startOffset - 1);
+  const sel=window.getSelection(); if(!sel||!sel.rangeCount) return '';
+  const r=sel.getRangeAt(0).cloneRange(); r.collapse(true);
+  if(r.startOffset===0) return '';
+  r.setStart(r.startContainer,r.startOffset-1);
   return r.toString();
 }
 
 // ─── HISTORY MODAL ────────────────────────
-window.openHistoryModal = function(e,id) {
+window.openHistoryModal = function(e, id) {
   e.stopPropagation(); historyTargetId=id;
-  const doc=getDoc(id), entries=loadHistory()[id]||[];
+  const doc=getDoc(id);
   document.getElementById('history-modal-doc-name').textContent = doc?(doc.title||'Không có tiêu đề'):'Văn bản đã xóa';
+  const entries = Object.values(_historyCache[id]||{}).sort((a,b)=>b.ts-a.ts);
   const wrap=document.getElementById('history-modal-entries');
-  if (!entries.length) {
+  if(!entries.length){
     wrap.innerHTML='<div class="history-empty"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px"></i>Chưa có lịch sử kiểm tra</div>';
   } else {
     wrap.innerHTML=entries.map((e,idx)=>{
-      const cls  = e.score>=80?'s-good':e.score>=50?'s-mid':'s-bad';
-      const grade= e.score>=90?'Xuất sắc':e.score>=75?'Tốt':e.score>=50?'Trung bình':'Cần cố gắng';
+      const cls  =e.score>=80?'s-good':e.score>=50?'s-mid':'s-bad';
+      const grade=e.score>=90?'Xuất sắc':e.score>=75?'Tốt':e.score>=50?'Trung bình':'Cần cố gắng';
       return `<div class="history-entry">
         <div class="history-entry-score ${cls}">${e.score}%</div>
         <div class="history-entry-info">
@@ -699,22 +702,21 @@ window.openHistoryModal = function(e,id) {
   document.getElementById('history-modal').classList.add('visible');
 };
 window.closeHistoryModal = () => { document.getElementById('history-modal').classList.remove('visible'); historyTargetId=null; };
-window.clearHistory = () => {
-  if (!historyTargetId) return;
-  const h=loadHistory(); delete h[historyTargetId]; saveHistory(h);
+window.clearHistory = async () => {
+  if(!historyTargetId) return;
+  await clearHistoryFB(historyTargetId);
   showToast('Đã xóa lịch sử','error'); closeHistoryModal();
-  renderList(document.getElementById('tl-search').value);
 };
 
 // ─── UTILS ───────────────────────────────
 function stripHTML(html) { const d=document.createElement('div'); d.innerHTML=html; return d.textContent||d.innerText||''; }
-function escapeHTML(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function countWords(t) { if(!t||!t.trim()) return 0; return t.trim().split(/\s+/).filter(w=>w.length>0).length; }
-function formatDate(ts) {
-  if (!ts) return '';
+function escapeHTML(s)   { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function countWords(t)   { if(!t||!t.trim()) return 0; return t.trim().split(/\s+/).filter(w=>w.length>0).length; }
+function formatDate(ts)  {
+  if(!ts) return '';
   const d=new Date(ts), diff=Date.now()-d;
   const m=Math.floor(diff/60000), h=Math.floor(diff/3600000);
-  if (m<1) return 'Vừa xong'; if (m<60) return m+' phút trước'; if (h<24) return h+' giờ trước';
+  if(m<1) return 'Vừa xong'; if(m<60) return m+' phút trước'; if(h<24) return h+' giờ trước';
   return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
 }
 function placeCursorAtEnd(el) {
@@ -724,20 +726,13 @@ function placeCursorAtEnd(el) {
 
 // ─── KEYBOARD SHORTCUTS ──────────────────
 document.addEventListener('keydown', e => {
-  const active = document.activeElement;
-
-  // Tab → handle hint in test mode
-  if (active === document.getElementById('test-editor')) {
-    handleHintTab(e);
-  }
-
-  if ((active === document.getElementById('doc-editor') || active === document.getElementById('doc-title'))
-      && (e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault(); saveDoc();
-  }
-  if (e.key === 'Escape') {
-    if (refPanelOpen) toggleRefPanel();
-    if (hintPopupOpen) closeHintPopup();
+  const active=document.activeElement;
+  if (active===document.getElementById('test-editor')) handleHintTab(e);
+  if ((active===document.getElementById('doc-editor')||active===document.getElementById('doc-title'))
+      &&(e.ctrlKey||e.metaKey)&&e.key==='s') { e.preventDefault(); saveDoc(); }
+  if (e.key==='Escape') {
+    if(refPanelOpen) toggleRefPanel();
+    if(hintPopupOpen) closeHintPopup();
     document.getElementById('history-modal').classList.remove('visible');
     closeModal();
   }
@@ -746,57 +741,45 @@ document.addEventListener('keydown', e => {
 // ─── INIT ────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const ls=document.getElementById('loading-screen');
-  if (ls) setTimeout(()=>{ ls.style.opacity='0'; setTimeout(()=>{ls.style.display='none';},500); },300);
+  if(ls) setTimeout(()=>{ ls.style.opacity='0'; setTimeout(()=>{ls.style.display='none';},500); },300);
 
+  // Hiển thị spinner ngay
   renderList();
 
+  // Subscribe Firebase
+  subscribeFirebase();
+
   const docEd=document.getElementById('doc-editor');
-  if (docEd) {
-    docEd.addEventListener('input', ()=>{ updateWordCount(); scheduleAutoSave(); });
-    docEd.addEventListener('keyup',   updateToolbarState);
-    docEd.addEventListener('mouseup', updateToolbarState);
+  if(docEd){
+    docEd.addEventListener('input',()=>{ updateWordCount(); scheduleAutoSave(); });
+    docEd.addEventListener('keyup',  updateToolbarState);
+    docEd.addEventListener('mouseup',updateToolbarState);
   }
   const docTitle=document.getElementById('doc-title');
-  if (docTitle) docTitle.addEventListener('input', scheduleAutoSave);
+  if(docTitle) docTitle.addEventListener('input',scheduleAutoSave);
 
-  // Test editor: word count + hint bulb
-  const testEd = document.getElementById('test-editor');
-  if (testEd) {
-    testEd.addEventListener('input', () => {
+  const testEd=document.getElementById('test-editor');
+  if(testEd){
+    testEd.addEventListener('input',()=>{
       updateTestWordCount();
-      clearTimeout(hintTimer);
-      hintTimer = setTimeout(computeHint, 350);
+      clearTimeout(hintTimer); hintTimer=setTimeout(computeHint,350);
     });
-    testEd.addEventListener('click', () => {
-      // Close popup if cursor moved to different line
-      if (hintPopupOpen) closeHintPopup();
-      clearTimeout(hintTimer);
-      hintTimer = setTimeout(computeHint, 150);
+    testEd.addEventListener('click',()=>{
+      if(hintPopupOpen) closeHintPopup();
+      clearTimeout(hintTimer); hintTimer=setTimeout(computeHint,150);
     });
-    testEd.addEventListener('keyup', e => {
-      const navKeys = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Home','End'];
-      if (navKeys.includes(e.key)) {
-        if (hintPopupOpen) closeHintPopup();
-        clearTimeout(hintTimer);
-        hintTimer = setTimeout(computeHint, 150);
+    testEd.addEventListener('keyup', e=>{
+      if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Home','End'].includes(e.key)){
+        if(hintPopupOpen) closeHintPopup();
+        clearTimeout(hintTimer); hintTimer=setTimeout(computeHint,150);
       }
     });
-    // Scroll trong editor-body → reposition bulb
-    const editorBody = testEd.closest('.editor-body') || testEd.parentElement;
-    if (editorBody) {
-      editorBody.addEventListener('scroll', () => {
-        if (document.activeElement === testEd) {
-          clearTimeout(hintTimer);
-          hintTimer = setTimeout(computeHint, 100);
-        }
-      });
-    }
   }
 
   ['tl-modal','history-modal'].forEach(id=>{
     const el=document.getElementById(id);
-    if (el) el.addEventListener('click', function(e){
-      if (e.target===this) { this.classList.remove('visible'); if(id==='history-modal') historyTargetId=null; }
+    if(el) el.addEventListener('click',function(e){
+      if(e.target===this){ this.classList.remove('visible'); if(id==='history-modal') historyTargetId=null; }
     });
   });
 });
