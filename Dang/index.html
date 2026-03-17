@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Điểm Danh Đảng Bộ</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Leaflet.js + OpenStreetMap – MIỄN PHÍ, KHÔNG CẦN API KEY -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    .leaflet-popup-content-wrapper {
+      background: #1C1C28; color: #F0EDE8;
+      border: 1px solid rgba(200,16,46,0.3);
+      border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .leaflet-popup-tip { background: #1C1C28; }
+    .leaflet-popup-content b { color: #FFD700; }
+    .leaflet-container { font-family: 'Be Vietnam Pro', sans-serif; }
+    .leaflet-control-zoom a {
+      background: #1C1C28 !important; color: #F0EDE8 !important;
+      border-color: rgba(200,16,46,0.3) !important;
+    }
+    .leaflet-control-zoom a:hover { background: #C8102E !important; }
+    .leaflet-control-attribution {
+      background: rgba(10,10,15,0.75) !important;
+      color: #666 !important; font-size: 9px !important;
+    }
+    .leaflet-control-attribution a { color: #888 !important; }
+  </style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="bg-stars"></div>
+
+<div class="app">
+
+  <!-- ══════════════ HEADER ══════════════ -->
+  <header>
+    <div class="header-inner">
+      <div class="star-emblem">★</div>
+      <div class="header-title">
+        <h1>Điểm Danh Đảng Bộ</h1>
+        <p>Hệ thống xác thực hiện diện</p>
+      </div>
+      <div>
+        <div id="live-time">--:--:--</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('member')">👤 Đảng viên</button>
+      <button class="tab-btn"        onclick="switchTab('admin')">🛡️ Ban TC</button>
+      <button class="tab-btn"        onclick="switchTab('fund')">💰 Quỹ</button>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB: MEMBER
+    ══════════════════════════════════════════ -->
+    <div id="tab-member">
+
+      <!-- STEP INDICATOR -->
+      <div class="steps">
+        <div class="step active" id="s1">
+          <div class="step-circle">1</div>
+          <div class="step-label">Thông tin</div>
+        </div>
+        <div class="step" id="s2">
+          <div class="step-circle">2</div>
+          <div class="step-label">Vị trí</div>
+        </div>
+        <div class="step" id="s3">
+          <div class="step-circle">3</div>
+          <div class="step-label">Quảng cáo</div>
+        </div>
+        <div class="step" id="s4">
+          <div class="step-circle">4</div>
+          <div class="step-label">Hoàn tất</div>
+        </div>
+      </div>
+
+      <!-- ── STEP 1: THÔNG TIN ── -->
+      <div id="step1">
+        <div class="card">
+          <div class="card-title">📋 Thông tin đảng viên</div>
+          <div class="form-group">
+            <label>Họ và tên *</label>
+            <input type="text" id="inp-name" placeholder="Nguyễn Văn A">
+          </div>
+          <div class="form-group">
+            <label>Mã đảng viên *</label>
+            <input type="text" id="inp-id" placeholder="ĐV-2024-001">
+          </div>
+          <div class="form-group">
+            <label>Chi bộ</label>
+            <select id="inp-unit">
+              <option value="">-- Chọn chi bộ --</option>
+              <option>Chi bộ 1 – Hành chính</option>
+              <option>Chi bộ 2 – Kỹ thuật</option>
+              <option>Chi bộ 3 – Kinh doanh</option>
+              <option>Chi bộ 4 – Vận hành</option>
+              <option>Chi bộ 5 – Dự án</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="goStep2()">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: VỊ TRÍ + MAP ── -->
+      <div id="step2" class="hidden">
+        <div class="card">
+          <div class="card-title">📍 Xác minh vị trí</div>
+
+          <!-- Thông báo bản đồ -->
+          <div style="
+            background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.25);
+            border-radius:8px; padding:10px 12px; font-size:12px;
+            color:#86efac; margin-bottom:12px; line-height:1.5;
+          ">
+            🗺️ <strong>Bản đồ OpenStreetMap</strong> – Miễn phí, không cần đăng ký.
+            Nhấn <em>"Cho phép"</em> khi trình duyệt hỏi quyền vị trí.
+          </div>
+
+          <!-- Trạng thái GPS -->
+          <div id="geo-status" class="geo-status checking">
+            <span class="geo-icon">🔍</span>
+            <span id="geo-msg">Đang lấy tọa độ GPS...</span>
+          </div>
+
+          <!-- Map container -->
+          <div id="map-container">
+            <div class="map-loading">
+              <div class="map-loading-spin"></div>
+              <span>Đang tải bản đồ...</span>
+            </div>
+          </div>
+
+          <!-- Thông tin tọa độ -->
+          <div id="map-info">
+            <div class="map-info-box">
+              <div class="lbl">Vĩ độ (Lat)</div>
+              <div class="val" id="info-lat">---</div>
+            </div>
+            <div class="map-info-box">
+              <div class="lbl">Kinh độ (Lng)</div>
+              <div class="val" id="info-lng">---</div>
+            </div>
+            <div class="map-info-box">
+              <div class="lbl">Khoảng cách</div>
+              <div class="val" id="info-dist">---</div>
+            </div>
+            <div class="map-info-box">
+              <div class="lbl">Độ chính xác GPS</div>
+              <div class="val" id="info-acc">---</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <button class="btn btn-primary" id="geo-next-btn" disabled onclick="goStep3()">
+            ✅ Vị trí hợp lệ – Tiếp theo →
+          </button>
+          <button class="btn btn-ghost" style="margin-top:8px;" onclick="bypassGeo()">
+            🔓 Bỏ qua kiểm tra (test mode)
+          </button>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: QUẢNG CÁO ── -->
+      <div id="step3" class="hidden">
+        <div class="card">
+          <div class="card-title">📺 Xem quảng cáo</div>
+          <p class="text-muted" style="margin-bottom:14px;">
+            Doanh thu từ quảng cáo sẽ góp 100% vào quỹ đảng bộ. Vui lòng xem đến hết.
+          </p>
+
+          <div class="ad-panel">
+            <div class="ad-label">🎯 Quảng cáo đối tác</div>
+            <div class="ad-placeholder" id="ad-display">
+              <div class="ad-icon">📢</div>
+              <div class="ad-text" id="ad-name">Đang tải quảng cáo...</div>
+              <div class="ad-sub"  id="ad-desc"></div>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="ad-progress"></div>
+            </div>
+            <div class="ad-timer-text" id="ad-timer">Chờ: 15s</div>
+          </div>
+
+          <button class="btn btn-primary" id="ad-next-btn" disabled onclick="goStep4()">
+            ✅ Xác nhận điểm danh
+          </button>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: THÀNH CÔNG ── -->
+      <div id="step4" class="hidden">
+        <div class="card">
+          <div class="success-screen show" id="success-screen">
+            <div class="success-icon">🎉</div>
+            <div class="success-name" id="success-name"></div>
+            <div class="success-msg">Đã điểm danh thành công!</div>
+            <div class="success-meta">
+              <div class="meta-item">
+                <label>Thời gian</label>
+                <span id="suc-time"></span>
+              </div>
+              <div class="meta-item">
+                <label>Mã xác nhận</label>
+                <span id="suc-code"></span>
+              </div>
+              <div class="meta-item">
+                <label>Chi bộ</label>
+                <span id="suc-unit"></span>
+              </div>
+              <div class="meta-item">
+                <label>Trạng thái</label>
+                <span class="badge-ok">✓ Hợp lệ</span>
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="resetForm()"
+                style="max-width:240px;margin:0 auto;display:block;">
+                ← Điểm danh người khác
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-member -->
+
+    <!-- ══════════════════════════════════════════
+         TAB: ADMIN
+    ══════════════════════════════════════════ -->
+    <div id="tab-admin" class="hidden">
+
+      <!-- LOGIN -->
+      <div id="admin-login">
+        <div class="card">
+          <div class="card-title">🔐 Đăng nhập Ban tổ chức</div>
+          <div class="form-group">
+            <label>Mật khẩu</label>
+            <input type="password" id="admin-pw" placeholder="••••••••"
+              onkeydown="if(event.key==='Enter') adminLogin()">
+          </div>
+          <button class="btn btn-primary" onclick="adminLogin()">Đăng nhập</button>
+          <p class="text-muted text-center mt-10">
+            Demo: mật khẩu = <code style="color:var(--gold)">admin123</code>
+          </p>
+        </div>
+      </div>
+
+      <!-- ADMIN PANEL -->
+      <div id="admin-panel" class="hidden">
+
+        <!-- QR Generator -->
+        <div class="card">
+          <div class="card-title">📲 QR Code điểm danh động</div>
+          <p class="text-muted" style="margin-bottom:14px;">
+            QR tự động làm mới mỗi <strong style="color:var(--gold)">30 giây</strong>
+            – chống chụp màn hình chia sẻ.
+          </p>
+          <div class="qr-wrap">
+            <div id="qrcode"></div>
+            <div class="qr-countdown">
+              <div class="dot"></div>
+              <span id="qr-timer-txt">Làm mới sau: 30s</span>
+            </div>
+            <div class="qr-refresh-bar">
+              <div class="qr-refresh-fill" id="qr-bar"></div>
+            </div>
+            <button class="btn btn-gold btn-sm" onclick="regenerateQR()">
+              🔄 Làm mới ngay
+            </button>
+          </div>
+        </div>
+
+        <!-- Session Settings -->
+        <div class="card">
+          <div class="card-title">⚙️ Cài đặt buổi họp</div>
+          <div class="form-group">
+            <label>Tên buổi họp</label>
+            <input type="text" id="session-name" value="Họp chi bộ tháng 03/2025">
+          </div>
+          <div class="form-group">
+            <label>Tọa độ địa điểm (lat, lng)</label>
+            <input type="text" id="session-loc" value="21.0285,105.8542"
+              placeholder="21.0285,105.8542">
+            <p class="text-muted" style="margin-top:4px;">
+              💡 Mở Google Maps → nhấn vào địa điểm → sao chép tọa độ
+            </p>
+          </div>
+          <div class="form-group">
+            <label>Bán kính cho phép (mét)</label>
+            <input type="number" id="session-radius" value="300" min="50" max="5000">
+          </div>
+          <button class="btn btn-primary" onclick="saveSession()">💾 Lưu cài đặt</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="card">
+          <div class="card-title">📊 Thống kê hôm nay</div>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <div class="num" id="stat-total">0</div>
+              <div class="lbl">Đã điểm danh</div>
+            </div>
+            <div class="stat-box">
+              <div class="num" id="stat-pct">0%</div>
+              <div class="lbl">Tỉ lệ tham gia</div>
+            </div>
+            <div class="stat-box">
+              <div class="num" id="stat-ads">0</div>
+              <div class="lbl">Lượt xem QC</div>
+            </div>
+            <div class="stat-box">
+              <div class="num" id="stat-rev" style="font-size:18px;">0₫</div>
+              <div class="lbl">Doanh thu QC</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div class="card">
+          <div class="card-title">📋 Danh sách điểm danh</div>
+          <div class="attendance-list" id="att-list">
+            <p class="text-muted text-center" style="padding:20px;">Chưa có dữ liệu</p>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn-gold" onclick="exportData()">
+            📥 Xuất danh sách (.csv)
+          </button>
+        </div>
+
+      </div><!-- /admin-panel -->
+    </div><!-- /tab-admin -->
+
+    <!-- ══════════════════════════════════════════
+         TAB: FUND
+    ══════════════════════════════════════════ -->
+    <div id="tab-fund" class="hidden">
+
+      <div class="card">
+        <div class="card-title">💰 Quỹ Đảng Bộ</div>
+        <p class="text-muted" style="margin-bottom:16px;">
+          Toàn bộ doanh thu từ quảng cáo được ghi nhận minh bạch tại đây.
+        </p>
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+            Tổng thu từ quảng cáo
+          </div>
+          <div class="fund-amount" id="fund-total">0 ₫</div>
+        </div>
+        <div class="fund-meter">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:12px;font-weight:700;">Tiến độ mục tiêu</span>
+            <span style="font-size:12px;color:var(--gold);font-family:'Space Mono',monospace;"
+              id="fund-pct-lbl">0%</span>
+          </div>
+          <div class="fund-bar-wrap">
+            <div class="fund-bar-fill" id="fund-bar" style="width:0%"></div>
+          </div>
+          <div class="fund-labels">
+            <span>0 ₫</span>
+            <span>Mục tiêu: 5.000.000 ₫</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📈 Lịch sử giao dịch</div>
+        <div id="fund-log" style="max-height:300px;overflow-y:auto;">
+          <p class="text-muted text-center" style="padding:20px;">Chưa có giao dịch</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">ℹ️ Cơ chế thu quỹ</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+          <p>• Mỗi lượt xem quảng cáo 15 giây = <strong style="color:var(--gold)">500đ – 2.000đ</strong></p>
+          <p>• Đơn giá tùy theo từng đối tác quảng cáo ký kết</p>
+          <p>• 100% doanh thu chuyển vào quỹ đảng bộ</p>
+          <p>• Báo cáo tài chính minh bạch, công khai hàng tháng</p>
+        </div>
+      </div>
+
+    </div><!-- /tab-fund -->
+
+  </main>
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- App JS – đặt cuối body để DOM đã sẵn sàng -->
+<script src="app.js"></script>
+
+</body>
+</html>
