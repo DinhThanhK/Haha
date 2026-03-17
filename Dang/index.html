@@ -275,6 +275,12 @@
           </p>
           <div class="qr-wrap">
             <div id="qrcode"></div>
+            <div id="qr-url-preview" style="
+              font-size:10px; color:var(--text-muted);
+              font-family:'Space Mono',monospace;
+              max-width:220px; word-break:break-all;
+              text-align:center; line-height:1.5;
+            "></div>
             <div class="qr-countdown">
               <div class="dot"></div>
               <span id="qr-timer-txt">Làm mới sau: 30s</span>
@@ -297,8 +303,8 @@
           </div>
           <div class="form-group">
             <label>Tọa độ địa điểm (lat, lng)</label>
-            <input type="text" id="session-loc" value="21.0285,105.8542"
-              placeholder="21.0285,105.8542">
+            <input type="text" id="session-loc" value="21.0036,105.8412"
+              placeholder="21.0036,105.8412">
             <p class="text-muted" style="margin-top:4px;">
               💡 Mở Google Maps → nhấn vào địa điểm → sao chép tọa độ
             </p>
