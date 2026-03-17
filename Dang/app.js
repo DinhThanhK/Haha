@@ -14,6 +14,8 @@ const CONFIG = {
   ADMIN_PASSWORD:      'admin123',   // ← đổi mật khẩu thật trước khi deploy
   FUND_TARGET:         5_000_000,    // mục tiêu quỹ (VND)
   TOTAL_MEMBERS:       250,          // tổng số đảng viên
+  // ✅ URL web thật: QR sẽ trỏ vào đây + token để xác thực
+  SITE_URL: 'https://dinhthanhk.github.io/Haha/Dang/index.html',
 };
 
 // ─── FAKE ADS DATA (thay bằng API thật nếu có) ────────────
@@ -44,8 +46,8 @@ const STATE = {
   leafletCircle: null,
   SESSION: {
     name:   'Họp chi bộ tháng 03/2025',
-    lat:    21.0285,
-    lng:    105.8542,
+    lat:    21.0036,   // ← Đại học Kinh tế Quốc dân (NEU)
+    lng:    105.8412,  // ← Đổi lại trong Admin nếu họp ở nơi khác
     radius: 300,
   },
 };
@@ -449,14 +451,28 @@ function regenerateQR() {
   const el = document.getElementById('qrcode');
   if (!el) return;
   el.innerHTML = '';
-  STATE.qrSecret =
-    `DIEMDANH:${Date.now()}:${Math.random().toString(36).substr(2,8).toUpperCase()}`;
+
+  // Tạo token ngẫu nhiên, hết hạn sau QR_REFRESH_SECONDS
+  const token = Date.now().toString(36).toUpperCase()
+    + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+  STATE.qrSecret = token;
+
+  // ✅ QR chứa URL thật → quét là mở thẳng web điểm danh
+  const qrUrl = `${CONFIG.SITE_URL}?token=${token}`;
+
   new QRCode(el, {
-    text: STATE.qrSecret,
+    text: qrUrl,
     width: 180, height: 180,
     colorDark: '#000', colorLight: '#fff',
     correctLevel: QRCode.CorrectLevel.H,
   });
+
+  // Hiện URL nhỏ bên dưới QR để admin kiểm tra
+  const urlPreviewEl = document.getElementById('qr-url-preview');
+  if (urlPreviewEl) {
+    urlPreviewEl.textContent = `🔗 ${qrUrl.replace('https://', '')}`;
+  }
+
   STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS;
   const barEl = document.getElementById('qr-bar');
   if (barEl) barEl.style.width = '0%';
@@ -558,6 +574,37 @@ function updateFundUI() {
 // INIT
 // ══════════════════════════════════════════════════════════
 (function init() {
+  // ── Đọc token từ URL nếu người dùng quét QR ──
+  const urlParams = new URLSearchParams(window.location.search);
+  const token     = urlParams.get('token');
+
+  if (token) {
+    // Có token → người dùng vừa quét QR → highlight bước 1
+    // Lưu token để xác thực sau (có thể check với server)
+    STATE.scannedToken = token;
+
+    // Hiện banner nhỏ xác nhận quét QR thành công
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      position:fixed; top:0; left:0; right:0; z-index:999;
+      background:linear-gradient(135deg,#166534,#15803d);
+      color:#fff; text-align:center; padding:10px 16px;
+      font-size:13px; font-weight:700;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      animation: fadeInUp .4s ease;
+    `;
+    banner.innerHTML = `✅ Đã xác thực QR – Vui lòng nhập thông tin để điểm danh
+      <span style="opacity:.6;font-size:11px;margin-left:8px;">Token: ${token.substring(0,8)}...</span>`;
+    document.body.prepend(banner);
+
+    // Tự ẩn sau 5 giây
+    setTimeout(() => banner.style.opacity = '0', 4000);
+    setTimeout(() => banner.remove(), 4500);
+
+    // Xóa token khỏi URL bar (gọn hơn) mà không reload trang
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   // Load demo data
   STATE.attendanceList = [...DEMO_ATTENDANCE];
   STATE.totalAds       = 3;
