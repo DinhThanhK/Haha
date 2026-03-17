@@ -1,382 +1,177 @@
-/* ═══════════════════════════════════════════════════════════
-   HỆ THỐNG ĐIỂM DANH ĐẢNG BỘ - FIREBASE REALTIME + ADMIN MAP
-══════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-// ĐIỀN API KEY FIREBASE CỦA BẠN VÀO ĐÂY
-const firebaseConfig = {
-  apiKey: "AIzaSyBRKporXFmvJ_3BgD6Da0asgLySM4pAPnM",
-  authDomain: "dang-33ff0.firebaseapp.com",
-  projectId: "dang-33ff0",
-  storageBucket: "dang-33ff0.firebasestorage.app",
-  messagingSenderId: "907237414842",
-  appId: "1:907237414842:web:df757184026f26d96eef83",
-  measurementId: "G-VBT77MGGH4"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-const CONFIG = {
-  QR_REFRESH_SECONDS:  30,
-  ADMIN_PASSWORD:      'admin123',
-  TOTAL_MEMBERS:       250,
-  SITE_URL: 'https://dinhthanhk.github.io/Haha/Dang/index.html',
-};
-
-const STATE = {
-  step: 1, name: '', memberId: '', unit: '', geoOk: false, geoLat: null, geoLng: null,
-  attendanceList: [], qrInterval: null, qrCountdown: CONFIG.QR_REFRESH_SECONDS,
-  isAdmin: false, leafletMap: null,
-  SESSION: { name: 'Họp chi bộ', lat: 21.0036, lng: 105.8412, radius: 300 }
-};
-
-// ── Biến lưu bản đồ Admin ──
-let adminLeafletMap = null;
-let adminMarker = null;
-
-// Gắn hàm cho giao diện HTML
-window.switchTab = switchTab; window.goStep2 = goStep2; window.completeAttendance = completeAttendance;
-window.bypassGeo = bypassGeo; window.adminLogin = adminLogin; window.regenerateQR = regenerateQR;
-window.saveSession = saveSession; window.exportData = exportData; window.resetForm = resetForm;
-window.saveNewLocationToDB = saveNewLocationToDB; window.applySavedLocation = applySavedLocation;
-
-// Đồng hồ
-function updateClock() {
-  const n = new Date();
-  document.getElementById('live-time').innerHTML = `${n.toLocaleTimeString('vi-VN')}<br><span style="font-size:10px;opacity:.8">${n.toLocaleDateString('vi-VN')}</span>`;
-}
-setInterval(updateClock, 1000); updateClock();
-
-(function init() {
-  const token = new URLSearchParams(window.location.search).get('token');
-  if (token) {
-    document.getElementById('inp-token').value = token;
-    toast('✅ Đã quét QR - Vui lòng nhập thông tin để điểm danh');
-    window.history.replaceState({}, '', window.location.pathname);
-  }
-  setStep(1);
-
-  // Lắng nghe dữ liệu điểm danh
-  onValue(ref(db, 'attendance_list'), (snapshot) => {
-    STATE.attendanceList = [];
-    snapshot.forEach(child => STATE.attendanceList.push(child.val()));
-    STATE.attendanceList.reverse();
-    if (STATE.isAdmin) { renderAttList(); updateAdminStats(); }
-  });
-
-  // Lắng nghe điểm Cấu Hình Buổi Họp để update realtime cho user
-  onValue(ref(db, 'session/info'), (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      STATE.SESSION.name = data.name;
-      STATE.SESSION.lat = parseFloat(data.lat);
-      STATE.SESSION.lng = parseFloat(data.lng);
-      STATE.SESSION.radius = parseInt(data.radius);
-
-      // Nếu đang mở Admin, update input luôn
-      if (STATE.isAdmin) {
-        document.getElementById('session-name').value = data.name;
-        document.getElementById('session-loc').value = `${data.lat}, ${data.lng}`;
-        document.getElementById('session-radius').value = data.radius;
-        if (adminLeafletMap && adminMarker) {
-          adminMarker.setLatLng([data.lat, data.lng]);
-          adminLeafletMap.setView([data.lat, data.lng]);
-        }
-      }
-    }
-  });
-})();
-
-function switchTab(tab) {
-  ['member','admin'].forEach(t => document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab));
-  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', ['member','admin'][i] === tab));
+/* ═══════════════════════════════════
+   CSS VARIABLES
+═══════════════════════════════════ */
+:root {
+  --red:        #C8102E;
+  --red-dark:   #8B0000;
+  --red-light:  #FF2A4A;
+  --gold:       #FFD700;
+  --gold-dark:  #C9A800;
+  --bg:         #0A0A0F;
+  --surface:    #13131A;
+  --surface2:   #1C1C28;
+  --border:     rgba(200,16,46,0.25);
+  --text:       #F0EDE8;
+  --text-muted: #888;
+  --success:    #22C55E;
+  --warning:    #F59E0B;
+  --radius:     12px;
 }
 
-let toastTimeout;
-function toast(msg, type = 'success') {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = `toast show ${type}`;
-  clearTimeout(toastTimeout); toastTimeout = setTimeout(() => el.classList.remove('show'), 3000);
-}
+/* ═══════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Be Vietnam Pro', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
-function setStep(n) {
-  STATE.step = n;
-  [1,2,3].forEach(i => {
-    document.getElementById(`step${i}`).classList.toggle('hidden', i !== n);
-    const s = document.getElementById(`s${i}`);
-    s.classList.remove('active', 'done');
-    if (i < n) s.classList.add('done'); else if (i === n) s.classList.add('active');
-  });
-}
+/* ═══════════════════════════════════
+   BACKGROUND EFFECTS
+═══════════════════════════════════ */
+.bg-pattern { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse 80% 60% at 10% 10%, rgba(200,16,46,0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 90% 80%, rgba(200,16,46,0.08) 0%, transparent 50%); }
+.bg-stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: radial-gradient(1px 1px at 20% 15%, rgba(255,215,0,0.4) 0%, transparent 100%), radial-gradient(1px 1px at 80% 25%, rgba(255,215,0,0.3) 0%, transparent 100%), radial-gradient(1px 1px at 50% 60%, rgba(255,255,255,0.15) 0%, transparent 100%), radial-gradient(1px 1px at 30% 80%, rgba(255,215,0,0.2) 0%, transparent 100%), radial-gradient(1px 1px at 70% 70%, rgba(255,255,255,0.1) 0%, transparent 100%); }
 
-async function goStep2() {
-  const name = document.getElementById('inp-name').value.trim();
-  const id = document.getElementById('inp-id').value.trim();
-  const token = document.getElementById('inp-token').value.trim().toUpperCase();
+/* ═══════════════════════════════════
+   LAYOUT
+═══════════════════════════════════ */
+.app { position: relative; z-index: 1; }
+main { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
 
-  if (!name || !id || !token) { toast('Vui lòng nhập đầy đủ thông tin và mã xác thực', 'error'); return; }
+/* ═══════════════════════════════════
+   HEADER
+═══════════════════════════════════ */
+header { background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 60%, #E01030 100%); box-shadow: 0 4px 30px rgba(200,16,46,0.5); position: relative; overflow: hidden; }
+header::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px); }
+.header-inner { display: flex; align-items: center; gap: 16px; padding: 18px 24px; position: relative; }
+.star-emblem { font-size: 36px; filter: drop-shadow(0 0 10px rgba(255,215,0,0.8)); animation: pulse-star 3s ease-in-out infinite; flex-shrink: 0; }
+@keyframes pulse-star { 0%,100% { filter: drop-shadow(0 0 10px rgba(255,215,0,0.8)); transform: scale(1); } 50% { filter: drop-shadow(0 0 20px rgba(255,215,0,1)); transform: scale(1.05); } }
+.header-title h1 { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; line-height: 1.2; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.header-title p { font-size: 11px; opacity: 0.85; font-weight: 400; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+#live-time { font-size: 13px; font-weight: 700; color: var(--gold); font-family: 'Space Mono', monospace; text-align: right; line-height: 1.3; }
 
-  const btn = document.getElementById('btn-verify');
-  btn.disabled = true; btn.textContent = 'Đang kiểm tra mã...';
+/* ═══════════════════════════════════
+   TABS & CARDS
+═══════════════════════════════════ */
+.tab-bar { display: flex; gap: 6px; margin-bottom: 20px; background: var(--surface); padding: 6px; border-radius: var(--radius); border: 1px solid var(--border); }
+.tab-btn { flex: 1; padding: 10px 6px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-family: 'Be Vietnam Pro', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.tab-btn.active { background: var(--red); color: #fff; box-shadow: 0 2px 12px rgba(200,16,46,0.4); }
 
-  try {
-    const snapshot = await get(child(ref(db), 'session/current_token'));
-    if (snapshot.exists() && snapshot.val() === token) {
-      STATE.name = name; STATE.memberId = id; STATE.unit = document.getElementById('inp-unit').value || 'Chưa xác định';
-      setStep(2); startGeoWithMap();
-    } else {
-      toast('Mã điểm danh không đúng hoặc đã hết hạn!', 'error');
-    }
-  } catch (error) { toast('Lỗi kết nối máy chủ', 'error'); } 
-  finally { btn.disabled = false; btn.textContent = 'Kiểm tra mã & Tiếp theo →'; }
-}
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--red), var(--gold), var(--red)); }
+.card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gold); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 
-// ─── MAP USER ───
-function startGeoWithMap() {
-  setGeoStatus('checking', '🔍 Đang lấy tọa độ GPS...');
-  if (!navigator.geolocation) return setGeoStatus('fail', '⚠️ Trình duyệt không hỗ trợ GPS');
+/* ═══════════════════════════════════
+   FORM & BUTTONS
+═══════════════════════════════════ */
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+input, select { width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Be Vietnam Pro', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; }
+input:focus, select:focus { border-color: var(--red); }
+input::placeholder { color: var(--text-muted); }
+select option { background: #1C1C28; }
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-      STATE.geoLat = lat; STATE.geoLng = lng;
-      const dist = haversineDistance(lat, lng, STATE.SESSION.lat, STATE.SESSION.lng);
-      updateMapInfoBox(lat, lng, dist, accuracy);
-      renderLeafletMap(lat, lng, dist);
+.btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-family: 'Be Vietnam Pro', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; position: relative; overflow: hidden; letter-spacing: 0.5px; }
+.btn-primary { background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%); color: #fff; box-shadow: 0 4px 20px rgba(200,16,46,0.35); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(200,16,46,0.5); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-gold { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); color: #1a0a00; box-shadow: 0 4px 20px rgba(255,215,0,0.25); }
+.btn-gold:hover { transform: translateY(-2px); }
+.btn-ghost { background: rgba(255,255,255,0.06); color: var(--text-muted); box-shadow: none; font-size: 13px; padding: 10px; }
+.btn-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.btn-sm { width: auto; padding: 8px 16px; font-size: 13px; border-radius: 6px; }
 
-      if (dist <= STATE.SESSION.radius) {
-        setGeoStatus('ok', `✅ Hợp lệ – Cách điểm họp ${Math.round(dist)}m`);
-        STATE.geoOk = true; document.getElementById('geo-next-btn').disabled = false;
-      } else {
-        setGeoStatus('fail', `❌ Ngoài phạm vi – Cách ${Math.round(dist)}m (cho phép ${STATE.SESSION.radius}m)`);
-      }
-    },
-    (err) => {
-      setGeoStatus('fail', '⚠️ Lỗi GPS: Hãy cho phép quyền Vị trí trên trình duyệt.');
-      renderLeafletMap(STATE.SESSION.lat, STATE.SESSION.lng, null);
-    },
-    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-  );
-}
+/* ═══════════════════════════════════
+   STEP INDICATOR
+═══════════════════════════════════ */
+.steps { display: flex; align-items: center; margin-bottom: 20px; gap: 0; }
+.step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+.step:not(:last-child)::after { content: ''; position: absolute; top: 16px; left: 50%; right: -50%; height: 2px; background: var(--border); z-index: 0; }
+.step.done:not(:last-child)::after { background: var(--red); }
+.step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; z-index: 1; border: 2px solid var(--border); background: var(--surface2); color: var(--text-muted); transition: all .3s; }
+.step.active .step-circle { border-color: var(--red); background: var(--red); color: #fff; }
+.step.done .step-circle { border-color: var(--success); background: var(--success); color: #fff; }
+.step-label { font-size: 10px; margin-top: 4px; color: var(--text-muted); text-align: center; font-weight: 600; }
+.step.active .step-label { color: var(--red); }
+.step.done .step-label { color: var(--success); }
 
-function setGeoStatus(type, msg) {
-  const el = document.getElementById('geo-status');
-  el.className = `geo-status ${type}`; el.querySelector('#geo-msg').textContent = msg;
-}
+/* ═══════════════════════════════════
+   QR CODE
+═══════════════════════════════════ */
+.qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#qrcode { background: white; padding: 12px; border-radius: 8px; display: inline-block; box-shadow: 0 0 30px rgba(200,16,46,0.3); }
+.qr-countdown { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.qr-countdown .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0; } }
+.qr-refresh-bar { width: 200px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+.qr-refresh-fill { height: 100%; background: var(--red); transition: width .1s linear; }
 
-function updateMapInfoBox(lat, lng, dist, accuracy) {
-  document.getElementById('info-lat').textContent = lat.toFixed(6);
-  document.getElementById('info-lng').textContent = lng.toFixed(6);
-  const distEl = document.getElementById('info-dist');
-  distEl.textContent = Math.round(dist) + 'm'; distEl.className = 'val ' + (dist <= STATE.SESSION.radius ? 'ok' : 'fail');
-  document.getElementById('info-acc').textContent = Math.round(accuracy || 0) + 'm';
-}
+/* ═══════════════════════════════════
+   GEOLOCATION (MAP)
+═══════════════════════════════════ */
+.geo-status { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.geo-status.checking { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+.geo-status.ok { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+.geo-status.fail { background: rgba(200,16,46,0.15); color: var(--red-light); border: 1px solid rgba(200,16,46,0.3); }
+.geo-icon { font-size: 18px; }
 
-function renderLeafletMap(userLat, userLng, dist) {
-  const container = document.getElementById('map-container');
-  if (STATE.leafletMap) { STATE.leafletMap.remove(); STATE.leafletMap = null; }
-  container.innerHTML = '';
-  
-  const map = L.map(container).setView([STATE.SESSION.lat, STATE.SESSION.lng], 16);
-  STATE.leafletMap = map;
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+#map-container { width: 100%; height: 240px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); margin: 12px 0; position: relative; }
+#map-container .map-loading { position: absolute; inset: 0; background: var(--surface2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text-muted); font-size: 13px; }
+.map-loading-spin { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--red); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#map-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.map-info-box { background: var(--surface2); border-radius: 8px; padding: 10px 12px; font-size: 11px; }
+.map-info-box .lbl { color: var(--text-muted); margin-bottom: 2px; }
+.map-info-box .val { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 11px; }
+.map-info-box .val.ok { color: var(--success); }
+.map-info-box .val.fail { color: var(--red-light); }
 
-  const sessionIcon = L.divIcon({ html: `<div style="width:36px; height:36px; border-radius:50%; background:#C8102E; border:3px solid #FFD700; display:flex; align-items:center; justify-content:center; font-size:16px; transform:translate(-50%,-50%);">📍</div>`, iconSize: [0, 0] });
-  L.marker([STATE.SESSION.lat, STATE.SESSION.lng], { icon: sessionIcon }).addTo(map).bindPopup(`<b>${STATE.SESSION.name}</b>`).openPopup();
-  L.circle([STATE.SESSION.lat, STATE.SESSION.lng], { radius: STATE.SESSION.radius, color: '#C8102E', weight: 2, fillColor: '#C8102E', fillOpacity: 0.1 }).addTo(map);
+/* ═══════════════════════════════════
+   SUCCESS SCREEN
+═══════════════════════════════════ */
+.success-screen { text-align: center; padding: 30px 20px; display: none; }
+.success-screen.show { display: block; animation: fadeInUp .5s ease; }
+@keyframes fadeInUp { from{ opacity:0; transform:translateY(20px); } to{ opacity:1; transform:none; } }
+.success-icon { font-size: 64px; margin-bottom: 16px; animation: bounce-in .6s cubic-bezier(.175,.885,.32,1.275); }
+@keyframes bounce-in { 0%{transform:scale(0);} 60%{transform:scale(1.2);} 100%{transform:scale(1);} }
+.success-name { font-size: 22px; font-weight: 800; color: var(--gold); margin-bottom: 6px; }
+.success-msg { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+.success-meta { background: var(--surface2); border-radius: 8px; padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; text-align: left; }
+.meta-item label { color: var(--text-muted); display: block; margin-bottom: 2px; }
+.meta-item span { font-weight: 700; font-family: 'Space Mono', monospace; font-size: 11px; }
 
-  if (dist !== null) {
-    const userIcon = L.divIcon({ html: `<div style="width:30px; height:30px; border-radius:50%; background:#FFD700; border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; transform:translate(-50%,-50%);">★</div>`, iconSize: [0, 0] });
-    L.marker([userLat, userLng], { icon: userIcon }).addTo(map).bindPopup(`<b>${STATE.name}</b>`);
-    L.polyline([[STATE.SESSION.lat, STATE.SESSION.lng], [userLat, userLng]], { color: dist <= STATE.SESSION.radius ? '#22C55E' : '#FF2A4A', weight: 2.5, dashArray: '6, 4' }).addTo(map);
-    map.fitBounds(L.latLngBounds([STATE.SESSION.lat, STATE.SESSION.lng], [userLat, userLng]).pad(0.3));
-  }
-}
+/* ═══════════════════════════════════
+   ADMIN PANEL
+═══════════════════════════════════ */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat-box { background: var(--surface2); border-radius: 8px; padding: 14px; border: 1px solid var(--border); text-align: center; }
+.stat-box .num { font-size: 28px; font-weight: 800; font-family: 'Space Mono', monospace; color: var(--gold); }
+.stat-box .lbl { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
-function bypassGeo() {
-  STATE.geoOk = true; STATE.geoLat = STATE.SESSION.lat; STATE.geoLng = STATE.SESSION.lng;
-  setGeoStatus('ok', '✅ Test mode – Đã bỏ qua kiểm tra vị trí');
-  updateMapInfoBox(STATE.SESSION.lat, STATE.SESSION.lng, 0, 5);
-  renderLeafletMap(STATE.SESSION.lat, STATE.SESSION.lng, 0);
-  document.getElementById('geo-next-btn').disabled = false;
-}
+.attendance-list { max-height: 300px; overflow-y: auto; }
+.attendance-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+.attendance-item:last-child { border-bottom: none; }
+.att-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--red), var(--red-dark)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.att-info { flex: 1; }
+.att-name { font-weight: 600; }
+.att-detail { font-size: 11px; color: var(--text-muted); }
+.att-time { font-size: 11px; color: var(--gold); font-family: 'Space Mono', monospace; }
+.badge-ok { background: rgba(34,197,94,0.2); color: var(--success); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; }
 
-function haversineDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371000, toRad = d => d * Math.PI / 180;
-  const a = Math.sin(toRad(lat2 - lat1)/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lng2 - lng1)/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
+/* ═══════════════════════════════════
+   TOAST & UTILS
+═══════════════════════════════════ */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: 12px 20px; font-size: 13px; font-weight: 600; z-index: 200; transition: transform .3s ease; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.error { border-color: var(--red); color: var(--red-light); }
+.toast.success { border-color: var(--success); color: var(--success); }
 
-function completeAttendance() {
-  const btn = document.getElementById('geo-next-btn');
-  btn.disabled = true; btn.textContent = 'Đang lưu dữ liệu...';
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); font-size: 12px; }
+.mt-10 { margin-top: 10px; }
+.hidden { display: none !important; }
 
-  const code = 'DD-' + Math.random().toString(36).substr(2,6).toUpperCase();
-  const record = {
-    name: STATE.name, id: STATE.memberId, unit: STATE.unit,
-    time: new Date().toLocaleTimeString('vi-VN'), date: new Date().toLocaleDateString('vi-VN'),
-    lat: STATE.geoLat, lng: STATE.geoLng, code, timestamp: Date.now()
-  };
-
-  push(ref(db, 'attendance_list'), record)
-    .then(() => {
-      document.getElementById('success-name').textContent = STATE.name;
-      document.getElementById('suc-time').textContent = record.time;
-      document.getElementById('suc-code').textContent = code;
-      document.getElementById('suc-unit').textContent = STATE.unit;
-      setStep(3);
-    }).catch(e => { toast('Lỗi lưu dữ liệu!', 'error'); btn.disabled = false; btn.textContent = 'Xác nhận điểm danh'; });
-}
-
-function resetForm() {
-  STATE.step = 1; STATE.name = ''; STATE.memberId = ''; STATE.unit = ''; STATE.geoOk = false;
-  document.getElementById('inp-name').value = ''; document.getElementById('inp-id').value = '';
-  document.getElementById('inp-token').value = ''; document.getElementById('geo-next-btn').disabled = true;
-  setStep(1);
-}
-
-// ─── ADMIN PANEL ───
-function adminLogin() {
-  if (document.getElementById('admin-pw').value === CONFIG.ADMIN_PASSWORD) {
-    STATE.isAdmin = true;
-    document.getElementById('admin-login').classList.add('hidden');
-    document.getElementById('admin-panel').classList.remove('hidden');
-    initQR(); renderAttList(); updateAdminStats();
-    
-    // Khởi tạo Map Admin & Load danh sách Dropdown
-    setTimeout(() => { initAdminMap(); loadSavedLocationsDB(); }, 200);
-  } else toast('Sai mật khẩu!', 'error');
-}
-
-// Map Admin setup
-function initAdminMap() {
-  const container = document.getElementById('admin-map');
-  if (adminLeafletMap) { adminLeafletMap.invalidateSize(); return; }
-
-  adminLeafletMap = L.map(container).setView([STATE.SESSION.lat, STATE.SESSION.lng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminLeafletMap);
-
-  adminMarker = L.marker([STATE.SESSION.lat, STATE.SESSION.lng], {
-    draggable: true,
-    icon: L.divIcon({ html: `<div style="width:30px; height:30px; border-radius:50%; background:#FFD700; border:3px solid #C8102E; display:flex; align-items:center; justify-content:center; font-size:16px; transform:translate(-50%,-50%); box-shadow: 0 0 10px rgba(0,0,0,0.5);">📍</div>`, iconSize: [0,0] })
-  }).addTo(adminLeafletMap);
-
-  // Kéo thả ghim
-  adminMarker.on('dragend', function() {
-    const pos = adminMarker.getLatLng();
-    document.getElementById('session-loc').value = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
-  });
-
-  // Click chọn điểm trên map
-  adminLeafletMap.on('click', function(e) {
-    adminMarker.setLatLng(e.latlng);
-    document.getElementById('session-loc').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-  });
-}
-
-// Data quản lý Điểm Cố Định
-function loadSavedLocationsDB() {
-  onValue(ref(db, 'saved_locations'), (snapshot) => {
-    const select = document.getElementById('saved-loc-select');
-    select.innerHTML = '<option value="">-- Chọn điểm đã lưu --</option>';
-    if (snapshot.exists()) {
-      snapshot.forEach(child => {
-        const loc = child.val();
-        const opt = document.createElement('option');
-        opt.value = child.key; opt.text = loc.name;
-        opt.dataset.lat = loc.lat; opt.dataset.lng = loc.lng; opt.dataset.radius = loc.radius;
-        select.appendChild(opt);
-      });
-    }
-  });
-}
-
-function applySavedLocation() {
-  const select = document.getElementById('saved-loc-select');
-  const opt = select.options[select.selectedIndex];
-  if (!opt.value) return;
-
-  document.getElementById('session-name').value = opt.text;
-  document.getElementById('session-loc').value = `${opt.dataset.lat}, ${opt.dataset.lng}`;
-  document.getElementById('session-radius').value = opt.dataset.radius;
-
-  if (adminLeafletMap && adminMarker) {
-    const lat = parseFloat(opt.dataset.lat), lng = parseFloat(opt.dataset.lng);
-    adminLeafletMap.setView([lat, lng], 15);
-    adminMarker.setLatLng([lat, lng]);
-  }
-}
-
-function saveNewLocationToDB() {
-  const name = prompt("Nhập tên hiển thị (VD: Hội trường tầng 3, Trụ sở A...):");
-  if (!name) return;
-  const locParts = document.getElementById('session-loc').value.split(',');
-  const lat = parseFloat(locParts[0]), lng = parseFloat(locParts[1]);
-  const radius = parseInt(document.getElementById('session-radius').value) || 300;
-
-  push(ref(db, 'saved_locations'), { name, lat, lng, radius })
-    .then(() => toast('✅ Đã lưu vào danh sách rút gọn!'));
-}
-
-// Phát cấu hình Session lên Firebase cho mọi thiết bị cập nhật
-function saveSession() {
-  const name = document.getElementById('session-name').value;
-  const locParts = document.getElementById('session-loc').value.split(',');
-  const lat = parseFloat(locParts[0]) || 21.0285;
-  const lng = parseFloat(locParts[1]) || 105.8542;
-  const radius = parseInt(document.getElementById('session-radius').value) || 300;
-
-  set(ref(db, 'session/info'), { name, lat, lng, radius })
-    .then(() => toast('✅ Cấu hình điểm họp đã được phát tới toàn bộ Đảng viên!'));
-}
-
-// QR Code Loop
-function initQR() {
-  regenerateQR(); clearInterval(STATE.qrInterval); STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS;
-  STATE.qrInterval = setInterval(() => {
-    STATE.qrCountdown--;
-    const pct = ((CONFIG.QR_REFRESH_SECONDS - STATE.qrCountdown) / CONFIG.QR_REFRESH_SECONDS) * 100;
-    const barEl = document.getElementById('qr-bar'); if (barEl) barEl.style.width = pct + '%';
-    const txtEl = document.getElementById('qr-timer-txt'); if (txtEl) txtEl.textContent = `Làm mới sau: ${STATE.qrCountdown}s`;
-    if (STATE.qrCountdown <= 0) { regenerateQR(); STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS; }
-  }, 1000);
-}
-
-function regenerateQR() {
-  const el = document.getElementById('qrcode'); if (!el) return; el.innerHTML = '';
-  const token = Math.random().toString(36).substr(2, 6).toUpperCase();
-  set(ref(db, 'session/current_token'), token).catch(e => console.error(e));
-  document.getElementById('qr-token-display').textContent = token;
-  new QRCode(el, { text: `${CONFIG.SITE_URL}?token=${token}`, width: 180, height: 180, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
-  const barEl = document.getElementById('qr-bar'); if (barEl) barEl.style.width = '0%';
-}
-
-function updateAdminStats() {
-  const t = STATE.attendanceList.length;
-  document.getElementById('stat-total').textContent = t;
-  document.getElementById('stat-pct').textContent = Math.min(100, Math.round(t / CONFIG.TOTAL_MEMBERS * 100)) + '%';
-}
-
-function renderAttList() {
-  const el = document.getElementById('att-list');
-  if (!STATE.attendanceList.length) return el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Chưa có dữ liệu</p>';
-  el.innerHTML = STATE.attendanceList.map(r => `
-    <div class="attendance-item">
-      <div class="att-avatar">${r.name.split(' ').pop()[0]}</div>
-      <div class="att-info"><div class="att-name">${r.name}</div><div class="att-detail">${r.id} · ${r.unit}</div></div>
-      <div style="text-align:right;"><div class="att-time">${r.time}</div><span class="badge-ok">✓ Hợp lệ</span></div>
-    </div>`).join('');
-}
-
-function exportData() {
-  if (!STATE.attendanceList.length) return toast('Chưa có dữ liệu để xuất', 'error');
-  const header = 'STT,Họ tên,Mã ĐV,Chi bộ,Thời gian,Mã xác nhận,Tọa độ\n';
-  const rows = STATE.attendanceList.map((r, i) => `${i+1},"${r.name}","${r.id}","${r.unit}","${r.time} ${r.date}","${r.code}","${r.lat},${r.lng}"`).join('\n');
-  const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `diemdanh_${new Date().toLocaleDateString('vi-VN').replace(/\//g,'-')}.csv`;
-  a.click(); toast('✅ Đã xuất file CSV!');
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
