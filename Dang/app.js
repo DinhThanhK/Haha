@@ -67,8 +67,9 @@ function loadSavedMemberInfo() {
     if (info.id)   document.getElementById('inp-id').value = info.id;
     if (info.unit) document.getElementById('inp-unit').value = info.unit;
     document.getElementById('inp-remember').checked = true;
-    toast('✅ Đã tự điền thông tin đã lưu', 'success');
-  } catch(e) { /* ignore */ }
+    // Delay nhỏ để toast không bị nuốt trước khi DOM ổn định
+    setTimeout(() => toast('💾 Đã tự điền thông tin đã lưu – Chỉ cần nhập mã QR!'), 500);
+  } catch(e) { console.warn('Không đọc được thông tin đã lưu:', e); }
 }
 
 
@@ -78,58 +79,75 @@ function updateClock() {
 }
 setInterval(updateClock, 1000); updateClock();
 
-(function init() {
-  loadSavedMemberInfo();
-  const token = new URLSearchParams(window.location.search).get('token');
-  if (token) {
-    document.getElementById('inp-token').value = token;
-    toast('✅ Đã quét QR - Vui lòng nhập thông tin để điểm danh');
-    window.history.replaceState({}, '', window.location.pathname);
-  }
+// ─── KHỞI ĐỘNG SAU KHI DOM SẴN SÀNG ───
+document.addEventListener('DOMContentLoaded', () => {
   setStep(1);
 
-  onValue(ref(db, 'attendance_list'), (snapshot) => {
-    STATE.attendanceList = [];
-    snapshot.forEach(child => STATE.attendanceList.push(child.val()));
-    STATE.attendanceList.reverse();
-    if (STATE.isAdmin) { renderAttList(); updateAdminStats(); }
-  });
+  // FIX 3: Load thông tin đã lưu SAU KHI DOM sẵn sàng
+  loadSavedMemberInfo();
 
-  // Lắng nghe điểm Cấu Hình Buổi Họp liên tục
-  onValue(ref(db, 'session/info'), (snapshot) => {
+  // FIX 2: Đọc session/info NGAY LẬP TỨC khi load để STATE.SESSION luôn có giá trị mới nhất
+  get(ref(db, 'session/info')).then(snapshot => {
     if (snapshot.exists()) {
       const data = snapshot.val();
-      STATE.SESSION.name = data.name;
-      STATE.SESSION.lat = parseFloat(data.lat);
-      STATE.SESSION.lng = parseFloat(data.lng);
+      STATE.SESSION.name   = data.name;
+      STATE.SESSION.lat    = parseFloat(data.lat);
+      STATE.SESSION.lng    = parseFloat(data.lng);
       STATE.SESSION.radius = parseInt(data.radius);
+    }
+  });
 
-      if (STATE.isAdmin) {
-        // Cập nhật giao diện bên Admin
-        document.getElementById('session-name').value = data.name;
-        document.getElementById('session-loc').value = `${data.lat}, ${data.lng}`;
-        document.getElementById('session-radius').value = data.radius;
-        if (adminLeafletMap && adminMarker) {
-          adminMarker.setLatLng([data.lat, data.lng]);
-          adminLeafletMap.setView([data.lat, data.lng]);
-        }
-      } else if (STATE.step === 2 && STATE.geoLat !== null) {
-        // [QUAN TRỌNG] Nếu người dùng đang mở sẵn trang Bản Đồ, lập tức tính toán lại khi Admin "Phát điểm"
-        const dist = haversineDistance(STATE.geoLat, STATE.geoLng, STATE.SESSION.lat, STATE.SESSION.lng);
-        updateMapInfoBox(STATE.geoLat, STATE.geoLng, dist, 0);
-        renderLeafletMap(STATE.geoLat, STATE.geoLng, dist);
+  // Lắng nghe thay đổi session/info realtime (khi admin phát điểm mới)
+  onValue(ref(db, 'session/info'), (snapshot) => {
+    if (!snapshot.exists()) return;
+    const data = snapshot.val();
+    STATE.SESSION.name   = data.name;
+    STATE.SESSION.lat    = parseFloat(data.lat);
+    STATE.SESSION.lng    = parseFloat(data.lng);
+    STATE.SESSION.radius = parseInt(data.radius);
 
-        if (dist <= STATE.SESSION.radius) {
-          setGeoStatus('ok', `✅ Hợp lệ – Vị trí điểm họp vừa được Admin cập nhật. Cách ${Math.round(dist)}m`);
-          STATE.geoOk = true; document.getElementById('geo-next-btn').disabled = false;
-        } else {
-          setGeoStatus('fail', `❌ Ngoài phạm vi – Vị trí điểm họp vừa được Admin cập nhật. Bạn đang cách ${Math.round(dist)}m`);
-          STATE.geoOk = false; document.getElementById('geo-next-btn').disabled = true;
-        }
+    if (STATE.isAdmin) {
+      document.getElementById('session-name').value  = data.name;
+      document.getElementById('session-loc').value   = `${data.lat}, ${data.lng}`;
+      document.getElementById('session-radius').value = data.radius;
+      if (adminLeafletMap && adminMarker) {
+        adminMarker.setLatLng([data.lat, data.lng]);
+        adminLeafletMap.setView([data.lat, data.lng]);
+        if (adminRadiusCircle) { adminRadiusCircle.setLatLng([data.lat, data.lng]); adminRadiusCircle.setRadius(parseInt(data.radius)); }
+      }
+    } else if (STATE.step === 2 && STATE.geoLat !== null) {
+      // Tính lại ngay nếu user đang ở bước 2
+      const dist = haversineDistance(STATE.geoLat, STATE.geoLng, STATE.SESSION.lat, STATE.SESSION.lng);
+      updateMapInfoBox(STATE.geoLat, STATE.geoLng, dist, 0);
+      renderLeafletMap(STATE.geoLat, STATE.geoLng, dist);
+      if (dist <= STATE.SESSION.radius) {
+        setGeoStatus('ok', `✅ Hợp lệ – Vị trí điểm họp vừa được Admin cập nhật. Cách ${Math.round(dist)}m`);
+        STATE.geoOk = true; document.getElementById('geo-next-btn').disabled = false;
+      } else {
+        setGeoStatus('fail', `❌ Ngoài phạm vi – Bạn đang cách ${Math.round(dist)}m`);
+        STATE.geoOk = false; document.getElementById('geo-next-btn').disabled = true;
       }
     }
   });
-})();
+
+  // FIX 1: Lắng nghe attendance_list - LUÔN cập nhật STATE, render nếu đang là admin
+  onValue(ref(db, 'attendance_list'), (snapshot) => {
+    STATE.attendanceList = [];
+    snapshot.forEach(c => STATE.attendanceList.push(c.val()));
+    STATE.attendanceList.reverse();
+    // Render bất kể isAdmin - hàm renderAttList tự kiểm tra element có tồn tại không
+    renderAttList();
+    updateAdminStats();
+  });
+
+  // Auto-fill token từ QR
+  const token = new URLSearchParams(window.location.search).get('token');
+  if (token) {
+    document.getElementById('inp-token').value = token;
+    toast('✅ Đã quét QR – Vui lòng nhập thông tin để điểm danh');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+});
 
 function switchTab(tab) {
   ['member','admin'].forEach(t => document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab));
@@ -297,8 +315,10 @@ function adminLogin() {
     STATE.isAdmin = true;
     document.getElementById('admin-login').classList.add('hidden');
     document.getElementById('admin-panel').classList.remove('hidden');
-    initQR(); renderAttList(); updateAdminStats();
-    
+    initQR();
+    // FIX 1: Panel vừa hiện → render ngay với dữ liệu đã có trong STATE
+    renderAttList();
+    updateAdminStats();
     setTimeout(() => { initAdminMap(); loadSavedLocationsDB(); }, 200);
   } else toast('Sai mật khẩu!', 'error');
 }
@@ -449,6 +469,8 @@ function regenerateQR() {
 }
 
 function updateAdminStats() {
+  const el = document.getElementById('stat-total');
+  if (!el || document.getElementById('admin-panel').classList.contains('hidden')) return;
   const t = STATE.attendanceList.length;
   document.getElementById('stat-total').textContent = t;
   document.getElementById('stat-pct').textContent = Math.min(100, Math.round(t / CONFIG.TOTAL_MEMBERS * 100)) + '%';
@@ -456,6 +478,9 @@ function updateAdminStats() {
 
 function renderAttList() {
   const el = document.getElementById('att-list');
+  if (!el) return;
+  // Nếu admin panel đang ẩn thì không render (tránh lỗi khi user chưa login)
+  if (document.getElementById('admin-panel').classList.contains('hidden')) return;
   if (!STATE.attendanceList.length) return el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Chưa có dữ liệu</p>';
   el.innerHTML = STATE.attendanceList.map(r => `
     <div class="attendance-item">
