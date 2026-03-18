@@ -21,7 +21,7 @@ const CONFIG = {
   QR_REFRESH_SECONDS:  30,
   ADMIN_PASSWORD:      'admin123',
   TOTAL_MEMBERS:       250,
-  SITE_URL: 'https://dinhthanhk.github.io/Haha/Dang/index.html',
+  SITE_URL: 'https://diemdanh-chibo-huce.vercel.app/',
 };
 
 const STATE = {
