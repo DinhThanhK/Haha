@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Điểm Danh Đảng Bộ</title>
+
+  <!-- Fix 2: Favicon cờ đỏ sao vàng -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23DA251D'/%3E%3Cpolygon points='16,7 18.4,14.2 26,14.2 20,18.5 22.5,25.7 16,21.4 9.5,25.7 12,18.5 6,14.2 13.6,14.2' fill='%23FFFF00'/%3E%3C/svg%3E">
+
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    .leaflet-popup-content-wrapper { background: #1C1C28; color: #F0EDE8; border: 1px solid rgba(200,16,46,0.3); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .leaflet-popup-tip { background: #1C1C28; }
+    .leaflet-popup-content b { color: #FFD700; }
+    .leaflet-container { font-family: 'Be Vietnam Pro', sans-serif; z-index: 1; }
+    .leaflet-control-zoom a { background: #1C1C28 !important; color: #F0EDE8 !important; border-color: rgba(200,16,46,0.3) !important; }
+    .leaflet-control-zoom a:hover { background: #C8102E !important; }
+    .leaflet-control-attribution { background: rgba(10,10,15,0.75) !important; color: #666 !important; font-size: 9px !important; }
+    .leaflet-control-attribution a { color: #888 !important; }
+    #admin-map { width: 100%; height: 250px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px; z-index: 0; }
+  </style>
+
+  <!-- Hiệu ứng vệt sáng + lấp lánh phủ toàn header -->
+  <style>
+    .flag-img-wrap {
+      position: relative;
+      width: 80px;
+      height: 56px;
+      flex-shrink: 0;
+      border-radius: 6px;
+      overflow: visible;
+    }
+    .flag-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+      display: block;
+    }
+
+    /* Vệt sáng quét toàn bộ header */
+    header { position: relative; }
+    .header-inner { position: relative; z-index: 1; }
+    .header-shimmer {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .header-shimmer::after {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: -40%;
+      width: 28%;
+      height: 140%;
+      background: linear-gradient(105deg,
+        transparent 20%,
+        rgba(255,255,255,0.12) 40%,
+        rgba(255,255,255,0.28) 50%,
+        rgba(255,255,255,0.12) 60%,
+        transparent 80%);
+      transform: skewX(-10deg);
+      animation: hdr-shimmer 8s ease-in-out infinite;
+    }
+    @keyframes hdr-shimmer {
+      0%,58%  { left: -40%; opacity: 0; }
+      62%     { opacity: 1; }
+      84%     { left: 115%; opacity: 1; }
+      88%,100%{ left: 115%; opacity: 0; }
+    }
+
+    /* 5 tia lấp lánh rải khắp header */
+    .hsp {
+      position: absolute;
+      width: 0; height: 0;
+      pointer-events: none;
+      z-index: 3;
+      animation: hsp-pop 8s ease-in-out infinite;
+      opacity: 0;
+    }
+    .hsp::before {
+      content: '';
+      position: absolute;
+      width: 3px; height: 12px;
+      background: #FFD700;
+      border-radius: 2px;
+      top: -6px; left: -1.5px;
+      box-shadow: 0 0 6px 2px rgba(255,215,0,0.8);
+    }
+    .hsp::after {
+      content: '';
+      position: absolute;
+      width: 12px; height: 3px;
+      background: #FFD700;
+      border-radius: 2px;
+      top: -1.5px; left: -6px;
+      box-shadow: 0 0 6px 2px rgba(255,215,0,0.8);
+    }
+    /* Vị trí % theo chiều rộng & cao của header */
+    .hsp:nth-child(1) { top: 30%; left:  7%; animation-delay: 0s;    }
+    .hsp:nth-child(2) { top: 65%; left: 25%; animation-delay: 0.25s; }
+    .hsp:nth-child(3) { top: 20%; left: 52%; animation-delay: 0.45s; }
+    .hsp:nth-child(4) { top: 70%; left: 74%; animation-delay: 0.15s; }
+    .hsp:nth-child(5) { top: 35%; left: 91%; animation-delay: 0.35s; }
+    @keyframes hsp-pop {
+      0%,62%   { opacity: 0; transform: scale(0) rotate(0deg); }
+      67%       { opacity: 1; transform: scale(1.5) rotate(15deg); }
+      76%       { opacity: 1; transform: scale(1)   rotate(0deg); }
+      84%,100%  { opacity: 0; transform: scale(0)   rotate(-10deg); }
+    }
+
+    /* Slider */
+    .radius-slider-wrap { position: relative; }
+    input[type="range"]#session-radius-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 6px; border-radius: 4px;
+      outline: none; cursor: pointer;
+      background: linear-gradient(to right, #C8102E var(--pct-css,55%), rgba(255,255,255,0.15) var(--pct-css,55%));
+    }
+    input[type="range"]#session-radius-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #FFD700; border: 2px solid #C8102E;
+      cursor: pointer; box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    }
+    input[type="range"]#session-radius-slider::-moz-range-thumb {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #FFD700; border: 2px solid #C8102E;
+      cursor: pointer; box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    }
+    input[type="number"]#session-radius::-webkit-inner-spin-button,
+    input[type="number"]#session-radius::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"]#session-radius { -moz-appearance: textfield; appearance: textfield;}
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) sepia(1) saturate(4) hue-rotate(5deg);
+      opacity: 0.8; cursor: pointer;
+    }
+
+    #qrcode img, #qrcode canvas { width: 220px !important; height: 220px !important; }
+    #qrcode { display: flex; justify-content: center; }
+
+    #qr-scanner-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92); z-index: 9999;
+      flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    #qr-scanner-overlay.active { display: flex; }
+    #qr-video-wrap {
+      position: relative; width: min(340px,90vw);
+      border: 3px solid var(--gold); border-radius: 12px; overflow: hidden;
+    }
+    #qr-video { width: 100%; display: block; }
+    #qr-video-wrap::before {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 10px; z-index: 2; pointer-events: none;
+      background:
+        linear-gradient(#FFD700,#FFD700) top left/24px 3px no-repeat,
+        linear-gradient(#FFD700,#FFD700) top left/3px 24px no-repeat,
+        linear-gradient(#FFD700,#FFD700) top right/24px 3px no-repeat,
+        linear-gradient(#FFD700,#FFD700) top right/3px 24px no-repeat,
+        linear-gradient(#FFD700,#FFD700) bottom left/24px 3px no-repeat,
+        linear-gradient(#FFD700,#FFD700) bottom left/3px 24px no-repeat,
+        linear-gradient(#FFD700,#FFD700) bottom right/24px 3px no-repeat,
+        linear-gradient(#FFD700,#FFD700) bottom right/3px 24px no-repeat;
+    }
+    #qr-scan-line {
+      position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(to right, transparent, #FFD700, transparent);
+      animation: scan-line 2s ease-in-out infinite; z-index: 3;
+    }
+    @keyframes scan-line { 0%{top:10%} 50%{top:88%} 100%{top:10%} }
+    #qr-scanner-msg { color: #F0EDE8; font-size: 14px; text-align: center; opacity: 0.8; }
+    #qr-scanner-status { font-size: 13px; color: var(--gold); min-height: 20px; }
+    #btn-close-scanner {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: #F0EDE8; padding: 10px 28px; border-radius: 8px;
+      cursor: pointer; font-family: inherit; font-size: 14px;
+    }
+
+    /* Watermark */
+    .author-watermark {
+      position: fixed; bottom: 14px; right: 16px; font-size: 10px;
+      color: rgba(240,237,232,0.18); font-family: 'Space Mono', monospace;
+      letter-spacing: 0.5px; pointer-events: none; z-index: 9999; user-select: none;
+    }
+
+    /* Admin map reload btn */
+    .admin-map-reload {
+      display: flex; align-items: center; gap: 6px;
+      width: 100%; margin-bottom: 6px; padding: 6px 12px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text-muted); font-size: 12px;
+      cursor: pointer; font-family: inherit; transition: background .2s, color .2s;
+    }
+    .admin-map-reload:hover { background: rgba(200,16,46,0.1); color: var(--gold); }
+
+    /* Trash btn */
+    .btn-trash {
+      width: auto; padding: 0 12px;
+      border: 1px solid rgba(255,42,74,0.3) !important;
+      color: var(--red-light) !important;
+      display: flex; align-items: center; gap: 5px; font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="bg-stars"></div>
+
+<div class="app">
+
+  <header>
+    <!-- Lớp phủ vệt sáng và lấp lánh -->
+    <div class="header-shimmer" aria-hidden="true">
+      <span class="hsp"></span>
+      <span class="hsp"></span>
+      <span class="hsp"></span>
+      <span class="hsp"></span>
+      <span class="hsp"></span>
+    </div>
+    <div class="header-inner">
+      <div class="flag-img-wrap">
+        <img src="img/CoDangImage.png" alt="Cờ Đảng" draggable="false">
+      </div>
+      <div class="header-title">
+        <h1>Điểm Danh Đảng Bộ</h1>
+        <p>Chi bộ sinh viên HUCE</p>
+      </div>
+      <div>
+        <div id="live-time">--:--:--</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('member')">👤 Đảng viên</button>
+      <button class="tab-btn"        onclick="switchTab('admin')">🛡️ Chi ủy viên</button>
+    </div>
+
+    <div id="tab-member">
+      <div class="steps">
+        <div class="step active" id="s1"><div class="step-circle">1</div><div class="step-label">Thông tin</div></div>
+        <div class="step" id="s2"><div class="step-circle">2</div><div class="step-label">Vị trí</div></div>
+        <div class="step" id="s3"><div class="step-circle">3</div><div class="step-label">Hoàn tất</div></div>
+      </div>
+
+      <div id="step1">
+        <div class="card">
+          <div class="card-title">Thông tin sinh viên</div>
+          <div class="form-group"><label>Họ và tên *</label><input type="text" id="inp-name" placeholder="Nguyễn Văn A"></div>
+          <div class="form-group"><label>MSSV *</label><input type="text" id="inp-id" placeholder="Ví dụ: 0191334"></div>
+          <div class="form-group"><label>Lớp *</label><input type="text" id="inp-lop" placeholder="Ví dụ: 70IT1"></div>
+          <div class="form-group">
+            <label>Mã xác thực (Quét QR hoặc nhập tay) *</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="inp-token" placeholder="VD: A1B2C3" style="flex:1; text-transform: uppercase; font-weight: 700; letter-spacing: 2px;">
+              <button type="button" onclick="openQrScanner()" title="Quét mã QR bằng camera"
+                style="flex-shrink:0; width:46px; height:46px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--gold);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
+                  <rect x="3" y="16" width="5" height="5" rx="1"/>
+                  <line x1="16" y1="16" x2="21" y2="16"/><line x1="21" y1="16" x2="21" y2="21"/>
+                  <line x1="16" y1="21" x2="16" y2="18"/><line x1="10" y1="3" x2="10" y2="8"/>
+                  <line x1="10" y1="11" x2="10" y2="13"/><line x1="3" y1="10" x2="8" y2="10"/>
+                  <line x1="13" y1="10" x2="13" y2="8"/><line x1="13" y1="13" x2="21" y2="13"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 10px; background: rgba(255,215,0,0.05); border: 1px solid rgba(255,215,0,0.2); border-radius: 8px; padding: 10px 14px; cursor: pointer;" onclick="document.getElementById('inp-remember').click()">
+            <input type="checkbox" id="inp-remember" style="width:18px; height:18px; accent-color: var(--gold); cursor:pointer; flex-shrink:0;" checked>
+            <div style="display: flex; flex-direction: column; font-size: 13px; font-weight: 400; color: var(--gold);">Lưu thông tin cho lần điểm danh sau</div>
+          </div>
+          <button class="btn btn-primary" id="btn-verify" onclick="goStep2()">Kiểm tra mã</button>
+        </div>
+      </div>
+
+      <div id="step2" class="hidden">
+        <div class="card">
+          <div class="card-title">Xác minh vị trí</div>
+          <div id="geo-status" class="geo-status checking"><span class="geo-icon">🔍</span><span id="geo-msg">Đang lấy tọa độ GPS...</span></div>
+
+          <div id="dist-card" style="display:none; margin:16px 0; padding:20px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:12px; text-align:center;">
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; letter-spacing:0.5px;">KHOẢNG CÁCH TỚI ĐIỂM HỌP</div>
+            <div id="dist-big" style="font-size:40px; font-weight:800; font-family:'Space Mono',monospace; color:var(--gold); line-height:1;">---</div>
+            <div id="dist-sub" style="font-size:13px; margin-top:8px; color:var(--text-muted);"></div>
+          </div>
+
+          <div class="divider"></div>
+          <button class="btn btn-primary" id="geo-next-btn" disabled onclick="completeAttendance()">Vị trí hợp lệ – Xác nhận điểm danh</button>
+          <button class="btn btn-primary" id="test-mode" onclick="bypassGeo()">🧪 Test mode</button>
+        </div>
+      </div>
+
+      <div id="step3" class="hidden">
+        <div class="card">
+          <div class="success-screen show" id="success-screen">
+            <div class="success-icon">🎉</div>
+            <div class="success-name" id="success-name"></div>
+            <div class="success-msg">Đã điểm danh thành công!</div>
+            <div class="success-meta">
+              <div class="meta-item"><label>Thời gian</label><span id="suc-time"></span></div>
+              <div class="meta-item"><label>Mã xác nhận</label><span id="suc-code"></span></div>
+              <div class="meta-item"><label>Lớp</label><span id="suc-unit"></span></div>
+              <div class="meta-item"><label>Trạng thái</label><span class="badge-ok">✓ Hợp lệ</span></div>
+            </div>
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="resetForm()" style="max-width:240px;margin:0 auto;display:block;">← Quay lại trang chủ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-admin" class="hidden">
+      <div id="admin-login">
+        <div class="card">
+          <div class="card-title">🔐 Đăng nhập Ban tổ chức</div>
+          <div class="form-group"><label>Mật khẩu</label><input type="password" id="admin-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter') adminLogin()"></div>
+          <button class="btn btn-primary" onclick="adminLogin()">Đăng nhập</button>
+        </div>
+      </div>
+
+      <div id="admin-panel" class="hidden admin-layout">
+        
+        <div class="admin-sidebar">
+          <div class="card">
+            <div class="card-title">QR Code điểm danh & Mã xác thực</div>
+            <p class="text-muted" style="margin-bottom:14px;">Mã làm mới mỗi <strong style="color:var(--gold)">30 giây</strong>.</p>
+            <div class="qr-wrap">
+              <div id="qrcode"></div>
+              <div id="qr-token-display" style="font-size:32px; font-weight:800; color:var(--gold); letter-spacing:6px; margin: 10px 0; font-family:'Space Mono',monospace;">------</div>
+              <div class="qr-countdown"><div class="dot"></div><span id="qr-timer-txt">Làm mới sau: 30s</span></div>
+              <div class="qr-refresh-bar"><div class="qr-refresh-fill" id="qr-bar"></div></div>
+              <button class="btn btn-gold btn-sm" onclick="regenerateQR()">Cấp mã mới ngay</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-content">
+          <div class="card">
+            <div class="card-title">Cài đặt điểm họp & Bản đồ</div>
+            
+            <div class="form-group" style="background: rgba(255,215,0,0.05); padding: 12px; border-radius: 8px; border: 1px dashed rgba(255,215,0,0.3);">
+              <label style="color: var(--gold); display:flex; justify-content:space-between;">
+                <span>Các điểm đã lưu</span>
+                <span style="font-size:10px; opacity:0.7;">(Chọn để load nhanh)</span>
+              </label>
+              <div style="display:flex; gap: 8px;">
+                <select id="saved-loc-select" onchange="applySavedLocation()" style="flex:1;">
+                  <option value="">Đang tải dữ liệu...</option>
+                </select>
+                <button class="btn btn-ghost btn-trash" onclick="deleteSavedLocation()" title="Xóa điểm này khỏi danh sách">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6"/><path d="M14 11v6"/>
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                  Xóa
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Tên buổi họp / Địa điểm</label>
+              <input type="text" id="session-name" placeholder="Ví dụ: Họp chi bộ tháng 3">
+            </div>
+            
+            <div class="form-group">
+              <label>Bản đồ</label>
+              <button class="admin-map-reload" onclick="reloadAdminMap()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Tải lại bản đồ
+              </button>
+              <div id="admin-map"></div>
+              <input type="text" id="session-loc" placeholder="21.0036, 105.8412" readonly style="background: rgba(255,255,255,0.05);">
+            </div>
+            
+            <div class="form-group">
+              <label>Bán kính cho phép điểm danh (mét)</label>
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <input type="range" id="session-radius-slider" min="50" max="500" step="10" value="300"
+                  style="flex:1; cursor:pointer; height:6px;"
+                  oninput="syncRadiusFromSlider(this.value, this)">
+                <span id="session-radius-display" style="min-width:52px; text-align:right; font-weight:700; color:var(--gold); font-size:15px;">300m</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:11px; color:var(--text-muted); flex-shrink:0;">Nhập thêm (m):</span>
+                <input type="number" id="session-radius" value="300" min="50" max="99999"
+                  placeholder="Nhập số bất kỳ"
+                  style="flex:1;"
+                  oninput="syncRadiusFromInput(this.value)">
+              </div>
+            </div>
+            
+            <div style="display:flex; gap: 10px; margin-top: 20px;">
+              <button class="btn btn-ghost" onclick="saveNewLocationToDB()" style="flex: 1; border: 1px solid var(--border); color: var(--gold); font-size:12px;">Lưu địa điểm trên <br>vào danh sách</button>
+              <button class="btn btn-primary" onclick="saveSession()" style="flex: 1.5; font-size:14px;">Phát địa điểm này<br>cho toàn Đảng viên</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Thống kê (Realtime)</div>
+            <div class="stat-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="stat-box"><div class="num" id="stat-total">0</div><div class="lbl">Đã điểm danh</div></div>
+              <div class="stat-box"><div class="num" id="stat-pct">0%</div><div class="lbl">Tỉ lệ tham gia</div></div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-title">Danh sách điểm danh (Realtime)</div>
+            <div class="attendance-list" id="att-list"><p class="text-muted text-center" style="padding:20px;">Đang tải dữ liệu...</p></div>
+            <div class="divider"></div>
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+              <label style="font-size:12px; color:var(--text-muted); flex-shrink:0;">Lọc theo ngày:</label>
+              <input type="date" id="export-date-filter"
+                style="flex:1; min-width:140px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; font-family:inherit;"
+                title="Lọc theo ngày điểm danh">
+              <div id="export-count-badge" style="background:rgba(200,16,46,0.15); border:1px solid rgba(200,16,46,0.35); border-radius:20px; padding:4px 12px; font-size:12px; font-weight:700; color:var(--gold); white-space:nowrap; flex-shrink:0;">0 người</div>
+            </div>
+            <button class="btn btn-gold" onclick="exportData()">Export danh sách</button>
+          </div>
+        </div> </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="author-watermark">@ThanhThankC</div>
+
+<!-- Fix 5: QR Scanner overlay -->
+<div id="qr-scanner-overlay">
+  <div id="qr-video-wrap">
+    <video id="qr-video" autoplay playsinline muted></video>
+    <div id="qr-scan-line"></div>
+  </div>
+  <div id="qr-scanner-msg">Hướng camera vào mã QR</div>
+  <div id="qr-scanner-status"></div>
+  <button id="btn-close-scanner" onclick="closeQrScanner()">✕ Đóng</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
