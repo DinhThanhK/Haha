@@ -22,6 +22,93 @@ const CONFIG = {
   ADMIN_PASSWORD:      'admin123',
   TOTAL_MEMBERS:       250,
   SITE_URL: 'https://diemdanh-chibo-huce.vercel.app',
+  // Cài đặt form đảng viên (true = hiển thị, false = ẩn)
+  FIELD_NAME:  true,
+  FIELD_ID:    true,
+  FIELD_LOP:   true,
+  FIELD_TOKEN: true,
+  // Cài đặt file xuất
+  XLSX_SHEET_NAME:  'Điểm danh',
+  XLSX_FILE_PREFIX: 'diemdanh',
+};
+
+// Load settings từ localStorage vào CONFIG khi khởi động
+(function loadSettings() {
+  const saved = localStorage.getItem('dangbo_settings');
+  if (!saved) return;
+  try {
+    const s = JSON.parse(saved);
+    Object.assign(CONFIG, s);
+  } catch(e) {}
+})();
+
+window.saveSettings = function() {
+  const qr = parseInt(document.getElementById('set-qr-seconds')?.value) || 30;
+  const fieldName  = document.getElementById('set-field-name')?.checked ?? true;
+  const fieldId    = document.getElementById('set-field-id')?.checked ?? true;
+  const fieldLop   = document.getElementById('set-field-lop')?.checked ?? true;
+  const fieldToken = document.getElementById('set-field-token')?.checked ?? true;
+  const sheetName  = document.getElementById('set-sheet-name')?.value?.trim() || 'Điểm danh';
+  const filePrefix = document.getElementById('set-file-prefix')?.value?.trim() || 'diemdanh';
+
+  CONFIG.QR_REFRESH_SECONDS = qr;
+  CONFIG.FIELD_NAME  = fieldName;
+  CONFIG.FIELD_ID    = fieldId;
+  CONFIG.FIELD_LOP   = fieldLop;
+  CONFIG.FIELD_TOKEN = fieldToken;
+  CONFIG.XLSX_SHEET_NAME  = sheetName;
+  CONFIG.XLSX_FILE_PREFIX = filePrefix;
+
+  localStorage.setItem('dangbo_settings', JSON.stringify({
+    QR_REFRESH_SECONDS: qr,
+    FIELD_NAME: fieldName, FIELD_ID: fieldId, FIELD_LOP: fieldLop, FIELD_TOKEN: fieldToken,
+    XLSX_SHEET_NAME: sheetName, XLSX_FILE_PREFIX: filePrefix,
+  }));
+
+  // Áp dụng ngay: reset QR interval với thời gian mới
+  CONFIG.QR_REFRESH_SECONDS = qr;
+  if (STATE.qrInterval) {
+    clearInterval(STATE.qrInterval);
+    STATE.qrCountdown = qr;
+    initQR();
+  }
+
+  // Ẩn/hiện form fields
+  const fieldMap = {
+    'group-name': fieldName, 'group-id': fieldId,
+    'group-lop': fieldLop, 'group-token': fieldToken,
+  };
+  Object.entries(fieldMap).forEach(([id, show]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+
+  toast('✅ Đã lưu cài đặt!');
+  // Đóng panel
+  const panel = document.getElementById('settings-panel');
+  if (panel) panel.style.display = 'none';
+  const arrow = document.getElementById('settings-arrow');
+  if (arrow) arrow.textContent = '▼';
+};
+
+window.toggleSettings = function() {
+  const panel = document.getElementById('settings-panel');
+  const arrow = document.getElementById('settings-arrow');
+  if (!panel) return;
+  const open = panel.style.display === 'block';
+  panel.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.textContent = open ? '▼' : '▲';
+  if (!open) {
+    // Điền giá trị hiện tại vào form
+    const setEl = id => document.getElementById(id);
+    if (setEl('set-qr-seconds'))   setEl('set-qr-seconds').value   = CONFIG.QR_REFRESH_SECONDS;
+    if (setEl('set-field-name'))   setEl('set-field-name').checked  = CONFIG.FIELD_NAME;
+    if (setEl('set-field-id'))     setEl('set-field-id').checked    = CONFIG.FIELD_ID;
+    if (setEl('set-field-lop'))    setEl('set-field-lop').checked   = CONFIG.FIELD_LOP;
+    if (setEl('set-field-token'))  setEl('set-field-token').checked = CONFIG.FIELD_TOKEN;
+    if (setEl('set-sheet-name'))   setEl('set-sheet-name').value    = CONFIG.XLSX_SHEET_NAME;
+    if (setEl('set-file-prefix'))  setEl('set-file-prefix').value   = CONFIG.XLSX_FILE_PREFIX;
+  }
 };
 
 const STATE = {
@@ -45,7 +132,6 @@ window.syncRadiusFromInput = syncRadiusFromInput;
 window.startGeoWithMap = startGeoWithMap;
 window.updateExportCount = updateExportCount;
 window.reloadAdminMap = reloadAdminMap;
-window.seedTestData = window.seedTestData; window.clearTestData = window.clearTestData;
 
 function reloadAdminMap() {
   if (adminLeafletMap) {
@@ -80,15 +166,6 @@ function getFilteredList() {
   const result = STATE.attendanceList.filter(r => {
     return normalizeViDate(r.date || '') === targetDate;
   });
-  // Debug: cập nhật panel so sánh date
-  const dbgEl = document.getElementById('dbg-date-compare');
-  if (dbgEl) {
-    const sample = STATE.attendanceList.slice(0,3).map(r =>
-      `raw="${r.date}" → norm="${normalizeViDate(r.date||'')}"`
-    ).join('\n') || '(chưa có data)';
-    dbgEl.textContent = `target="${targetDate}"\n${sample}\n→ khớp: ${result.length}/${STATE.attendanceList.length}`;
-    dbgEl.style.color = result.length > 0 ? '#86efac' : '#fa4d4d';
-  }
   return result;
 }
 
@@ -134,10 +211,12 @@ function exportData() {
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [{ wch:5},{wch:25},{wch:15},{wch:15},{wch:14},{wch:12},{wch:16},{wch:14},{wch:14}];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Điểm danh');
+  const sheetName = CONFIG.XLSX_SHEET_NAME || 'Điểm danh';
+  const filePrefix = CONFIG.XLSX_FILE_PREFIX || 'diemdanh';
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
   const filterDate = document.getElementById('export-date-filter')?.value;
   const suffix = filterDate || new Date().toLocaleDateString('vi-VN').replace(/\//g,'-');
-  XLSX.writeFile(wb, `diemdanh_${suffix}.xlsx`);
+  XLSX.writeFile(wb, `${filePrefix}_${suffix}.xlsx`);
   toast(`Đã xuất ${list.length} bản ghi!`);
 }
 
@@ -277,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       STATE.attendanceList.reverse();
     }
-    _dbgFbReceived(STATE.attendanceList.length);
     renderAttList();
     updateAdminStats();
     updateExportCount();
@@ -338,8 +416,23 @@ async function goStep2() {
     if (snapshot.exists() && snapshot.val() === token) {
       STATE.name = name; STATE.memberId = id; STATE.lop = lop;
       saveMemberInfoIfChecked();
-      _dbgStep2Log(`goStep2() OK | name="${name}" id="${id}" lop="${lop}" | token="${token}"`);
-      setStep(2); startGeoWithMap();
+      setStep(2);
+      // Kiểm tra đã điểm danh chưa NGAY khi vào step 2
+      const _n = new Date();
+      const _dd2 = String(_n.getDate()).padStart(2,'0');
+      const _mm2 = String(_n.getMonth()+1).padStart(2,'0');
+      const _tk2 = `attended_${id}_${_dd2}-${_mm2}-${_n.getFullYear()}`;
+      if (localStorage.getItem(_tk2)) {
+        const btn2 = document.getElementById('geo-next-btn');
+        if (btn2) {
+          btn2.disabled = true;
+          btn2.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
+          btn2.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
+        }
+        setGeoStatus('ok', '✅ Bạn đã hoàn thành điểm danh hôm nay');
+      } else {
+        startGeoWithMap();
+      }
     } else {
       toast('Mã điểm danh không đúng hoặc đã hết hạn!', 'error');
     }
@@ -367,14 +460,12 @@ function startGeoWithMap() {
         setGeoStatus('fail', `Ngoài phạm vi – Cách ${Math.round(dist)}m`);
         STATE.geoOk = false; document.getElementById('geo-next-btn').disabled = true;
       }
-      _dbgStep2Log(`GPS OK | lat=${lat.toFixed(5)} lng=${lng.toFixed(5)} | dist=${Math.round(dist)}m | inRange=${inRange} | acc=~${Math.round(accuracy)}m`);
     },
     (err) => {
       let msg = '⚠️ Lỗi GPS: Hãy cho phép quyền Vị trí trên trình duyệt.';
       if (err.code === 1) msg = '⚠️ Bạn đã từ chối quyền truy cập vị trí.';
       else if (err.code === 3) msg = '⚠️ Hết thời gian lấy GPS. Vui lòng thử lại.';
       setGeoStatus('fail', msg);
-      _dbgStep2Log(`GPS FAIL | code=${err.code} | ${msg}`);
     },
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
   );
@@ -464,8 +555,6 @@ function bypassGeo() {
   const btn = document.getElementById('geo-next-btn');
   if (btn) btn.disabled = false;
   toast('🧪 Test mode OK – Bấm "Xác nhận điểm danh" để lưu!');
-  dbgAppend(dbgLog, 'dbg-log', `bypassGeo() OK | geoOk=true | name="${STATE.name}" id="${STATE.memberId}" | LS xóa: ${hadKey}`);
-  setTimeout(() => window.refreshDebugStep2 && window.refreshDebugStep2(), 30);
 }
 
 function haversineDistance(lat1, lng1, lat2, lng2) {
@@ -484,7 +573,6 @@ function completeAttendance() {
 
   // Kiểm tra TRƯỚC khi đổi UI – tránh nút bị kẹt ở "Đang lưu dữ liệu..."
   if (localStorage.getItem(todayKey)) {
-    _dbgStep2Log(`BỊ CHẶN: localStorage có key → hiển thị trạng thái`);
     btn.disabled = true;
     btn.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
     btn.style.background = 'rgba(34,197,94,0.15)';
@@ -493,8 +581,6 @@ function completeAttendance() {
     toast('✅ Bạn đã điểm danh hôm nay rồi!');
     return;
   }
-
-  _dbgStep2Log(`completeAttendance() → geoOk=${STATE.geoOk} | todayKey="${todayKey}"`);
   btn.disabled = true; btn.textContent = 'Đang lưu dữ liệu...';
   btn.style.background = ''; btn.style.border = ''; btn.style.color = '';
 
@@ -514,14 +600,12 @@ function completeAttendance() {
   push(ref(db, 'attendance_list'), record)
     .then(() => {
       localStorage.setItem(todayKey, '1');
-      _dbgStep2Log(`push() SUCCESS → code=${code} | date="${record.date}"`);
       document.getElementById('success-name').textContent = STATE.name;
       document.getElementById('suc-time').textContent = record.time;
       document.getElementById('suc-code').textContent = code;
       document.getElementById('suc-unit').textContent = STATE.lop;
       setStep(3);
     }).catch(e => {
-      _dbgStep2Log(`push() FAILED → ${e.message}`);
       toast('Lỗi lưu dữ liệu!', 'error'); btn.disabled = false; btn.textContent = 'Vị trí hợp lệ – Xác nhận điểm danh';
     });
 }
@@ -829,104 +913,39 @@ window.seedTestData = async function(count = 30) {
 };
 
 window.clearTestData = async function() {
-  if (!confirm('Xóa TOÀN BỘ danh sách điểm danh? Không thể hoàn tác!')) return;
+  const filterDate = document.getElementById('export-date-filter')?.value;
   const btn = document.getElementById('btn-clear-seed');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xóa...'; }
+
+  if (!filterDate) {
+    toast('Vui lòng chọn ngày cần xóa trước!', 'error');
+    return;
+  }
+
+  const [y, m, d] = filterDate.split('-');
+  const viDate = `${d}/${m}/${y}`;
+  const toDelete = STATE.attendanceList.filter(r => normalizeViDate(r.date||'') === normalizeViDate(viDate));
+
+  if (!toDelete.length) {
+    toast(`Không có dữ liệu ngày ${viDate} để xóa`, 'error');
+    return;
+  }
+
+  if (!confirm(`Xóa ${toDelete.length} bản ghi ngày ${viDate}? Không thể hoàn tác!`)) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = `⏳ Đang xóa ${toDelete.length} bản ghi...`; }
   try {
-    await set(ref(db, 'attendance_list'), null);
-    toast('🗑 Đã xóa toàn bộ danh sách!');
+    await Promise.all(toDelete.map(r => remove(ref(db, 'attendance_list/' + r._key))));
+    toast(`🗑 Đã xóa ${toDelete.length} bản ghi ngày ${viDate}!`);
   } catch(e) {
     toast('Lỗi xóa: ' + e.message, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🗑 Xóa toàn bộ'; }
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 Xóa ngày này'; }
   }
 };
 
-// ─── DEBUG HELPERS ───
-const dbgLog = [];
-const fbLog  = [];
-
-function dbgAppend(arr, elId, msg) {
-  const ts = new Date().toLocaleTimeString('vi-VN');
-  arr.unshift(`[${ts}] ${msg}`);
-  if (arr.length > 30) arr.pop();
-  const el = document.getElementById(elId);
-  if (el) el.textContent = arr.join('\n');
-}
-
-window.refreshDebugStep2 = function() {
-  const _now = new Date();
-  const _dd = String(_now.getDate()).padStart(2,'0');
-  const _mm = String(_now.getMonth()+1).padStart(2,'0');
-  const todayKey = `attended_${STATE.memberId}_${_dd}-${_mm}-${_now.getFullYear()}`;
-  const set = v => (id, val, color) => { const e = document.getElementById(id); if(e){ e.textContent = val; if(color) e.style.color = color; } };
-  const s = set();
-  s('dbg-name',     STATE.name     || '(trống)', '#F0EDE8');
-  s('dbg-id',       STATE.memberId || '(trống)', '#F0EDE8');
-  s('dbg-geoOk',    String(STATE.geoOk), STATE.geoOk ? '#86efac' : '#fa4d4d');
-  s('dbg-lat',      STATE.geoLat !== null ? STATE.geoLat.toFixed(6) : '—', '#F0EDE8');
-  s('dbg-lng',      STATE.geoLng !== null ? STATE.geoLng.toFixed(6) : '—', '#F0EDE8');
-  s('dbg-slat',     `${STATE.SESSION.lat}, ${STATE.SESSION.lng}`, '#F0EDE8');
-  s('dbg-sradius',  STATE.SESSION.radius + 'm', '#FFD700');
-  const btn = document.getElementById('geo-next-btn');
-  s('dbg-btn', btn ? (btn.disabled ? 'DISABLED ❌' : 'ENABLED ✅') : '—', btn?.disabled ? '#fa4d4d' : '#86efac');
-  const lsVal = localStorage.getItem(todayKey);
-  s('dbg-ls', lsVal ? `CÓ KEY → chặn điểm danh ❌` : `Không có → được phép ✅`, lsVal ? '#fa4d4d' : '#86efac');
-  dbgAppend(dbgLog, 'dbg-log', 'Refresh manual');
-};
-
-window.refreshDebugAdmin = function() {
-  const filterDate = document.getElementById('export-date-filter')?.value || '—';
-  const filtered   = getFilteredList();
-  const set = (id, val, color) => { const e = document.getElementById(id); if(e){ e.textContent = val; if(color) e.style.color = color; } };
-  set('dbg-filter-date', filterDate, '#F0EDE8');
-  set('dbg-filtered',    filtered.length, filtered.length ? '#86efac' : '#fa4d4d');
-  set('dbg-isadmin',     String(STATE.isAdmin), STATE.isAdmin ? '#86efac' : '#fa4d4d');
-  set('dbg-fb-count',    STATE.attendanceList.length, STATE.attendanceList.length ? '#FFD700' : '#fa4d4d');
-  const sample = STATE.attendanceList.slice(0, 3).map((r,i) => `[${i}] date="${r.date}" name="${r.name}"`).join('\n') || '(chưa có data)';
-  set('dbg-sample-dates', sample, '#86efac');
-  dbgAppend(fbLog, 'dbg-fb-log', `Refresh manual – total=${STATE.attendanceList.length}`);
-};
-
-function _dbgFbReceived(count) {
-  const ts = new Date().toLocaleTimeString('vi-VN');
-  const set = (id, val, color) => { const e = document.getElementById(id); if(e){ e.textContent = val; if(color) e.style.color = color; } };
-  set('dbg-fb-status', '✅ Đã nhận', '#86efac');
-  set('dbg-fb-time',   ts, '#F0EDE8');
-  set('dbg-fb-count',  count, count ? '#86efac' : '#FFD700');
-  dbgAppend(fbLog, 'dbg-fb-log', `onValue fired – ${count} records lúc ${ts}`);
-  // auto-refresh sample dates + filter count
-  const sample = STATE.attendanceList.slice(0, 5).map((r,i) => `[${i}] date="${r.date}" name="${r.name}"`).join('\n') || '(rỗng)';
-  const el = document.getElementById('dbg-sample-dates');
-  if (el) el.textContent = sample;
-  // cập nhật filter date và count sau khi data về
-  const filterDate = document.getElementById('export-date-filter')?.value || '—';
-  set('dbg-filter-date', filterDate, '#F0EDE8');
-  const filtered = getFilteredList(); // đây cũng trigger update dbg-date-compare
-  set('dbg-filtered', filtered.length, filtered.length ? '#86efac' : '#fa4d4d');
-  set('dbg-isadmin', String(STATE.isAdmin), STATE.isAdmin ? '#86efac' : '#fa4d4d');
-}
-
-function _dbgStep2Log(msg) {
-  dbgAppend(dbgLog, 'dbg-log', msg);
-  // Inline refresh ngay lập tức, không dùng window reference tránh lag
-  const _rn = new Date();
-  const _rdd = String(_rn.getDate()).padStart(2,'0');
-  const _rmm = String(_rn.getMonth()+1).padStart(2,'0');
-  const _tk = `attended_${STATE.memberId}_${_rdd}-${_rmm}-${_rn.getFullYear()}`;
-  const _s = (id, val, color) => { const e = document.getElementById(id); if(e){ e.textContent = val; if(color) e.style.color = color; } };
-  _s('dbg-name',    STATE.name     || '(trống)', '#F0EDE8');
-  _s('dbg-id',      STATE.memberId || '(trống)', '#F0EDE8');
-  _s('dbg-geoOk',   String(STATE.geoOk), STATE.geoOk ? '#86efac' : '#fa4d4d');
-  _s('dbg-lat',     STATE.geoLat !== null ? STATE.geoLat.toFixed(6) : '—', '#F0EDE8');
-  _s('dbg-lng',     STATE.geoLng !== null ? STATE.geoLng.toFixed(6) : '—', '#F0EDE8');
-  _s('dbg-slat',    `${STATE.SESSION.lat}, ${STATE.SESSION.lng}`, '#F0EDE8');
-  _s('dbg-sradius', STATE.SESSION.radius + 'm', '#FFD700');
-  const _btn = document.getElementById('geo-next-btn');
-  _s('dbg-btn', _btn ? (_btn.disabled ? 'DISABLED ❌' : 'ENABLED ✅') : '—', _btn?.disabled ? '#fa4d4d' : '#86efac');
-  const _lsVal = localStorage.getItem(_tk);
-  _s('dbg-ls', _lsVal ? 'CÓ KEY → chặn ❌' : 'Không có → được phép ✅', _lsVal ? '#fa4d4d' : '#86efac');
-}
+// Export seed functions
+window.seedTestData = window.seedTestData;
+window.clearTestData = window.clearTestData;
 
 function closeQrScanner() {
   if (qrScanAnimId) { cancelAnimationFrame(qrScanAnimId); qrScanAnimId = null; }
