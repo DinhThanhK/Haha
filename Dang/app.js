@@ -45,6 +45,7 @@ window.syncRadiusFromInput = syncRadiusFromInput;
 window.startGeoWithMap = startGeoWithMap;
 window.updateExportCount = updateExportCount;
 window.reloadAdminMap = reloadAdminMap;
+window.seedTestData = window.seedTestData; window.clearTestData = window.clearTestData;
 
 function reloadAdminMap() {
   if (adminLeafletMap) {
@@ -475,19 +476,27 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
 
 function completeAttendance() {
   const btn = document.getElementById('geo-next-btn');
-  btn.disabled = true; btn.textContent = 'Đang lưu dữ liệu...';
 
   const _now = new Date();
   const _dd = String(_now.getDate()).padStart(2,'0');
   const _mm = String(_now.getMonth()+1).padStart(2,'0');
   const todayKey = `attended_${STATE.memberId}_${_dd}-${_mm}-${_now.getFullYear()}`;
-  _dbgStep2Log(`completeAttendance() → geoOk=${STATE.geoOk} | todayKey="${todayKey}"`);
+
+  // Kiểm tra TRƯỚC khi đổi UI – tránh nút bị kẹt ở "Đang lưu dữ liệu..."
   if (localStorage.getItem(todayKey)) {
-    _dbgStep2Log(`BỊ CHẶN: localStorage có key → toast error`);
-    toast('⚠️ Bạn đã điểm danh hôm nay rồi!', 'error');
-    btn.disabled = false; btn.textContent = 'Vị trí hợp lệ – Xác nhận điểm danh';
+    _dbgStep2Log(`BỊ CHẶN: localStorage có key → hiển thị trạng thái`);
+    btn.disabled = true;
+    btn.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
+    btn.style.background = 'rgba(34,197,94,0.15)';
+    btn.style.border = '1px solid rgba(34,197,94,0.4)';
+    btn.style.color = '#86efac';
+    toast('✅ Bạn đã điểm danh hôm nay rồi!');
     return;
   }
+
+  _dbgStep2Log(`completeAttendance() → geoOk=${STATE.geoOk} | todayKey="${todayKey}"`);
+  btn.disabled = true; btn.textContent = 'Đang lưu dữ liệu...';
+  btn.style.background = ''; btn.style.border = ''; btn.style.color = '';
 
   const code = 'DD-' + Math.random().toString(36).substr(2,6).toUpperCase();
   const now = new Date();
@@ -765,6 +774,73 @@ function scanFrame(video, status) {
   }
   qrScanAnimId = requestAnimationFrame(tick);
 }
+
+
+// ─── SEED TEST DATA ───
+const VIET_NAMES = [
+  'Nguyễn Văn An','Trần Thị Bình','Lê Hoàng Cường','Phạm Thị Dung','Hoàng Văn Em',
+  'Vũ Thị Fang','Đặng Văn Giang','Bùi Thị Hà','Đỗ Văn Inh','Ngô Thị Khanh',
+  'Dương Văn Long','Lý Thị Mai','Trịnh Văn Nam','Đinh Thị Oanh','Phan Văn Phong',
+  'Hà Thị Quỳnh','Võ Văn Rồng','Tô Thị Sen','Cao Văn Thắng','Lưu Thị Uyên',
+  'Mai Văn Vinh','Kiều Thị Xuân','Chu Văn Yên','Tạ Thị Zung','Trương Văn Bảo',
+  'Nguyễn Thị Chi','Phùng Văn Dũng','Lương Thị Ế','Tống Văn Phát','Quách Thị Giao',
+  'Hứa Văn Hải','Mạc Thị Hoa','Từ Văn Hùng','Âu Thị Hương','Đoàn Văn Khải',
+];
+const CLASSES = ['70IT1','70IT2','70IT3','71XD1','71XD2','70KT1','70KT2','71MT1','70TK1','71HH2'];
+
+window.seedTestData = async function(count = 30) {
+  const btn = document.getElementById('btn-seed');
+  if (btn) { btn.disabled = true; btn.textContent = `⏳ Đang thêm 0/${count}...`; }
+
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const todayDate = `${dd}/${mm}/${yyyy}`;
+
+  // Phân tán thời gian điểm danh trong 2 giờ vừa qua
+  const promises = [];
+  for (let i = 0; i < count; i++) {
+    const name = VIET_NAMES[i % VIET_NAMES.length] + (i >= VIET_NAMES.length ? ` ${Math.floor(i/VIET_NAMES.length)+1}` : '');
+    const mssv = `019${String(1000 + i).slice(1)}${Math.floor(Math.random()*9)+1}`;
+    const lop  = CLASSES[i % CLASSES.length];
+    const minsAgo = Math.floor(Math.random() * 120);
+    const t = new Date(now - minsAgo * 60000);
+    const hh = String(t.getHours()).padStart(2,'0');
+    const mi = String(t.getMinutes()).padStart(2,'0');
+    const ss = String(t.getSeconds()).padStart(2,'0');
+    const code = 'DD-' + Math.random().toString(36).substr(2,6).toUpperCase();
+    // Tọa độ ngẫu nhiên gần điểm họp ±100m
+    const lat = STATE.SESSION.lat + (Math.random()-0.5)*0.002;
+    const lng = STATE.SESSION.lng + (Math.random()-0.5)*0.002;
+    const record = { name, id: mssv, unit: lop, time: `${hh}:${mi}:${ss}`, date: todayDate, lat, lng, code, timestamp: t.getTime() };
+    promises.push(push(ref(db, 'attendance_list'), record));
+    if (btn && i % 5 === 4) { btn.textContent = `⏳ Đang thêm ${i+1}/${count}...`; await new Promise(r=>setTimeout(r,0)); }
+  }
+
+  try {
+    await Promise.all(promises);
+    toast(`✅ Đã thêm ${count} đảng viên test!`);
+    if (btn) { btn.disabled = false; btn.textContent = `➕ Thêm ${count} đảng viên test`; }
+  } catch(e) {
+    toast('Lỗi seed data: ' + e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = `➕ Thêm ${count} đảng viên test`; }
+  }
+};
+
+window.clearTestData = async function() {
+  if (!confirm('Xóa TOÀN BỘ danh sách điểm danh? Không thể hoàn tác!')) return;
+  const btn = document.getElementById('btn-clear-seed');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xóa...'; }
+  try {
+    await set(ref(db, 'attendance_list'), null);
+    toast('🗑 Đã xóa toàn bộ danh sách!');
+  } catch(e) {
+    toast('Lỗi xóa: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 Xóa toàn bộ'; }
+  }
+};
 
 // ─── DEBUG HELPERS ───
 const dbgLog = [];
