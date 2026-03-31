@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizMaster – Tự Luận</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.93.93c-.75.75-1.14 1.72-1.14 2.82v.5h-2v-.5c0-1.6.62-3.07 1.75-4.2l1.32-1.32c.38-.38.6-.9.6-1.45 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="tu-luan.css">
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-logo">Quiz<span>Master</span></div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+</div>
+
+<!-- TOP NAV -->
+<nav id="top-nav">
+  <div class="nav-logo" onclick="window.location.href='quizzes.html'">
+    <i class="fas fa-brain"></i><span>Quiz<span style="color:var(--accent2)">Master</span></span>
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn" onclick="window.location.href='quizzes.html'"><i class="fas fa-home"></i><span class="nav-label"> Trắc nghiệm</span></button>
+    <button class="nav-btn active"><i class="fas fa-pen-nib"></i><span class="nav-label"> Tự luận</span></button>
+    <button class="nav-btn" onclick="window.location.href='cac-de-thi.html'"><i class="fas fa-link"></i><span class="nav-label"> Các đề thi</span></button>
+    <button class="nav-btn" onclick="window.location.href='quizzes.html'"><i class="fas fa-plus"></i><span class="nav-label"> Thêm mới</span></button>
+    <button class="nav-btn" onclick="window.location.href='quizzes.html'"><i class="fas fa-palette"></i><span class="nav-label"> Cài đặt</span></button>
+  </div>
+</nav>
+
+<div class="page active" id="page-tu-luan">
+  <div class="tu-luan-wrap">
+
+    <!-- HERO -->
+    <div class="tu-luan-hero" id="tl-hero">
+      <h1>Tự <span>Luận</span></h1>
+      <p>Soạn thảo, lưu trữ và kiểm tra trí nhớ văn bản của bạn</p>
+    </div>
+
+    <!-- ═══ VIEW: DANH SÁCH ═══ -->
+    <div id="view-list">
+      <div class="tl-toolbar">
+        <div class="tl-search-wrap">
+          <i class="fas fa-search tl-search-icon"></i>
+          <input type="text" id="tl-search" class="tl-search-input"
+            placeholder="Tìm kiếm văn bản..." oninput="filterDocs()">
+        </div>
+        <button class="tl-new-btn" onclick="openNew()">
+          <i class="fas fa-plus"></i> Văn bản mới
+        </button>
+      </div>
+      <div id="tl-empty" class="tl-empty" style="display:none">
+        <div class="tl-empty-icon">📄</div>
+        <h3>Chưa có văn bản nào</h3>
+        <p>Nhấn <strong>Văn bản mới</strong> để bắt đầu soạn thảo</p>
+      </div>
+      <div class="tl-grid" id="tl-grid"></div>
+    </div>
+
+    <!-- ═══ VIEW: EDITOR ═══ -->
+    <div id="view-editor" style="display:none">
+      <div class="editor-header">
+        <button class="editor-back-btn" onclick="backToList()" title="Quay lại">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <input type="text" id="doc-title" class="doc-title-input" placeholder="Tiêu đề văn bản...">
+        <div class="editor-header-actions">
+          <button class="editor-test-btn" onclick="openTestMode()" title="Kiểm tra trí nhớ">
+            <i class="fas fa-brain"></i><span class="btn-label"> Kiểm tra</span>
+          </button>
+          <button class="editor-save-btn" onclick="saveDoc()" id="save-btn">
+            <i class="fas fa-save"></i><span class="btn-label"> Lưu</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-toolbar">
+        <div class="toolbar-group">
+          <button class="tool-btn" onclick="execCmd('bold')" id="btn-bold" title="In đậm (Ctrl+B)"><i class="fas fa-bold"></i></button>
+          <button class="tool-btn" onclick="execCmd('italic')" id="btn-italic" title="In nghiêng (Ctrl+I)"><i class="fas fa-italic"></i></button>
+          <button class="tool-btn" onclick="execCmd('underline')" id="btn-underline" title="Gạch chân (Ctrl+U)"><i class="fas fa-underline"></i></button>
+          <button class="tool-btn" onclick="removeFormat()" title="Xóa định dạng"><i class="fas fa-remove-format"></i></button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button class="tool-btn" onclick="execCmd('justifyLeft')"><i class="fas fa-align-left"></i></button>
+          <button class="tool-btn" onclick="execCmd('justifyCenter')"><i class="fas fa-align-center"></i></button>
+          <button class="tool-btn" onclick="execCmd('justifyRight')"><i class="fas fa-align-right"></i></button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button class="tool-btn" onclick="execCmd('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+          <button class="tool-btn" onclick="execCmd('insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <select class="tool-select" onchange="changeFontSize(this.value)" id="font-size-sel">
+            <option value="">Cỡ chữ</option>
+            <option value="1">Nhỏ</option>
+            <option value="3">Thường</option>
+            <option value="4">Vừa</option>
+            <option value="5">Lớn</option>
+            <option value="6">To</option>
+            <option value="7">Rất to</option>
+          </select>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button class="tool-btn" onclick="execCmd('undo')"><i class="fas fa-undo"></i></button>
+          <button class="tool-btn" onclick="execCmd('redo')"><i class="fas fa-redo"></i></button>
+        </div>
+        <div class="toolbar-right">
+          <span class="word-count" id="word-count">0 từ</span>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <div id="doc-editor" class="doc-editor" contenteditable="true"
+          data-placeholder="Bắt đầu soạn thảo văn bản của bạn..." spellcheck="false"></div>
+      </div>
+
+      <div class="editor-bottom-bar">
+        <span id="editor-status" class="editor-status"></span>
+        <button class="editor-delete-btn" onclick="confirmDelete()">
+          <i class="fas fa-trash-alt"></i> Xóa
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: KIỂM TRA TRÍ NHỚ ═══ -->
+    <div id="view-test" style="display:none">
+      <div class="editor-header">
+        <button class="editor-back-btn" onclick="backFromTest()" title="Quay lại">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="test-header-title">
+          <i class="fas fa-brain" style="color:var(--accent)"></i>
+          <span id="test-doc-title-display">Kiểm tra trí nhớ</span>
+        </div>
+        <div class="editor-header-actions">
+          <!-- Nút nộp bài (hiện khi đang soạn) -->
+          <button class="editor-submit-btn" id="btn-submit-test" onclick="submitTest()">
+            <i class="fas fa-flag-checkered"></i><span class="btn-label"> Nộp bài</span>
+          </button>
+          <!-- Nút thử lại (hiện sau khi chấm) -->
+          <button class="editor-retry-btn" id="btn-retry-test" onclick="retryTest()" style="display:none">
+            <i class="fas fa-redo"></i><span class="btn-label"> Thử lại</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="test-instruction-bar" id="test-instruction-bar">
+        <i class="fas fa-lightbulb" style="color:var(--accent4)"></i>
+        Hãy gõ lại văn bản từ trí nhớ, sau đó nhấn <strong>Nộp bài</strong> để xem kết quả
+      </div>
+
+      <!-- Thanh kết quả (hiện sau khi chấm) -->
+      <div class="test-result-bar" id="test-result-bar" style="display:none">
+        <div class="trb-score-wrap">
+          <span class="trb-pct" id="trb-pct">0%</span>
+          <span class="trb-grade" id="trb-grade"></span>
+        </div>
+        <div class="trb-stats">
+          <span class="trb-stat correct"><i class="fas fa-check-circle"></i> <span id="trb-correct">0</span> đúng</span>
+          <span class="trb-stat wrong"><i class="fas fa-times-circle"></i> <span id="trb-wrong">0</span> sai/thiếu</span>
+          <span class="trb-stat neutral"><i class="fas fa-file-word"></i> <span id="trb-total">0</span> từ gốc</span>
+        </div>
+        <div class="trb-legend">
+          <span class="legend-ok">■ Đúng</span>
+          <span class="legend-miss">■ Thiếu</span>
+          <span class="legend-extra">■ Thừa</span>
+        </div>
+      </div>
+
+      <div class="editor-body" style="position:relative">
+        <!--
+          Khi đang soạn: show test-editor (contenteditable)
+          Sau khi chấm: show test-diff-view (readonly diff)
+        -->
+        <div id="test-editor" class="doc-editor test-mode" contenteditable="true"
+          data-placeholder="Gõ lại văn bản từ trí nhớ của bạn..." spellcheck="false"></div>
+
+        <div id="test-diff-view" class="doc-editor test-diff-view" style="display:none"></div>
+
+        <!-- Icon bóng đèn theo dòng cursor -->
+        <!-- onmousedown preventDefault giữ focus editor, không bị blur -->
+        <div id="hint-bulb" class="hint-bulb" style="display:none"
+          onmousedown="event.preventDefault()" onclick="clickHintBulb()">
+          <i class="fas fa-lightbulb"></i>
+        </div>
+
+        <!-- Popup gợi ý (hiện khi click bóng đèn) -->
+        <!-- onmousedown preventDefault để click vào popup cũng không blur editor -->
+        <div id="hint-popup" class="hint-popup" style="display:none"
+          onmousedown="event.preventDefault()">
+          <div class="hint-popup-label"><i class="fas fa-magic"></i> Gợi ý dòng này</div>
+          <div class="hint-popup-text" id="hint-popup-text"></div>
+          <div class="hint-popup-actions">
+            <button class="hint-accept-btn" onclick="acceptHintFromPopup()">
+              <i class="fas fa-check"></i> Chèn (Tab)
+            </button>
+            <button class="hint-close-btn" onclick="closeHintPopup()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-bottom-bar">
+        <span id="test-word-count" class="editor-status">
+          <i class="fas fa-file-word" style="color:var(--text3)"></i> 0 từ
+        </span>
+        <button class="test-see-ref-btn" onclick="toggleRefPanel()">
+          <i class="fas fa-eye"></i> Xem gốc
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SLIDE PANEL: VĂN BẢN GỐC ═══ -->
+<div class="ref-panel-overlay" id="ref-panel-overlay" onclick="toggleRefPanel()"></div>
+<div class="ref-panel" id="ref-panel">
+  <div class="ref-panel-header">
+    <span><i class="fas fa-file-alt"></i> Văn bản gốc</span>
+    <button class="ref-panel-close" onclick="toggleRefPanel()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="ref-panel-body" id="ref-panel-body"></div>
+</div>
+
+<!-- ═══ MODAL: LỊCH SỬ KIỂM TRA ═══ -->
+<div class="tl-modal-overlay" id="history-modal">
+  <div class="tl-modal history-modal-inner">
+    <div class="history-modal-header">
+      <div class="history-modal-title">
+        <i class="fas fa-history" style="color:var(--accent)"></i>
+        <span id="history-modal-doc-name">Lịch sử kiểm tra</span>
+      </div>
+      <button class="ref-panel-close" onclick="closeHistoryModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="history-modal-entries" class="history-entries-wrap"></div>
+    <div class="history-clear-row">
+      <button class="history-clear-btn" onclick="clearHistory()">
+        <i class="fas fa-trash-alt"></i> Xóa lịch sử
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: XÁC NHẬN XÓA ═══ -->
+<div class="tl-modal-overlay" id="tl-modal">
+  <div class="tl-modal">
+    <div class="tl-modal-icon">🗑️</div>
+    <h3>Xóa văn bản</h3>
+    <p>Bạn có chắc muốn xóa văn bản này?<br>Hành động này <strong>không thể hoàn tác</strong>.</p>
+    <div class="tl-modal-btns">
+      <button class="tl-modal-cancel" onclick="closeModal()">Hủy bỏ</button>
+      <button class="tl-modal-confirm" id="tl-modal-confirm-btn">
+        <i class="fas fa-trash-alt"></i> Xóa
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script type="module" src="tu-luan.js"></script>
+</body>
+</html>
