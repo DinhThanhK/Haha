@@ -421,6 +421,7 @@ window.showPage = function(name) {
   const nb = document.getElementById('nav-'+name);
   if(nb) nb.classList.add('active');
   if(name === 'add' && !_navigatingFromEdit) resetForm();
+  if(name === 'add') setTimeout(initBulkPreview, 50);
   if(name === 'home') { renderQuizGrid(); updateHomeStats(); }
   if(name === 'settings') { renderColorSettings(); renderUsersSettings(); }
   if(name === 'links') { initLinksListener(); renderLinksGrid(); }
@@ -723,6 +724,120 @@ window.promptDeleteHistoryEntry = function(quizId, entryKey) {
 };
 
 // ===== QUESTION EDITOR =====
+// ===== BULK IMPORT =====
+let _bulkOpen = false;
+
+window.toggleBulkImport = function() {
+  _bulkOpen = !_bulkOpen;
+  const body = document.getElementById('bulk-import-body');
+  const chevron = document.getElementById('bulk-chevron');
+  if(body) body.classList.toggle('open', _bulkOpen);
+  if(chevron) chevron.style.transform = _bulkOpen ? 'rotate(180deg)' : '';
+};
+
+window.clearBulkImport = function() {
+  const ta = document.getElementById('bulk-import-ta');
+  if(ta) ta.value = '';
+  document.getElementById('bulk-preview-count').textContent = '';
+  document.getElementById('bulk-import-error').textContent = '';
+};
+
+/** Parse toàn bộ raw text → mảng question objects */
+function parseBulkText(raw) {
+  if(!raw || !raw.trim()) return [];
+
+  // Tách các câu hỏi: ưu tiên dấu --- (1 hoặc nhiều dòng ---) trước,
+  // sau đó fallback: tách theo "Câu N:" ở đầu dòng
+  let chunks = [];
+
+  // Thử tách bằng --- (dấu phân cách rõ ràng)
+  const byDash = raw.split(/\n\s*---+\s*\n/);
+  if(byDash.length > 1) {
+    chunks = byDash;
+  } else {
+    // Fallback: tách theo "Câu N:" hoặc "câu N:" ở đầu dòng
+    // Giữ label "Câu N:" ở đầu mỗi chunk
+    const parts = raw.split(/(?=^\s*[Cc][aâ][uù]\s*\d+\s*[:.)?\-])/m);
+    chunks = parts.filter(p => p.trim());
+    // Nếu không tách được gì hợp lệ, coi toàn bộ là 1 câu
+    if(chunks.length === 0) chunks = [raw];
+  }
+
+  const questions = [];
+  chunks.forEach((chunk, ci) => {
+    const trimmed = chunk.trim();
+    if(!trimmed) return;
+    const q = textToQ(trimmed, ci, null);
+    // Chỉ nhận câu có nội dung
+    if(q.text || (q.answers && q.answers.some(a => a.text))) {
+      // Đảm bảo có ít nhất 2 đáp án cho single/multi
+      if((q.type === 'single' || q.type === 'multi') && (!q.answers || q.answers.length < 2)) {
+        q.answers = (q.answers || []).concat([
+          {text:'',correct:false},{text:'',correct:false}
+        ]).slice(0,Math.max(2,(q.answers||[]).length));
+      }
+      questions.push(q);
+    }
+  });
+  return questions;
+}
+
+window.doBulkImport = function(replace) {
+  const ta = document.getElementById('bulk-import-ta');
+  const errEl = document.getElementById('bulk-import-error');
+  const cntEl = document.getElementById('bulk-preview-count');
+  errEl.textContent = '';
+  if(!ta || !ta.value.trim()) {
+    errEl.textContent = '⚠ Chưa có nội dung để nhập.';
+    return;
+  }
+  try {
+    const parsed = parseBulkText(ta.value);
+    if(parsed.length === 0) {
+      errEl.textContent = '⚠ Không nhận diện được câu hỏi nào. Kiểm tra lại định dạng.';
+      return;
+    }
+    if(replace) {
+      editQuestions = parsed;
+    } else {
+      editQuestions = editQuestions.concat(parsed);
+    }
+    renderQuestions();
+    // Scroll to question list
+    setTimeout(() => {
+      document.getElementById('question-list')?.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 120);
+    // Clear + collapse
+    ta.value = '';
+    cntEl.textContent = '';
+    _bulkOpen = false;
+    const body = document.getElementById('bulk-import-body');
+    const chevron = document.getElementById('bulk-chevron');
+    if(body) body.classList.remove('open');
+    if(chevron) chevron.style.transform = '';
+    showToast(`✅ Đã nhập ${parsed.length} câu hỏi`, 'success');
+  } catch(e) {
+    errEl.textContent = '⚠ Lỗi: ' + e.message;
+  }
+};
+
+// Live preview count while typing
+function initBulkPreview() {
+  const ta = document.getElementById('bulk-import-ta');
+  const cntEl = document.getElementById('bulk-preview-count');
+  const replaceBtn = document.getElementById('bulk-replace-btn');
+  if(!ta) return;
+  ta.addEventListener('input', () => {
+    if(!ta.value.trim()) { cntEl.textContent = ''; return; }
+    try {
+      const n = parseBulkText(ta.value).length;
+      cntEl.textContent = n > 0 ? `${n} câu được nhận diện` : '';
+      // Chỉ hiện nút "Thay thế" khi đề đã có câu
+      if(replaceBtn) replaceBtn.style.display = (editQuestions.length > 0 && n > 0) ? '' : 'none';
+    } catch(e) { cntEl.textContent = ''; }
+  });
+}
+
 window.addQuestion = function(data) {
   const defaultType = document.getElementById('quiz-default-type')?.value || 'single';
   editQuestions.push(data || {
@@ -742,6 +857,10 @@ function renderQuestions() {
   list.innerHTML = '';
   editQuestions.forEach((q, qi) => renderQuestionItem(q, qi, list));
   document.getElementById('q-count').textContent = editQuestions.length;
+  // Auto-resize tất cả textarea sau khi render
+  setTimeout(() => {
+    list.querySelectorAll('textarea.auto-resize-ta').forEach(ta => autoResize(ta));
+  }, 0);
 }
 
 // ---- Text ↔ Form converter ----
@@ -904,7 +1023,7 @@ function refreshFormFields(qi, q) {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   // Question text input
   const qInput = document.getElementById(`qinput-${qi}`);
-  if(qInput && qInput !== document.activeElement) qInput.value = q.text||'';
+  if(qInput && qInput !== document.activeElement) { qInput.value = q.text||''; autoResize(qInput); }
   // Type select
   const qType = document.getElementById(`qtype-${qi}`);
   if(qType) qType.value = q.type||'single';
@@ -927,7 +1046,9 @@ function refreshFormFields(qi, q) {
       <div class="answer-row" id="ans-${qi}-${ai}">
         <div class="answer-letter">${letters[ai]||'?'}</div>
         <input type="checkbox" class="answer-check" ${a.correct?'checked':''} onchange="editAns(${qi},${ai},'correct',this.checked,${q.type==='single'?'true':'false'})">
-        <input type="text" class="answer-input" placeholder="Đáp án ${letters[ai]||ai+1}..." value="${escHtml(a.text||'')}" id="ainput-${qi}-${ai}" oninput="editAns(${qi},${ai},'text',this.value)">
+        <textarea class="answer-input auto-resize-ta" placeholder="Đáp án ${letters[ai]||ai+1}..." id="ainput-${qi}-${ai}"
+          style="resize:none;overflow:hidden;min-height:34px;padding:7px 10px"
+          oninput="editAns(${qi},${ai},'text',this.value);autoResize(this)">${escHtml(a.text||'')}</textarea>
         ${(q.answers||[]).length>2?`<button class="answer-remove-btn" onclick="removeAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
       </div>`).join('');
   } else {
@@ -938,7 +1059,7 @@ function refreshFormFields(qi, q) {
       const cb = row.querySelector('.answer-check');
       const inp = row.querySelector('.answer-input');
       if(cb) cb.checked = a.correct;
-      if(inp && inp!==document.activeElement) inp.value = a.text||'';
+      if(inp && inp!==document.activeElement) { inp.value = a.text||''; autoResize(inp); }
     });
   }
 }
@@ -1018,9 +1139,8 @@ function renderQuestionItem(q, qi, container, isInline) {
     <button class="q-remove" onclick="removeQuestion(${qi})" title="Xóa câu"><i class="fas fa-times"></i></button>
     <div class="q-header">
       <div class="q-num">Câu ${qi+1}${q.hidden?'<span class="q-hidden-badge"><i class="fas fa-eye-slash"></i> Ẩn</span>':''}</div>
-      <input type="text" class="form-input" id="qinput-${qi}" style="flex:1" placeholder="Nội dung câu hỏi..."
-        value="${escHtml(q.text||'')}"
-        oninput="editQ(${qi},'text',this.value);syncFormToText(${qi})">
+      <textarea class="form-input auto-resize-ta" id="qinput-${qi}" style="flex:1;resize:none;overflow:hidden;min-height:40px" placeholder="Nội dung câu hỏi..."
+        oninput="editQ(${qi},'text',this.value);syncFormToText(${qi});autoResize(this)">${escHtml(q.text||'')}</textarea>
       <select class="q-type-select" id="qtype-${qi}" onchange="editQType(${qi},this.value);syncFormToText(${qi})">
         <option value="single" ${q.type==='single'?'selected':''}>Chọn 1</option>
         <option value="multi" ${q.type==='multi'?'selected':''}>Nhiều đáp án</option>
@@ -1065,9 +1185,9 @@ function renderQuestionItem(q, qi, container, isInline) {
         <div class="answer-row" id="ans-${qi}-${ai}">
           <div class="answer-letter">${letters[ai]||'?'}</div>
           <input type="checkbox" class="answer-check" ${a.correct?'checked':''} onchange="editAns(${qi},${ai},'correct',this.checked,${q.type==='single'?'true':'false'});syncFormToText(${qi})">
-          <input type="text" class="answer-input" id="ainput-${qi}-${ai}" placeholder="Đáp án ${letters[ai]||ai+1}..."
-            value="${escHtml(a.text||'')}"
-            oninput="editAns(${qi},${ai},'text',this.value);syncFormToText(${qi})">
+          <textarea class="answer-input auto-resize-ta" id="ainput-${qi}-${ai}" placeholder="Đáp án ${letters[ai]||ai+1}..."
+            style="resize:none;overflow:hidden;min-height:34px;padding:7px 10px"
+            oninput="editAns(${qi},${ai},'text',this.value);syncFormToText(${qi});autoResize(this)">${escHtml(a.text||'')}</textarea>
           <input type="url" class="answer-input" style="max-width:130px;font-size:.75rem" placeholder="🔊 audio..." value="${escHtml(a.audioUrl||'')}" oninput="editAns(${qi},${ai},'audioUrl',this.value)" title="URL âm thanh đáp án (user click để nghe)">
           ${(q.answers||[]).length>2?`<button class="answer-remove-btn" onclick="removeAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
         </div>`).join('')}
@@ -2796,6 +2916,11 @@ function renderMath(text) {
   s = s.replace(/~=/g, '≈');
   s = s.replace(/\+-/g, '±');
 
+  // 6b. Inline code: `code` → <code>code</code> (như GitHub README)
+  s = s.replace(/`([^`\n]+)`/g, (_, inner) =>
+    `<code class="inline-code">${inner.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code>`
+  );
+
   // 7. Ký tự Hy Lạp — BẮT BUỘC có tiền tố / để tránh nhầm hóa học
   const greekMap = {
     '/alpha':'α','/beta':'β','/gamma':'γ','/delta':'δ','/epsilon':'ε',
@@ -2868,6 +2993,21 @@ function shuffle(arr) {
   return a;
 }
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/** Auto-resize a textarea to fit its content */
+function autoResize(el) {
+  if(!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+window.autoResize = autoResize;
+/** Attach auto-resize to a textarea by id (after DOM insert) */
+function attachAutoResize(id) {
+  const el = document.getElementById(id);
+  if(!el || el.tagName !== 'TEXTAREA') return;
+  autoResize(el);
+  el.addEventListener('input', () => autoResize(el));
+}
 
 function getCorrectPraise(){
   const p=['🎉 Xuất sắc! Đúng rồi!','✅ Chính xác! Tuyệt vời!','🌟 Quá giỏi! Đúng!','💯 Hoàn hảo!','🔥 Xuất sắc!','👏 Chuẩn không cần chỉnh!','🚀 Quá nhanh quá nguy hiểm!','🎯 Trúng đích!','😎 Đỉnh đấy!','🥳 Làm tốt lắm!','✨ Chính xác luôn!','🧠 Não chạy nhanh ghê!','🏆 Điểm tuyệt đối!','👍 Chuẩn bài!','💡 Chuẩn xác!','📚 Học tốt lắm!','🎊 Tuyệt cú mèo!','💥 Chính xác 100%!','🔔 Đúng rồi đó!','😄 Chuẩn luôn!'];

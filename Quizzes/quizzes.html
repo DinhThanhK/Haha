@@ -144,6 +144,32 @@
           <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">/phi</code> = ký tự Hy Lạp
         </span>
       </div>
+
+      <!-- BULK IMPORT PANEL -->
+      <div class="bulk-import-panel" id="bulk-import-panel">
+        <div class="bulk-import-header" onclick="toggleBulkImport()">
+          <span><i class="fas fa-file-import"></i> Nhập nguyên đề <span class="bulk-badge">Mới</span></span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:.75rem;color:var(--text3)">Paste nhiều câu cùng lúc</span>
+            <i class="fas fa-chevron-down" id="bulk-chevron" style="font-size:.7rem;color:var(--text3);transition:transform .25s"></i>
+          </span>
+        </div>
+        <div class="bulk-import-body" id="bulk-import-body">
+          <div class="bulk-import-hint">
+            <div class="bulk-hint-row"><i class="fas fa-info-circle" style="color:var(--accent2)"></i> Mỗi câu cách nhau bằng dòng <code>---</code> hoặc bắt đầu bằng <code>Câu N:</code></div>
+            <div class="bulk-hint-row" style="margin-top:4px"><i class="fas fa-check" style="color:var(--accent2)"></i> Đáp án đúng dùng dấu <code>*</code> sau chữ cái: <code>D*.</code> hoặc <code>D*)</code></div>
+            <div class="bulk-hint-row" style="margin-top:4px"><i class="fas fa-check" style="color:var(--accent2)"></i> Giải thích bắt đầu bằng <code>=></code></div>
+          </div>
+          <textarea class="bulk-import-textarea" id="bulk-import-ta" placeholder="Câu 1: Min-Max Scaling chuẩn hóa dữ liệu về khoảng nào?&#10;&#10;A. Trung bình = 1, độ lệch chuẩn = 0&#10;B. Trung bình = 0, độ lệch chuẩn = 1&#10;C. Khoảng [-1, 1]&#10;D*. Khoảng [0, 1]&#10;&#10;=> Giải thích đáp án...&#10;&#10;---&#10;&#10;Câu 2: ..."></textarea>
+          <div class="bulk-import-actions">
+            <span class="bulk-preview-count" id="bulk-preview-count"></span>
+            <button class="bulk-clear-btn" onclick="clearBulkImport()"><i class="fas fa-times"></i> Xóa</button>
+            <button class="bulk-import-btn" onclick="doBulkImport(false)"><i class="fas fa-plus-circle"></i> Thêm vào đề</button>
+            <button class="bulk-import-btn bulk-replace-btn" onclick="doBulkImport(true)" id="bulk-replace-btn" style="display:none"><i class="fas fa-sync-alt"></i> Thay thế toàn bộ</button>
+          </div>
+          <div class="bulk-import-error" id="bulk-import-error"></div>
+        </div>
+      </div>
       <div class="question-list" id="question-list"></div>
       <button class="add-question-btn" onclick="addQuestion()" style="margin-top:12px"><i class="fas fa-plus"></i> Thêm câu hỏi</button>
     </div>
