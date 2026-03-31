@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizMaster – Trắc Nghiệm Thông Minh</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.93.93c-.75.75-1.14 1.72-1.14 2.82v.5h-2v-.5c0-1.6.62-3.07 1.75-4.2l1.32-1.32c.38-.38.6-.9.6-1.45 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="quizzes.css">
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-logo">Quiz<span>Master</span></div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+</div>
+
+<!-- TOP NAV -->
+<nav id="top-nav">
+  <div class="nav-logo" onclick="showPage('home')">
+    <i class="fas fa-brain"></i><span class="nav-logo-text">Quiz<span style="color:var(--accent2)">Master</span></span>
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn active" id="nav-home" onclick="showPage('home')"><i class="fas fa-home"></i><span class="nav-label"> Trắc nghiệm</span></button>
+    <button class="nav-btn" id="nav-tu-luan" onclick="window.location.href='tu-luan.html'"><i class="fas fa-pen-nib"></i><span class="nav-label"> Tự luận</span></button>
+    <button class="nav-btn" id="nav-links" onclick="window.location.href='cac-de-thi.html'"><i class="fas fa-link"></i><span class="nav-label"> Các đề thi</span></button>
+    <button class="nav-btn" id="nav-add" onclick="showPage('add')"><i class="fas fa-plus"></i><span class="nav-label"> Thêm mới</span></button>
+    <button class="nav-btn" id="nav-settings" onclick="showPage('settings')"><i class="fas fa-palette"></i><span class="nav-label"> Cài đặt</span></button>
+  </div>
+</nav>
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+  <div class="home-hero">
+    <h1 id="home-h1">Bộ <span>Trắc Nghiệm</span> của bạn</h1>
+    <p>Chọn một bộ đề để bắt đầu luyện tập</p>
+    <div class="home-stats">
+      <div class="stat-badge"><i class="fas fa-layer-group"></i><span id="total-sets">0</span> bộ đề</div>
+      <div class="stat-badge"><i class="fas fa-question-circle"></i><span id="total-questions">0</span> câu hỏi</div>
+      <div class="user-badge" id="user-badge" tabindex="0">
+        <i class="fas fa-user-circle"></i>
+        <span class="user-name" id="user-badge-name">Chọn user</span>
+        <i class="fas fa-chevron-down" style="font-size:.65rem;color:var(--text3)"></i>
+        <div class="user-dropdown" id="user-dropdown"></div>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="text" class="search-input" id="search-input" placeholder="🔍 Tìm kiếm bộ đề..." oninput="filterQuizzes()">
+    </div>
+  </div>
+  <div class="sort-mode-banner" id="sort-mode-banner">
+    <i class="fas fa-arrows-alt"></i> Chế độ sắp xếp — Kéo thả để thay đổi thứ tự bộ đề &nbsp;
+    <button onclick="exitSortMode()" style="margin-left:auto;padding:3px 10px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:.78rem">Xong</button>
+  </div>
+  <div class="quiz-grid" id="quiz-grid">
+    <div class="empty-state" id="empty-state" style="display:none;grid-column:1/-1">
+      <i class="fas fa-inbox"></i>
+      <h3>Chưa có bộ trắc nghiệm nào</h3>
+      <p>Nhấn <span class="link-text" onclick="showPage('add')">Thêm mới</span> để tạo bộ đề đầu tiên</p>
+    </div>
+  </div>
+  <button class="drag-sort-btn" id="drag-sort-btn" onclick="toggleSortMode()" style="position:fixed;bottom:24px;right:24px;z-index:100">
+    <i class="fas fa-sort"></i> Sắp xếp bộ đề
+  </button>
+</div>
+
+<!-- ADD/EDIT PAGE -->
+<div class="page" id="page-add">
+  <div class="form-page-wrap">
+    <div class="form-page-header">
+      <button class="back-btn" onclick="showPage('home')"><i class="fas fa-arrow-left"></i></button>
+      <h2 id="form-title">Thêm bộ trắc nghiệm</h2>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title"><i class="fas fa-info-circle"></i> Thông tin bộ đề</div>
+      <div class="form-group">
+        <label>Tên chủ đề *</label>
+        <input type="text" class="form-input" id="quiz-name" placeholder="VD: Toán học lớp 10 chương 1">
+      </div>
+      <div class="form-group">
+        <label>Hình ảnh (URL)</label>
+        <input type="url" class="form-input" id="quiz-image-url" placeholder="https://..." oninput="previewImage()">
+        <img id="quiz-img-preview" class="image-preview">
+        <div style="margin-top:8px;font-size:.8rem;color:var(--text3)">Hoặc chọn hình mẫu:</div>
+        <div class="sample-images" id="sample-images"></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title"><i class="fas fa-cog"></i> Cài đặt bộ đề</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Thời gian làm bài (phút)</label>
+          <input type="number" class="form-input" id="quiz-time" value="30" min="1" max="300">
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Đảo câu hỏi</div><div class="toggle-desc">Thứ tự câu hỏi ngẫu nhiên mỗi lần làm</div></div>
+        <label class="toggle"><input type="checkbox" id="shuffle-questions" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Đảo đáp án</div><div class="toggle-desc">Thứ tự đáp án ngẫu nhiên mỗi câu</div></div>
+        <label class="toggle"><input type="checkbox" id="shuffle-answers" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Số lần cần làm</div><div class="toggle-desc">Mục tiêu số lượt hoàn thành bộ đề này</div></div>
+        <input type="number" class="form-input" id="quiz-target-sessions" value="1" min="1" max="99" style="width:70px;text-align:center;padding:6px 8px;flex-shrink:0">
+      </div>
+      <div class="sessions-done-row" id="sessions-done-row" style="display:none">
+        <div class="sessions-done-label"><i class="fas fa-check-double" style="color:var(--accent2)"></i> Số lần đã làm</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="sessions-done-val" id="sessions-done-val">0</span>
+          <button class="reset-sessions-btn" onclick="resetCurrentSessions()"><i class="fas fa-undo"></i> Reset</button>
+        </div>
+      </div>
+      <div class="toggle-row" style="border-bottom:none">
+        <div><div class="toggle-label">Hiển thị cho</div><div class="toggle-desc">User được phép xem bộ đề này</div></div>
+        <div class="user-assign-wrap" id="quiz-user-assign"></div>
+      </div>
+      <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:12px">
+        <div><div class="toggle-label">Loại câu trả lời mặc định</div><div class="toggle-desc">Áp dụng cho câu hỏi mới thêm vào (có thể đổi từng câu)</div></div>
+        <select class="form-select" id="quiz-default-type" style="width:auto;padding:6px 10px;font-size:.82rem">
+          <option value="single">Chọn 1 đáp án</option>
+          <option value="multi">Chọn nhiều đáp án</option>
+          <option value="fill">Điền vào chỗ trống</option>
+        </select>
+      </div>
+      <div class="new-badge-toggle-row">
+        <div><div class="toggle-label">Hiển thị badge <span style="background:linear-gradient(135deg,#ff6b6b,#ffd93d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;font-weight:800">Mới</span></div><div class="toggle-desc">Bật để đánh dấu bộ đề này là mới/vừa cập nhật</div></div>
+        <label class="toggle"><input type="checkbox" id="quiz-show-new-badge"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title" style="justify-content:space-between">
+        <span><i class="fas fa-list-ul"></i> Danh sách câu hỏi (<span id="q-count">0</span>)</span>
+        <span style="font-size:.72rem;color:var(--text3);font-weight:400;display:flex;align-items:center;gap:6px">
+          <i class="fas fa-keyboard"></i> Soạn bằng văn bản ở cột phải &nbsp;|&nbsp;
+          Dùng <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">A*.</code> = đúng,
+          <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">=></code> = giải thích,
+          <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">H_(2)O</code> = chỉ số hóa học,
+          <code style="background:rgba(0,212,170,.1);color:var(--accent2);padding:1px 5px;border-radius:3px">/phi</code> = ký tự Hy Lạp
+        </span>
+      </div>
+
+      <!-- BULK IMPORT PANEL -->
+      <div class="bulk-import-panel" id="bulk-import-panel">
+        <div class="bulk-import-header" onclick="toggleBulkImport()">
+          <span><i class="fas fa-file-import"></i> Nhập nguyên đề <span class="bulk-badge">Mới</span></span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:.75rem;color:var(--text3)">Paste nhiều câu cùng lúc</span>
+            <i class="fas fa-chevron-down" id="bulk-chevron" style="font-size:.7rem;color:var(--text3);transition:transform .25s"></i>
+          </span>
+        </div>
+        <div class="bulk-import-body" id="bulk-import-body">
+          <div class="bulk-import-hint">
+            <div class="bulk-hint-row"><i class="fas fa-info-circle" style="color:var(--accent2)"></i> Mỗi câu cách nhau bằng dòng <code>---</code> hoặc bắt đầu bằng <code>Câu N:</code></div>
+            <div class="bulk-hint-row" style="margin-top:4px"><i class="fas fa-check" style="color:var(--accent2)"></i> Đáp án đúng dùng dấu <code>*</code> sau chữ cái: <code>D*.</code> hoặc <code>D*)</code></div>
+            <div class="bulk-hint-row" style="margin-top:4px"><i class="fas fa-check" style="color:var(--accent2)"></i> Giải thích bắt đầu bằng <code>=></code></div>
+          </div>
+          <textarea class="bulk-import-textarea" id="bulk-import-ta" placeholder="Câu 1: Min-Max Scaling chuẩn hóa dữ liệu về khoảng nào?&#10;&#10;A. Trung bình = 1, độ lệch chuẩn = 0&#10;B. Trung bình = 0, độ lệch chuẩn = 1&#10;C. Khoảng [-1, 1]&#10;D*. Khoảng [0, 1]&#10;&#10;=> Giải thích đáp án...&#10;&#10;---&#10;&#10;Câu 2: ..."></textarea>
+          <div class="bulk-import-actions">
+            <span class="bulk-preview-count" id="bulk-preview-count"></span>
+            <button class="bulk-clear-btn" onclick="clearBulkImport()"><i class="fas fa-times"></i> Xóa</button>
+            <button class="bulk-import-btn" onclick="doBulkImport(false)"><i class="fas fa-plus-circle"></i> Thêm vào đề</button>
+            <button class="bulk-import-btn bulk-replace-btn" onclick="doBulkImport(true)" id="bulk-replace-btn" style="display:none"><i class="fas fa-sync-alt"></i> Thay thế toàn bộ</button>
+          </div>
+          <div class="bulk-import-error" id="bulk-import-error"></div>
+        </div>
+      </div>
+      <div class="question-list" id="question-list"></div>
+      <button class="add-question-btn" onclick="addQuestion()" style="margin-top:12px"><i class="fas fa-plus"></i> Thêm câu hỏi</button>
+    </div>
+
+    <button class="save-btn" id="save-btn" onclick="saveQuiz()"><i class="fas fa-save"></i> Lưu bộ đề</button>
+    <div style="height:24px"></div>
+  </div>
+</div>
+
+<!-- QUIZ PAGE -->
+<div class="page" id="page-quiz">
+  <div class="quiz-layout">
+    <div class="quiz-main" id="quiz-main">
+      <div class="quiz-topbar">
+        <button class="back-btn" onclick="exitQuiz()" style="flex-shrink:0"><i class="fas fa-arrow-left"></i></button>
+        <div class="quiz-title-text" id="quiz-playing-title">Đang tải...</div>
+        <div class="quiz-progress">
+          <span id="q-progress-text">0/0</span>
+          <div class="progress-bar"><div class="progress-fill" id="q-progress-bar" style="width:0%"></div></div>
+        </div>
+        <div class="timer-display" id="timer-display"><i class="fas fa-clock"></i><span id="timer-text">--:--</span></div>
+      </div>
+      <div id="question-display"></div>
+      <div class="quiz-nav-btns-wrap">
+        <div class="quiz-nav-btns">
+          <button class="quiz-nav-btn" id="btn-prev" onclick="prevQuestion()"><i class="fas fa-chevron-left"></i> Câu trước</button>
+          <button class="quiz-nav-btn nav-middle btn-nav-center" id="btn-nav-center" onclick="toggleMobileSidebar()"><i class="fas fa-th"></i></button>
+          <button class="quiz-nav-btn next" id="btn-next" onclick="nextQuestion()">Câu tiếp <i class="fas fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="quiz-sidebar" id="quiz-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Điều hướng câu hỏi</div>
+        <button class="sidebar-close-btn" id="sidebar-close-btn" onclick="closeSidebar()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="sidebar-stats">
+        <div class="s-stat"><div class="s-stat-val" id="s-correct" style="color:var(--correct)">0</div><div class="s-stat-label">Đúng</div></div>
+        <div class="s-stat"><div class="s-stat-val" id="s-wrong" style="color:var(--wrong)">0</div><div class="s-stat-label">Sai</div></div>
+        <div class="s-stat"><div class="s-stat-val" id="s-unseen">0</div><div class="s-stat-label">Chưa làm</div></div>
+      </div>
+      <div class="nav-grid" id="nav-grid"></div>
+      <button class="finish-btn" onclick="finishQuiz()"><i class="fas fa-flag-checkered"></i> Nộp bài</button>
+    </div>
+  </div>
+  <button class="toggle-sidebar-btn" id="toggle-sidebar-btn" onclick="toggleSidebar()"><i class="fas fa-map"></i></button>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+  <div class="settings-wrap">
+    <h2><i class="fas fa-palette"></i> Cài đặt giao diện</h2>
+    <p>Tùy chỉnh màu sắc giao diện theo sở thích của bạn</p>
+    <div class="form-section">
+      <div class="form-section-title"><i class="fas fa-square"></i> Màu câu hỏi & đáp án</div>
+      <div class="color-grid" id="color-settings-grid"></div>
+    </div>
+    <div class="form-section" style="margin-top:16px">
+      <div class="form-section-title"><i class="fas fa-users"></i> Quản lý người dùng</div>
+      <p style="font-size:.82rem;color:var(--text3);margin-bottom:12px">Thêm, đổi tên hoặc xóa user. User được dùng để lọc bộ đề hiển thị.</p>
+      <div id="users-settings-section"></div>
+    </div>
+    <div class="form-section" style="margin-top:16px">
+      <div class="form-section-title"><i class="fas fa-volume-up"></i> Âm thanh phản hồi</div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Âm thanh khi trả lời đúng</div><div class="toggle-desc">Phát âm khi chọn đúng đáp án</div></div>
+        <label class="toggle"><input type="checkbox" id="sound-correct-enabled" checked onchange="saveSoundSettings()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row" style="border-bottom:none">
+        <div style="flex:1"><div class="toggle-label">Âm lượng đúng</div></div>
+        <input type="range" id="sound-correct-vol" min="0" max="1" step="0.05" value="0.7" style="width:120px;accent-color:var(--accent2)" oninput="saveSoundSettings();previewSound('correct')">
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Âm thanh khi trả lời sai</div><div class="toggle-desc">Phát âm khi chọn sai đáp án</div></div>
+        <label class="toggle"><input type="checkbox" id="sound-wrong-enabled" checked onchange="saveSoundSettings()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row" style="border-bottom:none">
+        <div style="flex:1"><div class="toggle-label">Âm lượng sai</div></div>
+        <input type="range" id="sound-wrong-vol" min="0" max="1" step="0.05" value="0.7" style="width:120px;accent-color:var(--wrong)" oninput="saveSoundSettings();previewSound('wrong')">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+      <button class="reset-settings-btn" style="margin-top:0" onclick="resetSettings()"><i class="fas fa-undo"></i> Đặt lại mặc định</button>
+      <button class="reset-settings-btn" style="margin-top:0;color:var(--accent2);border-color:var(--accent2)" onclick="showPage('home')"><i class="fas fa-home"></i> Về trang chủ</button>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <h3 id="modal-title">Xác nhận</h3>
+    <p id="modal-desc"></p>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeModal()">Hủy</button>
+      <button class="modal-btn danger" id="modal-confirm-btn">Xóa</button>
+    </div>
+  </div>
+</div>
+
+<div class="inline-edit-overlay" id="inline-edit-overlay">
+  <div class="inline-edit-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-family:'Lexend Deca',sans-serif;font-weight:800">Chỉnh sửa câu hỏi</h3>
+      <button class="sidebar-close-btn" onclick="closeInlineEdit()"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="inline-edit-content"></div>
+    <button class="save-btn" id="inline-save-btn" style="margin-top:12px" onclick="saveInlineEdit()"><i class="fas fa-save"></i> Lưu thay đổi</button>
+  </div>
+</div>
+
+<div class="result-overlay" id="result-overlay">
+  <div class="result-rating-wrap">
+    <!-- Left: Result card -->
+    <div class="result-card">
+      <div style="font-size:3rem" id="result-emoji">🎉</div>
+      <div class="result-score" id="result-score">0%</div>
+      <div class="result-grade" id="result-grade">Chưa xác định</div>
+      <div class="result-stats-grid">
+        <div class="result-stat"><div class="result-stat-val" style="color:var(--correct)" id="r-correct">0</div><div class="result-stat-label">Câu đúng</div></div>
+        <div class="result-stat"><div class="result-stat-val" style="color:var(--wrong)" id="r-wrong">0</div><div class="result-stat-label">Câu sai</div></div>
+        <div class="result-stat"><div class="result-stat-val" id="r-total">0</div><div class="result-stat-label">Tổng câu</div></div>
+      </div>
+      <div class="result-btns">
+        <button class="result-btn" onclick="retryQuiz()"><i class="fas fa-redo"></i> Làm lại</button>
+        <button class="result-btn" onclick="reviewQuiz()"><i class="fas fa-eye"></i> Xem lại</button>
+        <button class="result-btn primary" onclick="exitQuiz()"><i class="fas fa-home"></i> Về nhà</button>
+      </div>
+    </div>
+    <!-- Right: Rating panel (shown after finish) -->
+    <div class="rating-panel hidden" id="rating-panel">
+      <div style="font-size:2rem;margin-bottom:6px">⭐</div>
+      <div class="rating-title">Đánh giá bộ đề</div>
+      <div class="rating-subtitle" id="rating-quiz-name">Bạn cảm thấy thế nào?</div>
+      <div class="rating-stars" id="rating-stars">
+        <span class="rating-star" data-val="1">★</span>
+        <span class="rating-star" data-val="2">★</span>
+        <span class="rating-star" data-val="3">★</span>
+        <span class="rating-star" data-val="4">★</span>
+        <span class="rating-star" data-val="5">★</span>
+      </div>
+      <textarea class="rating-comment" id="rating-comment" placeholder="Nhận xét (tùy chọn)..."></textarea>
+      <div id="rating-liked-summary"></div>
+      <div class="rating-btns">
+        <button class="rating-skip-btn" onclick="skipRating()"><i class="fas fa-forward"></i> Bỏ qua</button>
+        <button class="rating-submit-btn" onclick="submitRating()"><i class="fas fa-star"></i> Gửi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMIT CONFIRM MODAL -->
+<div class="modal-overlay" id="submit-confirm-modal">
+  <div class="modal">
+    <h3>Xác nhận nộp bài</h3>
+    <p id="submit-confirm-desc">Bạn có chắc chắn muốn nộp bài không?</p>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="document.getElementById('submit-confirm-modal').classList.remove('visible')">Hủy</button>
+      <button class="modal-btn danger" id="submit-confirm-btn" onclick="doFinishQuiz()"><i class="fas fa-flag-checkered"></i> Nộp bài</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="history-modal-overlay" id="history-modal">
+  <div class="history-modal">
+    <div class="history-modal-header">
+      <div class="history-modal-title"><i class="fas fa-history"></i> Lịch sử làm bài</div>
+      <button class="sidebar-close-btn" onclick="document.getElementById('history-modal').classList.remove('visible')"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="font-size:.82rem;color:var(--text3);margin-bottom:8px" id="history-modal-quiz-name"></div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+      <button class="history-tab-btn active" id="htab-history" onclick="switchHistoryTab('history')" style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:rgba(108,99,255,.12);color:var(--accent);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s"><i class="fas fa-clock"></i> Lịch sử</button>
+      <button class="history-tab-btn" id="htab-ratings" onclick="switchHistoryTab('ratings')" style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s"><i class="fas fa-star"></i> Đánh giá</button>
+    </div>
+    <div id="history-tab-history">
+      <div id="history-modal-entries"></div>
+      <button class="history-clear-btn" id="history-clear-btn" onclick="promptClearHistory()"><i class="fas fa-trash-alt"></i> Xóa lịch sử bộ đề này</button>
+    </div>
+    <div id="history-tab-ratings" style="display:none">
+      <div id="ratings-modal-entries"></div>
+      <button class="history-clear-btn" style="margin-top:10px;border-color:var(--wrong);color:var(--wrong)" onclick="promptClearRatings()"><i class="fas fa-trash-alt"></i> Xóa tất cả đánh giá</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="pwd-modal-overlay" id="pwd-modal">
+  <div class="pwd-modal">
+    <h3 id="pwd-modal-title">Xác nhận mật khẩu</h3>
+    <p id="pwd-modal-desc">Nhập mật khẩu để tiếp tục.</p>
+    <div class="pwd-input-row">
+      <input type="password" class="pwd-input" id="pwd-input" placeholder="Mật khẩu..." onkeydown="if(event.key==='Enter')confirmPwd()">
+      <button class="modal-btn danger" onclick="confirmPwd()"><i class="fas fa-unlock"></i></button>
+    </div>
+    <div class="pwd-error" id="pwd-error"></div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="modal-btn" onclick="closePwdModal()">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- FIREBASE + APP JS -->
+<script type="module" src="quizzes.js"></script>
+</body>
+</html>
