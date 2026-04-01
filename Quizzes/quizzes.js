@@ -868,7 +868,11 @@ function renderQuestions() {
 /** Serialize question data → plain text */
 function qToText(q, qi) {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let lines = [`Câu ${qi+1}: ${q.text||''}`];
+  // Câu hỏi nhiều dòng: dòng đầu có "Câu N:", các dòng sau indent 3 space
+  const qLines = (q.text||'').split('\n');
+  let lines = [`Câu ${qi+1}: ${qLines[0]}`];
+  for(let i=1; i<qLines.length; i++) lines.push(`   ${qLines[i]}`);
+
   if(q.type==='fill') {
     const corrects = (q.answers||[]).filter(a=>a.correct).map(a=>a.text);
     lines.push(`=> [Điền] ${corrects.join(' | ')}`);
@@ -878,11 +882,13 @@ function qToText(q, qi) {
   } else {
     (q.answers||[]).forEach((a,ai) => {
       const lbl = letters[ai]||String(ai+1);
-      lines.push(`${lbl}${a.correct?'*':''}. ${a.text||''}`);
+      // Đáp án nhiều dòng: dòng đầu có "A.", các dòng sau indent 3 space
+      const aLines = (a.text||'').split('\n');
+      lines.push(`${lbl}${a.correct?'*':''}. ${aLines[0]}`);
+      for(let i=1; i<aLines.length; i++) lines.push(`   ${aLines[i]}`);
     });
   }
   if(q.explanation) {
-    // Multiline explanation: dòng đầu có prefix =>, các dòng sau indent bằng 3 space
     const explLines = q.explanation.split('\n');
     lines.push(`=> ${explLines[0]}`);
     for(let i=1; i<explLines.length; i++) lines.push(`   ${explLines[i]}`);
@@ -892,7 +898,6 @@ function qToText(q, qi) {
 
 /** Parse plain text → question data object (partial merge with existing q) */
 function textToQ(raw, qi, existingQ) {
-  // Không filter dòng rỗng khi split, để giữ xuống dòng trong explanation
   const lines = raw.split('\n');
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const result = {
@@ -904,36 +909,46 @@ function textToQ(raw, qi, existingQ) {
     audioUrl: existingQ?.audioUrl||'',
   };
 
-  // Answer detection regex: starts with letter (A-Z) then optionally * then . or , or ) or :
+  // Regexes
   const ansRe = /^([A-Za-z])([*]?)\s*[.,):\-]\s*(.*)/;
-  // Question line: "Câu N:" or "Câu N." or just first non-answer line
   const qRe = /^[Cc][aâ]u\s*\d+\s*[:.)?\-]?\s*(.*)/;
-  // Explanation line: starts with => or # or Giải thích:
   const explRe = /^(?:=>|#|giải thích:?)\s*(.*)/i;
+  // Indent: dòng bắt đầu bằng ít nhất 2 space hoặc tab (continuation)
+  const isIndent = (line) => line.startsWith('  ') || line.startsWith('\t');
 
   let parsedAnswers = [];
   let foundQ = false;
-  let explLines = null; // null = chưa gặp =>, array = đang thu thập explanation
+  // Trạng thái đang collect block nào: null | 'q' | 'ans' | 'expl'
+  let mode = null;
+  let explLines = null;
 
-  for(let line of lines) {
+  for(let li = 0; li < lines.length; li++) {
+    const line = lines[li];
     const trimmed = line.trim();
 
-    // Nếu đang trong explanation block, thu thập tiếp (kể cả dòng rỗng giữa)
-    if(explLines !== null) {
-      // Dòng indent (bắt đầu bằng space) hoặc dòng rỗng = continuation của explanation
-      const isIndented = line.startsWith('   ') || line.startsWith('\t') || !trimmed;
-      // Nhưng nếu là answer line mới rõ ràng (không indent) thì dừng explanation
-      if(!isIndented && trimmed && ansRe.test(trimmed)) {
-        explLines = null;
-      } else {
-        // Trim leading indent (3 spaces) nếu có, nhưng giữ nội dung
-        explLines.push(isIndented && trimmed ? line.replace(/^ {0,3}/, '') : line);
+    // --- Continuation dòng indent ---
+    if(isIndent(line) || (!trimmed && (mode === 'q' || mode === 'ans' || mode === 'expl'))) {
+      if(mode === 'expl' && explLines !== null) {
+        explLines.push(trimmed);
         continue;
       }
+      if(mode === 'q' && foundQ) {
+        // Nối thêm dòng vào câu hỏi
+        result.text += '\n' + trimmed;
+        continue;
+      }
+      if(mode === 'ans' && parsedAnswers.length > 0) {
+        // Nối thêm dòng vào đáp án cuối cùng
+        const last = parsedAnswers[parsedAnswers.length - 1];
+        last.text += '\n' + trimmed;
+        continue;
+      }
+      if(!trimmed) continue; // dòng trống không thuộc block nào → skip
     }
 
-    if(!trimmed) continue; // bỏ qua dòng rỗng ngoài explanation block
+    if(!trimmed) { mode = null; continue; } // dòng trống reset mode
 
+    // --- Explanation ---
     const explM = trimmed.match(explRe);
     if(explM) {
       const fillM = explM[1].match(/^\[Điền\]\s*(.*)/);
@@ -942,43 +957,49 @@ function textToQ(raw, qi, existingQ) {
         const parts = fillM[1].split('|').map(s=>s.trim()).filter(Boolean);
         result.answers = parts.map(t=>({text:t,correct:true}));
         result.type = 'fill';
+        mode = null;
       } else if(mfM) {
         const parts = mfM[1].split('|').map(s=>s.trim()).filter(Boolean);
         result.answers = parts.map(t=>({text:t,correct:true}));
         result.type = 'multifill';
+        mode = null;
       } else {
-        // Bắt đầu thu thập explanation (hỗ trợ nhiều dòng)
         explLines = [explM[1]];
+        mode = 'expl';
       }
       continue;
     }
 
+    // --- Answer line ---
     const ansM = trimmed.match(ansRe);
     if(ansM) {
-      const correct = ansM[2]==='*';
-      const text = ansM[3].trim();
-      parsedAnswers.push({text, correct});
+      parsedAnswers.push({text: ansM[3].trim(), correct: ansM[2]==='*'});
+      mode = 'ans';
       continue;
     }
 
+    // --- Question line ---
     const qM = trimmed.match(qRe);
-    if(qM) { result.text = qM[1].trim(); foundQ=true; continue; }
+    if(qM) {
+      result.text = qM[1].trim();
+      foundQ = true;
+      mode = 'q';
+      continue;
+    }
 
-    if(!foundQ && parsedAnswers.length===0) {
-      result.text = trimmed; foundQ=true;
+    // --- Fallback: dòng đầu tiên không khớp pattern nào = nội dung câu hỏi ---
+    if(!foundQ && parsedAnswers.length === 0 && explLines === null) {
+      result.text = trimmed;
+      foundQ = true;
+      mode = 'q';
     }
   }
 
-  // Gộp explanation lines lại (trim trailing empty lines)
+  // Gộp explanation
   if(explLines !== null) {
-    let joined = explLines.join('\n');
-    // Trim trailing newlines only
-    joined = joined.replace(/\n+$/, '');
-    result.explanation = joined;
+    result.explanation = explLines.join('\n').replace(/\n+$/, '');
   }
-
   if(parsedAnswers.length > 0) result.answers = parsedAnswers;
-  // Không tự động chuyển loại câu — giữ nguyên type do user chọn trên dropdown
 
   return result;
 }
@@ -1071,7 +1092,8 @@ function renderQuestionItem(q, qi, container, isInline) {
     container.innerHTML = `
       <div class="q-header">
         <div class="q-num">Câu ${qi+1}</div>
-        <input type="text" class="form-input" style="flex:1" placeholder="Nội dung câu hỏi..." value="${escHtml(q.text||'')}" oninput="editQ(${qi},'text',this.value)">
+        <textarea class="form-input auto-resize-ta" style="flex:1;resize:none;overflow:hidden;min-height:40px" placeholder="Nội dung câu hỏi..."
+          oninput="editQ(${qi},'text',this.value);autoResize(this)">${escHtml(q.text||'')}</textarea>
         <select class="q-type-select" onchange="editQType(${qi},this.value)">
           <option value="single" ${q.type==='single'?'selected':''}>Chọn 1</option>
           <option value="multi" ${q.type==='multi'?'selected':''}>Nhiều đáp án</option>
@@ -1105,8 +1127,10 @@ function renderQuestionItem(q, qi, container, isInline) {
           <div class="answer-row" id="ans-${qi}-${ai}">
             <div class="answer-letter">${letters[ai]||'?'}</div>
             <input type="checkbox" class="answer-check" ${a.correct?'checked':''} onchange="editAns(${qi},${ai},'correct',this.checked,${q.type==='single'?'true':'false'})">
-            <input type="text" class="answer-input" placeholder="Đáp án ${letters[ai]||ai+1}..." value="${escHtml(a.text||'')}" oninput="editAns(${qi},${ai},'text',this.value)">
-            <input type="url" class="answer-input" style="max-width:120px;font-size:.75rem" placeholder="🔊 audio..." value="${escHtml(a.audioUrl||'')}" oninput="editAns(${qi},${ai},'audioUrl',this.value)" title="URL âm thanh đáp án">
+            <textarea class="answer-input auto-resize-ta" placeholder="Đáp án ${letters[ai]||ai+1}..."
+              style="resize:none;overflow:hidden;min-height:34px;padding:7px 10px"
+              oninput="editAns(${qi},${ai},'text',this.value);autoResize(this)">${escHtml(a.text||'')}</textarea>
+            <input type="url" class="answer-input" style="max-width:120px;font-size:.75rem;min-height:34px" placeholder="🔊 audio..." value="${escHtml(a.audioUrl||'')}" oninput="editAns(${qi},${ai},'audioUrl',this.value)" title="URL âm thanh đáp án">
             ${(q.answers||[]).length>2?`<button class="answer-remove-btn" onclick="removeAnswer(${qi},${ai})" title="Xóa"><i class="fas fa-minus-circle"></i></button>`:''}
           </div>`).join('')}
       </div>
@@ -1122,6 +1146,8 @@ function renderQuestionItem(q, qi, container, isInline) {
         <label>Gợi ý (hiện khi user nhấn 💡)</label>
         <input type="text" class="form-input" style="font-size:.85rem" placeholder="VD: Nhớ lại quy tắc..." value="${escHtml(q.hint||'')}" oninput="editQ(${qi},'hint',this.value)">
       </div>`;
+    // Auto-resize textareas sau khi render inline
+    setTimeout(() => container.querySelectorAll('textarea.auto-resize-ta').forEach(ta => autoResize(ta)), 0);
     return;
   }
 
@@ -2937,10 +2963,11 @@ function renderMath(text) {
   return s;
 }
 
-// Áp dụng renderMath cho một element innerHTML
+// Áp dụng renderMath cho một element innerHTML, hỗ trợ xuống dòng \n → <br>
 function applyMath(el, rawText) {
   if (!el) return;
-  el.innerHTML = renderMath(rawText || '');
+  // Tách theo \n, render từng dòng, nối bằng <br>
+  el.innerHTML = (rawText || '').split('\n').map(line => renderMath(line)).join('<br>');
 }
 
 // Bảng tham khảo ký hiệu (HTML) để nhúng vào panel soạn thảo
