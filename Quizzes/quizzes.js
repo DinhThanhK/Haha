@@ -987,6 +987,18 @@ function textToQ(raw, qi, existingQ) {
       continue;
     }
 
+    // ─── Khi đang trong explanation: mọi dòng không phải answer/câu mới → tiếp tục explanation ───
+    if(mode === 'expl' && explLines !== null) {
+      // Chỉ dừng explanation nếu gặp đáp án thật (A. B. C.) hoặc câu hỏi mới
+      const isNewAnswer = /^([A-Za-z])[*]?\s*[.)]\s+\S/.test(trimmed);
+      const isNewQ = qRe.test(trimmed);
+      if(!isNewAnswer && !isNewQ) {
+        explLines.push(trimmed);
+        continue;
+      }
+      // Nếu là đáp án/câu mới → thoát expl mode, xử lý bình thường bên dưới
+    }
+
     // ─── Answer line ───
     const ansM = trimmed.match(ansRe);
     if(ansM) {
