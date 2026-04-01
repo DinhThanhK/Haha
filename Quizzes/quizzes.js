@@ -913,42 +913,62 @@ function textToQ(raw, qi, existingQ) {
   const ansRe = /^([A-Za-z])([*]?)\s*[.,):\-]\s*(.*)/;
   const qRe = /^[Cc][aâ]u\s*\d+\s*[:.)?\-]?\s*(.*)/;
   const explRe = /^(?:=>|#|giải thích:?)\s*(.*)/i;
-  // Indent: dòng bắt đầu bằng ít nhất 2 space hoặc tab (continuation)
   const isIndent = (line) => line.startsWith('  ') || line.startsWith('\t');
 
   let parsedAnswers = [];
   let foundQ = false;
-  // Trạng thái đang collect block nào: null | 'q' | 'ans' | 'expl'
-  let mode = null;
+  let mode = null; // null | 'q' | 'ans' | 'expl'
   let explLines = null;
+  let inCodeBlock = false; // đang trong ``` ... ```
+
+  const appendToMode = (content) => {
+    if(mode === 'expl' && explLines !== null) { explLines.push(content); return true; }
+    if(mode === 'q' && foundQ) { result.text += '\n' + content; return true; }
+    if(mode === 'ans' && parsedAnswers.length > 0) { parsedAnswers[parsedAnswers.length-1].text += '\n' + content; return true; }
+    return false;
+  };
 
   for(let li = 0; li < lines.length; li++) {
     const line = lines[li];
     const trimmed = line.trim();
 
-    // --- Continuation dòng indent ---
-    if(isIndent(line) || (!trimmed && (mode === 'q' || mode === 'ans' || mode === 'expl'))) {
-      if(mode === 'expl' && explLines !== null) {
-        explLines.push(trimmed);
+    // ─── Code block ``` ───
+    if(trimmed === '```' || trimmed.startsWith('```')) {
+      if(!inCodeBlock) {
+        // Mở code block: nếu đang có mode active thì nối \n``` vào đó
+        // (dòng ``` đầu chỉ là marker, không thêm vào nội dung)
+        inCodeBlock = true;
+        // Nếu chưa có mode nào, treat như continuation của câu hỏi
+        if(!foundQ && parsedAnswers.length === 0 && explLines === null) {
+          // Không làm gì, chờ dòng tiếp theo
+        }
+        continue;
+      } else {
+        // Đóng code block
+        inCodeBlock = false;
         continue;
       }
-      if(mode === 'q' && foundQ) {
-        // Nối thêm dòng vào câu hỏi
-        result.text += '\n' + trimmed;
-        continue;
-      }
-      if(mode === 'ans' && parsedAnswers.length > 0) {
-        // Nối thêm dòng vào đáp án cuối cùng
-        const last = parsedAnswers[parsedAnswers.length - 1];
-        last.text += '\n' + trimmed;
-        continue;
-      }
-      if(!trimmed) continue; // dòng trống không thuộc block nào → skip
     }
 
-    if(!trimmed) { mode = null; continue; } // dòng trống reset mode
+    if(inCodeBlock) {
+      // Mọi dòng trong code block: nối vào block đang active
+      if(!appendToMode(line)) {
+        // Chưa có mode → gán vào câu hỏi
+        if(!foundQ) { result.text = line; foundQ = true; mode = 'q'; }
+        else { result.text += '\n' + line; }
+      }
+      continue;
+    }
 
-    // --- Explanation ---
+    // ─── Continuation dòng indent hoặc dòng trống trong block ───
+    if(isIndent(line) || (!trimmed && (mode === 'q' || mode === 'ans' || mode === 'expl'))) {
+      if(appendToMode(trimmed)) continue;
+      if(!trimmed) continue;
+    }
+
+    if(!trimmed) { mode = null; continue; }
+
+    // ─── Explanation ───
     const explM = trimmed.match(explRe);
     if(explM) {
       const fillM = explM[1].match(/^\[Điền\]\s*(.*)/);
@@ -956,51 +976,36 @@ function textToQ(raw, qi, existingQ) {
       if(fillM) {
         const parts = fillM[1].split('|').map(s=>s.trim()).filter(Boolean);
         result.answers = parts.map(t=>({text:t,correct:true}));
-        result.type = 'fill';
-        mode = null;
+        result.type = 'fill'; mode = null;
       } else if(mfM) {
         const parts = mfM[1].split('|').map(s=>s.trim()).filter(Boolean);
         result.answers = parts.map(t=>({text:t,correct:true}));
-        result.type = 'multifill';
-        mode = null;
+        result.type = 'multifill'; mode = null;
       } else {
-        explLines = [explM[1]];
-        mode = 'expl';
+        explLines = [explM[1]]; mode = 'expl';
       }
       continue;
     }
 
-    // --- Answer line ---
+    // ─── Answer line ───
     const ansM = trimmed.match(ansRe);
     if(ansM) {
       parsedAnswers.push({text: ansM[3].trim(), correct: ansM[2]==='*'});
-      mode = 'ans';
-      continue;
+      mode = 'ans'; continue;
     }
 
-    // --- Question line ---
+    // ─── Question line ───
     const qM = trimmed.match(qRe);
-    if(qM) {
-      result.text = qM[1].trim();
-      foundQ = true;
-      mode = 'q';
-      continue;
-    }
+    if(qM) { result.text = qM[1].trim(); foundQ = true; mode = 'q'; continue; }
 
-    // --- Fallback: dòng đầu tiên không khớp pattern nào = nội dung câu hỏi ---
+    // ─── Fallback ───
     if(!foundQ && parsedAnswers.length === 0 && explLines === null) {
-      result.text = trimmed;
-      foundQ = true;
-      mode = 'q';
+      result.text = trimmed; foundQ = true; mode = 'q';
     }
   }
 
-  // Gộp explanation
-  if(explLines !== null) {
-    result.explanation = explLines.join('\n').replace(/\n+$/, '');
-  }
+  if(explLines !== null) result.explanation = explLines.join('\n').replace(/\n+$/, '');
   if(parsedAnswers.length > 0) result.answers = parsedAnswers;
-
   return result;
 }
 
@@ -2898,6 +2903,16 @@ function renderMath(text) {
   if (!text) return text;
   let s = text;
 
+  // 0. Inline code: `code` → xử lý TRƯỚC để tránh các rule khác nhầm ký tự bên trong
+  // Tạm thay thế bằng placeholder, xử lý sau
+  const codeTokens = [];
+  s = s.replace(/`([^`]+)`/g, (_, inner) => {
+    const escaped = inner.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const idx = codeTokens.length;
+    codeTokens.push(`<code class="inline-code">${escaped}</code>`);
+    return `\x00CODE${idx}\x00`;
+  });
+
   // 1. /frac{a}{b} → phân số đẹp (xử lý trước để tránh nhầm {})
   s = s.replace(/\/frac\{([^}]*)\}\{([^}]*)\}/g, (_, num, den) =>
     `<span class="math-frac"><span class="math-frac-num">${renderMath(num)}</span><span class="math-frac-den">${renderMath(den)}</span></span>`
@@ -2942,10 +2957,7 @@ function renderMath(text) {
   s = s.replace(/~=/g, '≈');
   s = s.replace(/\+-/g, '±');
 
-  // 6b. Inline code: `code` → <code>code</code> (như GitHub README)
-  s = s.replace(/`([^`\n]+)`/g, (_, inner) =>
-    `<code class="inline-code">${inner.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code>`
-  );
+  // 6b. (inline code đã được xử lý ở bước 0 bằng placeholder)
 
   // 7. Ký tự Hy Lạp — BẮT BUỘC có tiền tố / để tránh nhầm hóa học
   const greekMap = {
@@ -2960,14 +2972,40 @@ function renderMath(text) {
   const greekKeys = Object.keys(greekMap).sort((a,b) => b.length - a.length);
   greekKeys.forEach(k => { s = s.split(k).join(greekMap[k]); });
 
+  // Restore inline code placeholders
+  codeTokens.forEach((html, idx) => { s = s.split(`\x00CODE${idx}\x00`).join(html); });
+
   return s;
 }
 
-// Áp dụng renderMath cho một element innerHTML, hỗ trợ xuống dòng \n → <br>
+// Áp dụng renderMath cho một element innerHTML, hỗ trợ xuống dòng và ``` code block
 function applyMath(el, rawText) {
   if (!el) return;
-  // Tách theo \n, render từng dòng, nối bằng <br>
-  el.innerHTML = (rawText || '').split('\n').map(line => renderMath(line)).join('<br>');
+  const text = rawText || '';
+
+  // Xử lý ``` code block trước — tách thành segments: normal | codeblock
+  const segments = [];
+  const codeBlockRe = /```([^`]*?)```/gs;
+  let last = 0, m;
+  while((m = codeBlockRe.exec(text)) !== null) {
+    if(m.index > last) segments.push({type:'text', content: text.slice(last, m.index)});
+    segments.push({type:'code', content: m[1]});
+    last = m.index + m[0].length;
+  }
+  if(last < text.length) segments.push({type:'text', content: text.slice(last)});
+
+  if(segments.length === 0) segments.push({type:'text', content: text});
+
+  el.innerHTML = segments.map(seg => {
+    if(seg.type === 'code') {
+      const escaped = seg.content
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/^\n/, '').replace(/\n$/, ''); // trim leading/trailing newline
+      return `<pre class="inline-code-block"><code>${escaped}</code></pre>`;
+    }
+    // Normal text: tách theo \n, render từng dòng
+    return seg.content.split('\n').map(line => renderMath(line)).join('<br>');
+  }).join('');
 }
 
 // Bảng tham khảo ký hiệu (HTML) để nhúng vào panel soạn thảo
