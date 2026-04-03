@@ -347,6 +347,12 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 window.addEventListener('beforeunload', () => {
+  if (STATE.isAdmin) {
+    // Đổi current_token thành mã ngẫu nhiên 9 ký tự khi admin thoát
+    const invalidToken = Math.random().toString(36).substr(2, 5).toUpperCase()
+                       + Math.random().toString(36).substr(2, 4).toUpperCase();
+    set(ref(db, 'session/current_token'), invalidToken).catch(() => {});
+  }
   unregisterAdminSession();
 });
 
@@ -480,6 +486,17 @@ function setStep(n) {
     s.classList.remove('active', 'done');
     if (i < n) s.classList.add('done'); else if (i === n) s.classList.add('active');
   });
+  // Bước 2: cho phép click vào bước 1 để quay lại
+  const s1 = document.getElementById('s1');
+  if (n === 2) {
+    s1.style.cursor = 'pointer';
+    s1.title = 'Quay lại bước 1';
+    s1.onclick = () => setStep(1);
+  } else {
+    s1.style.cursor = '';
+    s1.title = '';
+    s1.onclick = null;
+  }
 }
 
 async function goStep2() {
