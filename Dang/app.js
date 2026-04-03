@@ -19,7 +19,6 @@ const db = getDatabase(app);
 
 const CONFIG = {
   QR_REFRESH_SECONDS:  30,
-  ADMIN_PASSWORD:      'admin123',
   TOTAL_MEMBERS:       250,
   SITE_URL: 'https://diemdanh-chibo-huce.vercel.app',
   // Cài đặt form đảng viên (true = hiển thị, false = ẩn)
@@ -289,12 +288,8 @@ function setSliderPct(v) {
   const max = parseInt(slider.max) || 500;
   const clamped = Math.min(max, Math.max(min, v));
   slider.value = clamped;
-  const thumbHalf = 11;
-  const trackW = slider.offsetWidth || 200;
-  const ratio = (clamped - min) / (max - min);
-  // Công thức chuẩn: pct thật = ratio * (trackW - 2*thumbHalf) / trackW
-  const adjustedPct = ((ratio * (trackW - 2 * thumbHalf) + thumbHalf) / trackW * 100).toFixed(2) + '%';
-  slider.style.setProperty('--pct-css', adjustedPct);
+  const pct = ((clamped - min) / (max - min) * 100).toFixed(2) + '%';
+  slider.style.setProperty('--range-pct', pct);
 }
 
 function syncRadiusFromSlider(val, el) {
@@ -305,11 +300,8 @@ function syncRadiusFromSlider(val, el) {
   if (el) {
     const min = parseInt(el.min) || 50;
     const max = parseInt(el.max) || 500;
-    const thumbHalf = 11;
-    const trackW = el.offsetWidth || 200;
-    const ratio = (v - min) / (max - min);
-    const adjustedPct = ((ratio * (trackW - 2 * thumbHalf) + thumbHalf) / trackW * 100).toFixed(2) + '%';
-    el.style.setProperty('--pct-css', adjustedPct);
+    const pct = ((v - min) / (max - min) * 100).toFixed(2) + '%';
+    el.style.setProperty('--range-pct', pct);
   }
 }
 
@@ -712,8 +704,34 @@ function resetForm() {
 }
 
 // ─── ADMIN PANEL ───
-function adminLogin() {
-  if (document.getElementById('admin-pw').value === CONFIG.ADMIN_PASSWORD) {
+async function adminLogin() {
+  const pwInput = document.getElementById('admin-pw');
+  const enteredPw = pwInput.value;
+  if (!enteredPw) { toast('Vui lòng nhập mật khẩu!', 'error'); return; }
+
+  const loginBtn = document.querySelector('#admin-login .btn-primary');
+  if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Đang kiểm tra...'; }
+
+  try {
+    // Bước 1: Lấy mật khẩu từ Firebase (config/admin_password)
+    const pwSnap = await get(ref(db, 'config/admin_password'));
+    if (!pwSnap.exists()) {
+      toast('Chưa cấu hình mật khẩu admin trong hệ thống!', 'error');
+      return;
+    }
+    const correctPw = pwSnap.val();
+
+    // Bước 2: So sánh mật khẩu
+    if (enteredPw !== correctPw) {
+      toast('Sai mật khẩu!', 'error');
+      return;
+    }
+
+    // Bước 3: Kiểm tra admin_sessions có tồn tại không (node phải tồn tại)
+    const sessSnap = await get(ref(db, 'admin_sessions'));
+    // sessSnap.exists() sẽ true nếu có ít nhất 1 session — chỉ dùng để watchAdminSessions cảnh báo đa đăng nhập
+
+    // Đăng nhập thành công
     STATE.isAdmin = true;
     sessionStorage.setItem('dangbo_admin_logged_in', '1');
     document.getElementById('admin-login').classList.add('hidden');
@@ -721,18 +739,20 @@ function adminLogin() {
     registerAdminSession();
     watchAdminSessions();
     initQR();
-    // FIX 1: Panel vừa hiện → render ngay với dữ liệu đã có trong STATE
     renderAttList();
     updateAdminStats();
     updateExportCount();
     setTimeout(() => {
       initAdminMap();
       loadSavedLocationsDB();
-      // Fix 3: tính lại slider sau khi panel đã visible (offsetWidth > 0)
       const r = parseInt(document.getElementById('session-radius').value) || STATE.SESSION.radius;
       setSliderPct(r);
     }, 200);
-  } else toast('Sai mật khẩu!', 'error');
+  } catch(e) {
+    toast('Lỗi kết nối máy chủ: ' + e.message, 'error');
+  } finally {
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Đăng nhập'; }
+  }
 }
 
 function initAdminMap() {
