@@ -26,6 +26,7 @@ const CONFIG = {
   FIELD_ID:    true,
   FIELD_LOP:   true,
   FIELD_TOKEN: true,
+  FIELD_ZALO:  true,
   // Cài đặt file xuất
   XLSX_SHEET_NAME:  'Điểm danh',
   XLSX_FILE_PREFIX: 'diemdanh',
@@ -48,6 +49,7 @@ window.saveSettings = function() {
   const fieldId    = document.getElementById('set-field-id')?.checked ?? true;
   const fieldLop   = document.getElementById('set-field-lop')?.checked ?? true;
   const fieldToken = document.getElementById('set-field-token')?.checked ?? true;
+  const fieldZalo  = document.getElementById('set-field-zalo')?.checked ?? true;
   const sheetName  = document.getElementById('set-sheet-name')?.value?.trim() || 'Điểm danh';
   const filePrefix = document.getElementById('set-file-prefix')?.value?.trim() || 'diemdanh';
 
@@ -57,13 +59,14 @@ window.saveSettings = function() {
   CONFIG.FIELD_ID    = fieldId;
   CONFIG.FIELD_LOP   = fieldLop;
   CONFIG.FIELD_TOKEN = fieldToken;
+  CONFIG.FIELD_ZALO  = fieldZalo;
   CONFIG.XLSX_SHEET_NAME  = sheetName;
   CONFIG.XLSX_FILE_PREFIX = filePrefix;
 
   localStorage.setItem('dangbo_settings', JSON.stringify({
     QR_REFRESH_SECONDS: qr,
     TOTAL_MEMBERS: totalMembers,
-    FIELD_NAME: fieldName, FIELD_ID: fieldId, FIELD_LOP: fieldLop, FIELD_TOKEN: fieldToken,
+    FIELD_NAME: fieldName, FIELD_ID: fieldId, FIELD_LOP: fieldLop, FIELD_TOKEN: fieldToken, FIELD_ZALO: fieldZalo,
     XLSX_SHEET_NAME: sheetName, XLSX_FILE_PREFIX: filePrefix,
   }));
 
@@ -98,6 +101,13 @@ window.saveSettings = function() {
     const el = document.getElementById(id);
     if (el) el.style.display = show ? '' : 'none';
   });
+  // Ẩn/hiện ô Zalo
+  const zaloBox = document.getElementById('verify-zalo-box');
+  if (zaloBox) zaloBox.style.display = fieldZalo ? '' : 'none';
+  // Nếu bỏ Zalo thì reset state để không bị kẹt
+  if (!fieldZalo) { STATE.zaloId = null; STATE.zaloName = null; }
+  // Cập nhật lại trạng thái nút Kiểm tra mã
+  checkVerifyReady();
 
   toast('✅ Đã lưu cài đặt!');
   // Đóng panel
@@ -131,6 +141,7 @@ window.toggleSettings = function() {
     if (setEl('set-field-id'))     setEl('set-field-id').checked    = CONFIG.FIELD_ID;
     if (setEl('set-field-lop'))    setEl('set-field-lop').checked   = CONFIG.FIELD_LOP;
     if (setEl('set-field-token'))  setEl('set-field-token').checked = CONFIG.FIELD_TOKEN;
+    if (setEl('set-field-zalo'))   setEl('set-field-zalo').checked  = CONFIG.FIELD_ZALO;
     if (setEl('set-sheet-name'))   setEl('set-sheet-name').value    = CONFIG.XLSX_SHEET_NAME;
     if (setEl('set-file-prefix'))  setEl('set-file-prefix').value   = CONFIG.XLSX_FILE_PREFIX;
   }
@@ -386,14 +397,14 @@ function checkVerifyReady() {
   const btn   = document.getElementById('btn-verify');
   if (!btn) return;
 
-  // Bắt buộc: mã QR >= 4 ký tự VÀ đã xác thực Zalo
   const hasToken = token.length >= 4;
-  const hasZalo  = !!STATE.zaloId;
+  // Nếu setting bắt buộc Zalo thì phải xác thực, nếu không thì bỏ qua
+  const hasZalo  = !CONFIG.FIELD_ZALO || !!STATE.zaloId;
   const ready    = hasToken && hasZalo;
 
   btn.disabled          = !ready;
-  btn.style.opacity     = ready ? '1'           : '0.45';
-  btn.style.cursor      = ready ? 'pointer'     : 'not-allowed';
+  btn.style.opacity     = ready ? '1'       : '0.45';
+  btn.style.cursor      = ready ? 'pointer' : 'not-allowed';
 
   // Cập nhật icon tick cho ô QR
   const qrDot = document.getElementById('qr-status-dot');
@@ -576,6 +587,18 @@ document.addEventListener('DOMContentLoaded', () => {
   setStep(1);
   initFingerprint();
 
+  // Áp dụng trạng thái ẩn/hiện fields từ CONFIG đã load (localStorage)
+  const _initFieldMap = {
+    'group-name': CONFIG.FIELD_NAME, 'group-id': CONFIG.FIELD_ID,
+    'group-lop': CONFIG.FIELD_LOP,   'group-token': CONFIG.FIELD_TOKEN,
+  };
+  Object.entries(_initFieldMap).forEach(([id, show]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+  const _initZaloBox = document.getElementById('verify-zalo-box');
+  if (_initZaloBox) _initZaloBox.style.display = CONFIG.FIELD_ZALO ? '' : 'none';
+
   // Gắn onclick cho Zalo box sau khi module load xong (tránh STATE not defined)
   const zaloBox = document.getElementById('verify-zalo-box');
   if (zaloBox) zaloBox.addEventListener('click', () => {
@@ -721,6 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const token = new URLSearchParams(window.location.search).get('token');
   if (token) {
     document.getElementById('inp-token').value = token;
+    checkVerifyReady();
     toast('Đã quét QR – Vui lòng nhập thông tin để điểm danh');
     window.history.replaceState({}, '', window.location.pathname);
   }
@@ -1305,6 +1329,7 @@ function scanFrame(video, status) {
 
         status.textContent = 'Đã quét: ' + token;
         document.getElementById('inp-token').value = token;
+        checkVerifyReady();
         toast('Quét QR thành công: ' + token);
 
         setTimeout(() => closeQrScanner(), 600);
