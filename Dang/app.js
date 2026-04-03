@@ -184,7 +184,8 @@ async function handleZaloCallback(code) {
       body: JSON.stringify({ code, code_verifier: verifier }),
     });
     const data = await res.json();
-    if (!data.zaloId) throw new Error(data.error || 'Không lấy được Zalo ID');
+    console.log('Zalo token response:', data);
+    if (!data.zaloId) throw new Error((data.error || 'Không lấy được Zalo ID') + ' | ' + JSON.stringify(data.detail || {}));
     STATE.zaloId   = data.zaloId;
     STATE.zaloName = data.zaloName;
     sessionStorage.removeItem('zalo_code_verifier');
