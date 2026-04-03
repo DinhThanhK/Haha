@@ -519,7 +519,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Gắn onclick cho Zalo box sau khi module load xong (tránh STATE not defined)
   const zaloBox = document.getElementById('verify-zalo-box');
-  if (zaloBox) zaloBox.addEventListener('click', () => { if (!STATE.zaloId) startZaloLogin(); });
+  if (zaloBox) zaloBox.addEventListener('click', () => {
+    // Luôn cho phép click để đăng nhập / đăng nhập lại
+    sessionStorage.removeItem('zalo_id');
+    sessionStorage.removeItem('zalo_name');
+    STATE.zaloId = null;
+    STATE.zaloName = null;
+    startZaloLogin();
+  });
 
   // Xử lý Zalo OAuth callback
   const urlParams = new URLSearchParams(window.location.search);
