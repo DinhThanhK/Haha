@@ -1198,10 +1198,10 @@ function renderQuestionItem(q, qi, container, isInline) {
     <div class="answers-grid" id="answers-${qi}">
       ${q.type==='fill' ? `
         <div style="margin-top:4px">
-          <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án đúng (dùng | để phân cách các đáp án chấp nhận được)</label>
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án đúng (dùng / để phân cách các đáp án chấp nhận được)</label>
           <input type="text" class="form-input fill-correct-input" id="fillanswer-${qi}"
             placeholder="VD: Mary said she was going to <finish> her homework."
-            value="${escHtml((q.answers||[]).filter(a=>a.correct).map(a=>a.text).join(' | '))}"
+            value="${escHtml((q.answers||[]).filter(a=>a.correct).map(a=>a.text).join(' / '))}"
             oninput="editFillAnswer(${qi},this.value);syncFormToText(${qi})">
           <div style="font-size:.72rem;color:var(--text3);margin-top:4px;line-height:1.6">
             <i class="fas fa-info-circle"></i> Dùng <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">&lt;từ_khoá&gt;</code> để đánh dấu từ quan trọng.<br>
