@@ -171,8 +171,29 @@ async function startZaloLogin() {
     code_challenge:        challenge,
     code_challenge_method: 'S256',
     state:                 'diemdanh',
+    scope:                 'openid,profile',
   });
-  window.location.href = `https://oauth.zaloapp.com/v4/permission?${params}`;
+
+  const webUrl = `https://oauth.zaloapp.com/v4/permission?${params}`;
+
+  // Thử mở app Zalo trước (deep link), nếu không có app thì fallback về web
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) {
+    // Deep link vào app Zalo
+    const appUrl = `zalosdk://app/open?url=${encodeURIComponent(webUrl)}`;
+    const start = Date.now();
+    // Thử mở app
+    window.location.href = appUrl;
+    // Nếu sau 1.5 giây vẫn còn ở trang này → không có app → fallback web
+    setTimeout(() => {
+      if (Date.now() - start < 2500) {
+        window.location.href = webUrl;
+      }
+    }, 1500);
+  } else {
+    // Desktop → mở web thẳng
+    window.location.href = webUrl;
+  }
 }
 
 async function handleZaloCallback(code) {
@@ -519,14 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Gắn onclick cho Zalo box sau khi module load xong (tránh STATE not defined)
   const zaloBox = document.getElementById('verify-zalo-box');
-  if (zaloBox) zaloBox.addEventListener('click', () => {
-    // Luôn cho phép click để đăng nhập / đăng nhập lại
-    sessionStorage.removeItem('zalo_id');
-    sessionStorage.removeItem('zalo_name');
-    STATE.zaloId = null;
-    STATE.zaloName = null;
-    startZaloLogin();
-  });
+  if (zaloBox) zaloBox.addEventListener('click', () => { if (!STATE.zaloId) startZaloLogin(); });
 
   // Xử lý Zalo OAuth callback
   const urlParams = new URLSearchParams(window.location.search);
