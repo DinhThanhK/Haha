@@ -175,23 +175,20 @@ async function startZaloLogin() {
   });
 
   const webUrl = `https://oauth.zaloapp.com/v4/permission?${params}`;
-
-  // Thử mở app Zalo trước (deep link), nếu không có app thì fallback về web
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   if (isMobile) {
-    // Deep link vào app Zalo
+    // Thử deep link vào app Zalo trước
     const appUrl = `zalosdk://app/open?url=${encodeURIComponent(webUrl)}`;
     const start = Date.now();
-    // Thử mở app
     window.location.href = appUrl;
-    // Nếu sau 1.5 giây vẫn còn ở trang này → không có app → fallback web
+    // Nếu 1.5s vẫn còn ở trang → không có app → fallback web
     setTimeout(() => {
       if (Date.now() - start < 2500) {
         window.location.href = webUrl;
       }
     }, 1500);
   } else {
-    // Desktop → mở web thẳng
     window.location.href = webUrl;
   }
 }
@@ -252,25 +249,34 @@ async function handleZaloCallback(code) {
 }
 
 function updateZaloUI(loggedIn, alreadyAttended = false) {
-  const btn   = document.getElementById('btn-zalo-login');
-  const badge = document.getElementById('zalo-badge');
-  if (!btn || !badge) return;
+  const box     = document.getElementById('verify-zalo-box');
+  const subText = document.getElementById('zalo-box-sub');
+  const iconEmpty = document.getElementById('zalo-icon-empty');
+  const iconDone  = document.getElementById('zalo-icon-done');
+
+  if (!box) return;
+
   if (loggedIn) {
-    btn.style.display   = 'none';
-    badge.style.display = 'flex';
-    const nameEl = badge.querySelector('#zalo-name-display');
-    if (nameEl) {
+    box.classList.add('done');
+    if (iconEmpty) iconEmpty.style.display = 'none';
+    if (iconDone)  iconDone.style.display  = 'block';
+    if (subText) {
       if (alreadyAttended) {
-        nameEl.textContent = (STATE.zaloName || 'Đã xác thực') + ' · ✓ Đã điểm danh hôm nay';
-        nameEl.style.color = '#86efac';
+        subText.textContent = '⚠️ ' + (STATE.zaloName || 'Đã xác thực') + ' · Đã điểm danh hôm nay';
+        subText.style.color = '#fca5a5';
       } else {
-        nameEl.textContent = STATE.zaloName || 'Đã xác thực';
-        nameEl.style.color = '';
+        subText.textContent = '✓ ' + (STATE.zaloName || 'Đã xác thực');
+        subText.style.color = '#86efac';
       }
     }
   } else {
-    btn.style.display   = 'flex';
-    badge.style.display = 'none';
+    box.classList.remove('done');
+    if (iconEmpty) iconEmpty.style.display = 'block';
+    if (iconDone)  iconDone.style.display  = 'none';
+    if (subText) {
+      subText.textContent = 'Bấm để đăng nhập Zalo';
+      subText.style.color = '';
+    }
   }
 }
 
@@ -540,7 +546,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Gắn onclick cho Zalo box sau khi module load xong (tránh STATE not defined)
   const zaloBox = document.getElementById('verify-zalo-box');
-  if (zaloBox) zaloBox.addEventListener('click', () => { if (!STATE.zaloId) startZaloLogin(); });
+  if (zaloBox) zaloBox.addEventListener('click', () => {
+    // Reset session cũ, luôn cho xác thực lại
+    sessionStorage.removeItem('zalo_id');
+    sessionStorage.removeItem('zalo_name');
+    STATE.zaloId = null;
+    STATE.zaloName = null;
+    updateZaloUI(false);
+    startZaloLogin();
+  });
 
   // Xử lý Zalo OAuth callback
   const urlParams = new URLSearchParams(window.location.search);
@@ -578,12 +592,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const dateFilterEl = document.getElementById('export-date-filter');
   if (dateFilterEl) dateFilterEl.value = todayISO;
 
-  // Khôi phục Zalo session nếu còn
+  // Khôi phục Zalo session khi reload trang (trong cùng phiên trình duyệt)
   const savedZaloId = sessionStorage.getItem('zalo_id');
   if (savedZaloId) {
     STATE.zaloId   = savedZaloId;
     STATE.zaloName = sessionStorage.getItem('zalo_name') || null;
-    updateZaloUI(true, false);
+    // Kiểm tra đã điểm danh hôm nay chưa
+    const _now2 = new Date();
+    const _dd2  = String(_now2.getDate()).padStart(2,'0');
+    const _mm2  = String(_now2.getMonth()+1).padStart(2,'0');
+    const _key2 = `${_dd2}-${_mm2}-${_now2.getFullYear()}`;
+    checkZaloAttended(savedZaloId, _key2).then(done => {
+      updateZaloUI(true, done);
+      if (done) {
+        const btnVerify = document.getElementById('btn-verify');
+        if (btnVerify) {
+          btnVerify.disabled = true;
+          btnVerify.textContent = '✓ Đã điểm danh hôm nay';
+          btnVerify.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
+        }
+      }
+    });
   }
 
   loadSavedMemberInfo();
