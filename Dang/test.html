@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Scrape – dangcongsan.vn</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; padding: 24px; max-width: 750px; margin: auto; }
+    h2 { color: #FFD700; }
+    #status { font-size: 13px; color: #aaa; margin-bottom: 16px; min-height: 20px; }
+    .item { display: flex; gap: 14px; margin-bottom: 14px; background: #1c1c28; border-radius: 8px; padding: 10px; align-items: flex-start; }
+    .item img { width: 130px; height: 82px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background:#333; }
+    .no-img { width: 130px; height: 82px; background: #2a2a3a; border-radius: 6px; display:flex; align-items:center; justify-content:center; color:#555; font-size:11px; flex-shrink:0; text-align:center; padding:6px; }
+    .item-title { font-size: 14px; font-weight: 600; line-height: 1.45; }
+    .item-link { font-size: 11px; color: #FFD700; margin-top: 6px; word-break: break-all; opacity: 0.7; }
+    pre { background: #1c1c28; padding: 12px; border-radius: 8px; font-size: 11px; overflow-x: auto; color: #aaa; max-height: 300px; overflow-y:auto; }
+    button { background: rgba(255,215,0,0.12); border: 1px solid rgba(255,215,0,0.4); color: #FFD700; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: inherit; margin-bottom: 16px; }
+    button:hover { background: rgba(255,215,0,0.22); }
+    .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; margin-left:8px; }
+    .badge.ok { background:rgba(34,197,94,0.2); color:#4ade80; }
+    .badge.fail { background:rgba(255,42,74,0.2); color:#f87171; }
+    code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h2>🧪 Test Scrape – dangcongsan.vn</h2>
+  <p style="font-size:13px;color:#aaa;margin-bottom:16px;">
+    Fetch trực tiếp trang chủ từ trình duyệt qua CORS proxy → parse DOM → lấy tiêu đề + ảnh bài mới nhất.
+  </p>
+
+  <button onclick="run()">▶ Chạy test</button>
+
+  <div id="status">Nhấn "Chạy test" để bắt đầu...</div>
+  <div id="results"></div>
+
+  <details style="margin-top:24px;">
+    <summary style="cursor:pointer; color:#FFD700; font-size:13px;">HTML thô lấy được (debug)</summary>
+    <pre id="raw"></pre>
+  </details>
+
+  <script>
+  async function run() {
+    const statusEl  = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+    const rawEl     = document.getElementById('raw');
+
+    statusEl.innerHTML = '⏳ Đang fetch dangcongsan.vn...';
+    resultsEl.innerHTML = '';
+    rawEl.textContent = '';
+
+    const TARGET = 'https://dangcongsan.vn';
+    const PROXIES = [
+      url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    ];
+
+    let html = null;
+    let usedProxy = '';
+
+    for (const makeUrl of PROXIES) {
+      const proxyUrl = makeUrl(TARGET);
+      statusEl.innerHTML += `<br>⏳ Thử: <code>${proxyUrl.split('?')[0]}</code>...`;
+      try {
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(9000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (text.length < 500) throw new Error('Response quá ngắn (' + text.length + ' chars)');
+        if (!text.includes('<') ) throw new Error('Không phải HTML');
+        html = text;
+        usedProxy = proxyUrl.split('?')[0];
+        statusEl.innerHTML += ' ✅';
+        break;
+      } catch(e) {
+        statusEl.innerHTML += ` ❌ ${e.message}`;
+      }
+    }
+
+    if (!html) {
+      statusEl.innerHTML += '<br><br>❌ <strong>Tất cả proxy đều thất bại.</strong>';
+      return;
+    }
+
+    statusEl.innerHTML += `<br><br>✅ Fetch OK qua <strong>${usedProxy}</strong> — đang parse DOM...`;
+    rawEl.textContent = html.substring(0, 4000) + '\n...(truncated)';
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Fix relative URLs
+    doc.querySelectorAll('a[href]').forEach(a => {
+      try { a.setAttribute('href', new URL(a.getAttribute('href'), TARGET).href); } catch(e){}
+    });
+    doc.querySelectorAll('img[src], img[data-src]').forEach(img => {
+      const src = img.getAttribute('src') || img.getAttribute('data-src') || '';
+      try { img.setAttribute('src', new URL(src, TARGET).href); } catch(e){}
+    });
+
+    let items = [];
+
+    // Thử nhiều selector container phổ biến
+    const containerSel = [
+      'article', '.news-item', '.item-news', '.hot-item',
+      '.list-news > li', '.box-item', 'li.clearfix',
+      '.views-row', '.field-item', '.new-item',
+      '.article-item', '.post-item',
+    ].join(',');
+
+    doc.querySelectorAll(containerSel).forEach(el => {
+      const titleEl = el.querySelector('h1,h2,h3,h4,.title,a[title]');
+      const imgEl   = el.querySelector('img[src]');
+      const linkEl  = el.querySelector('a[href]');
+
+      const title = (titleEl?.textContent || linkEl?.textContent || '').trim();
+      const img   = imgEl?.getAttribute('src') || '';
+      const link  = linkEl?.getAttribute('href') || '';
+
+      if (title.length > 15 && link.includes('dangcongsan')) {
+        items.push({ title, img, link });
+      }
+    });
+
+    // Fallback: quét tất cả <a> đủ dài
+    if (items.length === 0) {
+      doc.querySelectorAll('a[href]').forEach(a => {
+        const title = a.textContent.trim();
+        const href  = a.getAttribute('href') || '';
+        if (title.length > 20 && href.includes('dangcongsan') && !href.includes('#')) {
+          const parent = a.closest('li,div,article,td');
+          const img = a.querySelector('img')?.getAttribute('src')
+            || parent?.querySelector('img')?.getAttribute('src')
+            || '';
+          items.push({ title, img, link: href });
+        }
+      });
+    }
+
+    // Dedup by title
+    const seen = new Set();
+    items = items.filter(i => {
+      if (seen.has(i.title) || i.title.length < 15) return false;
+      seen.add(i.title); return true;
+    }).slice(0, 10);
+
+    if (!items.length) {
+      statusEl.innerHTML += '<br>⚠️ Parse được HTML nhưng <strong>không tìm thấy bài nào</strong> — xem debug bên dưới.';
+      return;
+    }
+
+    const imgCount = items.filter(i => i.img).length;
+    statusEl.innerHTML += `<br><br>📰 <strong>${items.length} bài</strong>
+      <span class="badge ok">${imgCount} có ảnh</span>
+      <span class="badge ${items.length - imgCount > 0 ? 'fail' : 'ok'}">${items.length - imgCount} không ảnh</span>`;
+
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = item.img
+        ? `<img src="${item.img}" onerror="this.outerHTML='<div class=no-img>Lỗi tải ảnh</div>'">`
+        : `<div class="no-img">Không có ảnh</div>`;
+      div.innerHTML += `
+        <div>
+          <div class="item-title">${item.title}</div>
+          <div class="item-link">${item.link}</div>
+        </div>`;
+      resultsEl.appendChild(div);
+    });
+  }
+  </script>
+</body>
+</html>

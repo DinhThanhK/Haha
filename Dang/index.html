@@ -119,28 +119,11 @@
       84%,100%  { opacity: 0; transform: scale(0)   rotate(-10deg); }
     }
 
-    /* Slider */
-    .radius-slider-wrap { position: relative; }
-    input[type="range"]#session-radius-slider {
-      -webkit-appearance: none; appearance: none;
-      width: 100%; height: 6px; border-radius: 4px;
-      outline: none; cursor: pointer;
-      background: linear-gradient(to right, #C8102E var(--pct-css,55%), rgba(255,255,255,0.15) var(--pct-css,55%));
-    }
-    input[type="range"]#session-radius-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #FFD700; border: 2px solid #C8102E;
-      cursor: pointer; box-shadow: 0 0 6px rgba(0,0,0,0.5);
-    }
-    input[type="range"]#session-radius-slider::-moz-range-thumb {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #FFD700; border: 2px solid #C8102E;
-      cursor: pointer; box-shadow: 0 0 6px rgba(0,0,0,0.5);
-    }
-    input[type="number"]#session-radius::-webkit-inner-spin-button,
-    input[type="number"]#session-radius::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type="number"]#session-radius { -moz-appearance: textfield; appearance: textfield;}
+    /* Slider: xem style.css */
+
+    /* Ẩn spinner cho input số trong cài đặt */
+    #set-qr-seconds::-webkit-inner-spin-button, #set-qr-seconds::-webkit-outer-spin-button,
+    #set-total-members::-webkit-inner-spin-button, #set-total-members::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
     input[type="date"]::-webkit-calendar-picker-indicator {
       filter: invert(1) sepia(1) saturate(4) hue-rotate(5deg);
@@ -337,17 +320,23 @@
       </div>
 
       <div id="admin-panel" class="hidden admin-layout">
+
+        <!-- Banner cảnh báo nhiều admin -->
+        <div id="multi-admin-banner" style="display:none; align-items:center; gap:10px; background:rgba(255,165,0,0.12); border:1px solid rgba(255,165,0,0.45); border-radius:10px; padding:10px 14px; margin-bottom:12px; color:#fbbf24; font-size:13px; font-weight:600;">
+          <span style="font-size:18px; flex-shrink:0;">⚠️</span>
+          <span>Đang có <strong id="multi-admin-count">2</strong> admin truy cập cùng lúc! Tránh thao tác đồng thời để tránh xung đột dữ liệu.</span>
+        </div>
         
         <div class="admin-sidebar">
           <div class="card">
             <div class="card-title">QR Code điểm danh & Mã xác thực</div>
-            <p class="text-muted" style="margin-bottom:14px;">Mã làm mới mỗi <strong style="color:var(--gold)">30 giây</strong>.</p>
+            <p class="text-muted" style="margin-bottom:14px;">Mã làm mới mỗi <strong id="qr-refresh-desc" style="color:var(--gold)">30 giây</strong>.</p>
             <div class="qr-wrap">
               <div id="qrcode"></div>
               <div id="qr-token-display" style="font-size:32px; font-weight:800; color:var(--gold); letter-spacing:6px; margin: 10px 0; font-family:'Space Mono',monospace;">------</div>
               <div class="qr-countdown"><div class="dot"></div><span id="qr-timer-txt">Làm mới sau: 30s</span></div>
               <div class="qr-refresh-bar"><div class="qr-refresh-fill" id="qr-bar"></div></div>
-              <button class="btn btn-gold btn-sm" onclick="regenerateQR()">Cấp mã mới ngay</button>
+              <button id="btn-regen-qr" class="btn btn-gold btn-sm" onclick="regenerateQR()" disabled style="opacity:0.4; cursor:not-allowed;">Cấp mã mới ngay</button>
             </div>
           </div>
         </div>
@@ -397,18 +386,15 @@
             
             <div class="form-group">
               <label>Bán kính cho phép điểm danh (mét)</label>
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:10px;">
                 <input type="range" id="session-radius-slider" min="50" max="500" step="10" value="300"
-                  style="flex:1; cursor:pointer; height:6px;"
-                  oninput="syncRadiusFromSlider(this.value, this)">
-                <span id="session-radius-display" style="min-width:52px; text-align:right; font-weight:700; color:var(--gold); font-size:15px;">300m</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:11px; color:var(--text-muted); flex-shrink:0;">Nhập thêm (m):</span>
+                  class="styled-range" style="flex:1;"
+                  oninput="this.style.setProperty('--range-pct',(((this.value-this.min)/(this.max-this.min))*100)+'%'); syncRadiusFromSlider(this.value, this)">
                 <input type="number" id="session-radius" value="300" min="50" max="99999"
-                  placeholder="Nhập số bất kỳ"
-                  style="flex:1;"
+                  placeholder="300"
+                  style="width:70px; text-align:center; -moz-appearance:textfield; appearance:textfield;"
                   oninput="syncRadiusFromInput(this.value)">
+                <span id="session-radius-display" style="font-weight:700; color:var(--gold); font-size:14px; flex-shrink:0; min-width:36px;">300m</span>
               </div>
             </div>
             
@@ -452,54 +438,62 @@
             <!-- Settings toggle -->
             <button onclick="toggleSettings()"
               style="width:100%; margin-top:8px; background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:10px 14px; cursor:pointer; font-size:13px; font-family:inherit; display:flex; align-items:center; justify-content:space-between;">
-              <span>⚙️ Cài đặt nâng cao</span>
+              <span>Cài đặt nâng cao</span>
               <span id="settings-arrow" style="font-size:11px; color:var(--gold);">▼</span>
             </button>
 
-            <div id="settings-panel" style="display:none; margin-top:2px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:16px; animation: fadeIn .15s ease;">
-              
-              <div style="font-size:11px; font-weight:700; color:var(--gold); letter-spacing:0.5px; margin-bottom:12px; text-transform:uppercase;">⏱ Mã QR</div>
-              <div class="form-group" style="margin-bottom:14px;">
-                <label style="font-size:12px;">Thời gian làm mới mã (giây)</label>
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <input type="range" id="set-qr-range" min="10" max="120" step="5" value="30"
-                    style="flex:1; accent-color:var(--red);"
-                    oninput="document.getElementById('set-qr-seconds').value=this.value">
-                  <input type="number" id="set-qr-seconds" value="30" min="10" max="120"
-                    style="width:64px; text-align:center;"
-                    oninput="document.getElementById('set-qr-range').value=this.value">
-                  <span style="font-size:12px; color:var(--text-muted); flex-shrink:0;">giây</span>
-                </div>
+            <div id="settings-panel" style="display:none; margin-top:2px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:14px 16px; animation: fadeIn .15s ease;">
+
+              <!-- ⏱ Mã QR -->
+              <div style="font-size:11px; font-weight:700; color:var(--gold); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">⏱ Mã QR</div>
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                <input type="range" id="set-qr-range" min="10" max="120" step="5" value="30"
+                  class="styled-range" style="flex:1;"
+                  oninput="this.style.setProperty('--range-pct',(((this.value-this.min)/(this.max-this.min))*100)+'%'); document.getElementById('set-qr-seconds').value=this.value">
+                <input type="number" id="set-qr-seconds" value="30" min="10" max="120"
+                  style="width:60px; text-align:center; -moz-appearance:textfield; appearance:textfield;"
+                  oninput="document.getElementById('set-qr-range').value=this.value">
+                <span style="font-size:12px; color:var(--text-muted); flex-shrink:0;">giây</span>
               </div>
 
-              <div style="font-size:11px; font-weight:700; color:var(--gold); letter-spacing:0.5px; margin-bottom:12px; margin-top:16px; text-transform:uppercase;">📋 Trường thông tin đảng viên</div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:4px;">
-                <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
-                  <input type="checkbox" id="set-field-name" checked style="accent-color:var(--red); width:15px; height:15px;"> Họ và tên
+              <!-- 👥 Tổng số đảng viên -->
+              <div style="font-size:11px; font-weight:700; color:var(--gold); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">👥 Tổng số đảng viên</div>
+              <div style="margin-bottom:14px;">
+                <input type="number" id="set-total-members" value="300" min="1" max="9999"
+                  style="width:100%; text-align:center; font-weight:700; font-size:15px; color:var(--gold); -moz-appearance:textfield; appearance:textfield;"
+                  placeholder="300">
+              </div>
+
+              <!-- Trường thông tin đảng viên -->
+              <div style="font-size:11px; font-weight:700; color:var(--gold); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">Trường thông tin đảng viên</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:14px;">
+                <label style="display:flex; align-items:center; gap:7px; font-size:12px; cursor:pointer; background:rgba(255,255,255,0.03); padding:7px 9px; border-radius:6px; border:1px solid var(--border);">
+                  <input type="checkbox" id="set-field-name" checked style="accent-color:var(--red); width:14px; height:14px;"> Họ và tên
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
-                  <input type="checkbox" id="set-field-id" checked style="accent-color:var(--red); width:15px; height:15px;"> MSSV
+                <label style="display:flex; align-items:center; gap:7px; font-size:12px; cursor:pointer; background:rgba(255,255,255,0.03); padding:7px 9px; border-radius:6px; border:1px solid var(--border);">
+                  <input type="checkbox" id="set-field-id" checked style="accent-color:var(--red); width:14px; height:14px;"> MSSV
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
-                  <input type="checkbox" id="set-field-lop" checked style="accent-color:var(--red); width:15px; height:15px;"> Lớp
+                <label style="display:flex; align-items:center; gap:7px; font-size:12px; cursor:pointer; background:rgba(255,255,255,0.03); padding:7px 9px; border-radius:6px; border:1px solid var(--border);">
+                  <input type="checkbox" id="set-field-lop" checked style="accent-color:var(--red); width:14px; height:14px;"> Lớp
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px; border:1px solid var(--border);">
-                  <input type="checkbox" id="set-field-token" checked style="accent-color:var(--red); width:15px; height:15px;"> Mã xác thực
+                <label style="display:flex; align-items:center; gap:7px; font-size:12px; cursor:pointer; background:rgba(255,255,255,0.03); padding:7px 9px; border-radius:6px; border:1px solid var(--border);">
+                  <input type="checkbox" id="set-field-token" checked style="accent-color:var(--red); width:14px; height:14px;"> Mã xác thực
                 </label>
               </div>
 
-              <div style="font-size:11px; font-weight:700; color:var(--gold); letter-spacing:0.5px; margin-bottom:12px; margin-top:16px; text-transform:uppercase;">📂 File xuất Excel</div>
-              <div class="form-group" style="margin-bottom:10px;">
-                <label style="font-size:12px;">Tên Sheet</label>
-                <input type="text" id="set-sheet-name" value="Điểm danh" placeholder="VD: Điểm danh tháng 3">
-              </div>
-              <div class="form-group" style="margin-bottom:16px;">
-                <label style="font-size:12px;">Tiền tố tên file <span style="color:var(--text-muted); font-weight:400;">(_ngày.xlsx)</span></label>
-                <input type="text" id="set-file-prefix" value="diemdanh" placeholder="VD: chibo_huce">
+              <!-- File xuất Excel – 4 thành phần cùng hàng -->
+              <div style="font-size:11px; font-weight:700; color:var(--gold); letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase;">File xuất Excel</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+                <span style="font-size:12px; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">Tên Sheet</span>
+                <input type="text" id="set-sheet-name" value="Điểm danh" placeholder="Điểm danh"
+                  style="flex:1; min-width:80px; font-size:12px; padding:7px 10px;">
+                <span style="font-size:12px; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">Tên file</span>
+                <input type="text" id="set-file-prefix" value="diemdanh" placeholder="diemdanh"
+                  style="flex:1; min-width:80px; font-size:12px; padding:7px 10px;">
               </div>
 
               <button onclick="saveSettings()" class="btn btn-primary" style="font-size:13px;">
-                💾 Lưu cài đặt
+                Lưu cài đặt
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@
    HỆ THỐNG ĐIỂM DANH ĐẢNG BỘ - FIREBASE REALTIME + ADMIN MAP
 ══════════════════════════════════════════════════════════ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, set, get, child, onValue, push, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBRKporXFmvJ_3BgD6Da0asgLySM4pAPnM",
@@ -44,6 +44,7 @@ const CONFIG = {
 
 window.saveSettings = function() {
   const qr = parseInt(document.getElementById('set-qr-seconds')?.value) || 30;
+  const totalMembers = parseInt(document.getElementById('set-total-members')?.value) || 300;
   const fieldName  = document.getElementById('set-field-name')?.checked ?? true;
   const fieldId    = document.getElementById('set-field-id')?.checked ?? true;
   const fieldLop   = document.getElementById('set-field-lop')?.checked ?? true;
@@ -52,6 +53,7 @@ window.saveSettings = function() {
   const filePrefix = document.getElementById('set-file-prefix')?.value?.trim() || 'diemdanh';
 
   CONFIG.QR_REFRESH_SECONDS = qr;
+  CONFIG.TOTAL_MEMBERS = totalMembers;
   CONFIG.FIELD_NAME  = fieldName;
   CONFIG.FIELD_ID    = fieldId;
   CONFIG.FIELD_LOP   = fieldLop;
@@ -61,16 +63,31 @@ window.saveSettings = function() {
 
   localStorage.setItem('dangbo_settings', JSON.stringify({
     QR_REFRESH_SECONDS: qr,
+    TOTAL_MEMBERS: totalMembers,
     FIELD_NAME: fieldName, FIELD_ID: fieldId, FIELD_LOP: fieldLop, FIELD_TOKEN: fieldToken,
     XLSX_SHEET_NAME: sheetName, XLSX_FILE_PREFIX: filePrefix,
   }));
 
+  // Cập nhật thống kê ngay với tổng số mới
+  updateAdminStats();
+
   // Áp dụng ngay: reset QR interval với thời gian mới
   CONFIG.QR_REFRESH_SECONDS = qr;
-  if (STATE.qrInterval) {
+  // Cập nhật text mô tả thời gian làm mới QR
+  const qrDescEl = document.getElementById('qr-refresh-desc');
+  if (qrDescEl) qrDescEl.textContent = qr + ' giây';
+  if (STATE.qrActive) {
     clearInterval(STATE.qrInterval);
+    STATE.qrInterval = null;
     STATE.qrCountdown = qr;
-    initQR();
+    regenerateQR();
+    STATE.qrInterval = setInterval(() => {
+      STATE.qrCountdown--;
+      const pct = ((CONFIG.QR_REFRESH_SECONDS - STATE.qrCountdown) / CONFIG.QR_REFRESH_SECONDS) * 100;
+      const barEl = document.getElementById('qr-bar'); if (barEl) barEl.style.width = pct + '%';
+      const txtEl = document.getElementById('qr-timer-txt'); if (txtEl) txtEl.textContent = `Làm mới sau: ${STATE.qrCountdown}s`;
+      if (STATE.qrCountdown <= 0) { regenerateQR(); STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS; }
+    }, 1000);
   }
 
   // Ẩn/hiện form fields
@@ -102,6 +119,15 @@ window.toggleSettings = function() {
     // Điền giá trị hiện tại vào form
     const setEl = id => document.getElementById(id);
     if (setEl('set-qr-seconds'))   setEl('set-qr-seconds').value   = CONFIG.QR_REFRESH_SECONDS;
+    // Sync text-muted description
+    const qrDesc = document.getElementById('qr-refresh-desc');
+    if (qrDesc) qrDesc.textContent = CONFIG.QR_REFRESH_SECONDS + ' giây';
+    if (setEl('set-total-members')) setEl('set-total-members').value = CONFIG.TOTAL_MEMBERS;
+    if (setEl('set-qr-range')) {
+      setEl('set-qr-range').value = CONFIG.QR_REFRESH_SECONDS;
+      const pct = (((CONFIG.QR_REFRESH_SECONDS - 10) / (120 - 10)) * 100).toFixed(1) + '%';
+      setEl('set-qr-range').style.setProperty('--range-pct', pct);
+    }
     if (setEl('set-field-name'))   setEl('set-field-name').checked  = CONFIG.FIELD_NAME;
     if (setEl('set-field-id'))     setEl('set-field-id').checked    = CONFIG.FIELD_ID;
     if (setEl('set-field-lop'))    setEl('set-field-lop').checked   = CONFIG.FIELD_LOP;
@@ -121,6 +147,42 @@ const STATE = {
 let adminLeafletMap = null;
 let adminMarker = null;
 let adminRadiusCircle = null;
+
+// ─── ADMIN SESSION TRACKING ───
+let MY_ADMIN_SESSION_KEY = null;
+
+function registerAdminSession() {
+  const sessionId = 'admin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  MY_ADMIN_SESSION_KEY = sessionId;
+  const sessionRef = ref(db, 'admin_sessions/' + sessionId);
+  set(sessionRef, { joinedAt: Date.now(), active: true });
+  // Tự xóa khi mất kết nối / đóng tab
+  onDisconnect(sessionRef).remove();
+  return sessionId;
+}
+
+function unregisterAdminSession() {
+  if (MY_ADMIN_SESSION_KEY) {
+    remove(ref(db, 'admin_sessions/' + MY_ADMIN_SESSION_KEY));
+    MY_ADMIN_SESSION_KEY = null;
+  }
+}
+
+function watchAdminSessions() {
+  onValue(ref(db, 'admin_sessions'), (snapshot) => {
+    if (!STATE.isAdmin) return;
+    const sessions = snapshot.val() || {};
+    const count = Object.keys(sessions).length;
+    const banner = document.getElementById('multi-admin-banner');
+    if (!banner) return;
+    if (count > 1) {
+      banner.style.display = 'flex';
+      banner.querySelector('#multi-admin-count').textContent = count;
+    } else {
+      banner.style.display = 'none';
+    }
+  });
+}
 
 window.switchTab = switchTab; window.goStep2 = goStep2; window.completeAttendance = completeAttendance;
 window.bypassGeo = bypassGeo; window.adminLogin = adminLogin; window.regenerateQR = regenerateQR;
@@ -292,9 +354,36 @@ function updateClock() {
 }
 setInterval(updateClock, 1000); updateClock();
 
+window.addEventListener('beforeunload', () => {
+  unregisterAdminSession();
+});
+
 // ─── KHỞI ĐỘNG SAU KHI DOM SẴN SÀNG ───
 document.addEventListener('DOMContentLoaded', () => {
   setStep(1);
+
+  // Khởi tạo fill cho range inputs
+  document.querySelectorAll('input[type="range"].styled-range').forEach(el => {
+    const pct = (((el.value - el.min) / (el.max - el.min)) * 100) + '%';
+    el.style.setProperty('--range-pct', pct);
+  });
+
+  // Khôi phục trạng thái đăng nhập admin nếu còn trong session
+  if (sessionStorage.getItem('dangbo_admin_logged_in') === '1') {
+    STATE.isAdmin = true;
+    document.getElementById('admin-login').classList.add('hidden');
+    document.getElementById('admin-panel').classList.remove('hidden');
+    switchTab('admin');
+    registerAdminSession();
+    watchAdminSessions();
+    initQR();
+    setTimeout(() => {
+      initAdminMap();
+      loadSavedLocationsDB();
+      const r = parseInt(document.getElementById('session-radius').value) || STATE.SESSION.radius;
+      setSliderPct(r);
+    }, 200);
+  }
 
   const todayISO = new Date().toISOString().split('T')[0];
   const dateFilterEl = document.getElementById('export-date-filter');
@@ -626,8 +715,11 @@ function resetForm() {
 function adminLogin() {
   if (document.getElementById('admin-pw').value === CONFIG.ADMIN_PASSWORD) {
     STATE.isAdmin = true;
+    sessionStorage.setItem('dangbo_admin_logged_in', '1');
     document.getElementById('admin-login').classList.add('hidden');
     document.getElementById('admin-panel').classList.remove('hidden');
+    registerAdminSession();
+    watchAdminSessions();
     initQR();
     // FIX 1: Panel vừa hiện → render ngay với dữ liệu đã có trong STATE
     renderAttList();
@@ -764,18 +856,53 @@ function saveSession() {
   const radius = parseInt(document.getElementById('session-radius').value) || 300;
 
   set(ref(db, 'session/info'), { name, lat, lng, radius })
-    .then(() => toast('Cấu hình điểm họp đã được phát tới toàn bộ Đảng viên!'));
+    .then(() => {
+      toast('Cấu hình điểm họp đã được phát tới toàn bộ Đảng viên!');
+      // Kích hoạt QR thật ngay khi phát địa điểm (nếu chưa active)
+      if (!STATE.qrActive) {
+        STATE.qrActive = true;
+        clearInterval(STATE.qrInterval);
+        STATE.qrInterval = null;
+        regenerateQR();
+        // Bật nút "Cấp mã mới ngay"
+        const btnRegen = document.getElementById('btn-regen-qr');
+        if (btnRegen) { btnRegen.disabled = false; btnRegen.style.opacity = ''; btnRegen.style.cursor = ''; }
+        STATE.qrInterval = setInterval(() => {
+          STATE.qrCountdown--;
+          const pct = ((CONFIG.QR_REFRESH_SECONDS - STATE.qrCountdown) / CONFIG.QR_REFRESH_SECONDS) * 100;
+          const barEl = document.getElementById('qr-bar'); if (barEl) barEl.style.width = pct + '%';
+          const txtEl = document.getElementById('qr-timer-txt'); if (txtEl) txtEl.textContent = `Làm mới sau: ${STATE.qrCountdown}s`;
+          if (STATE.qrCountdown <= 0) { regenerateQR(); STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS; }
+        }, 1000);
+      }
+    });
+}
+
+function setQRWaitingState() {
+  // Hiển thị trạng thái chờ: token ẩn, QR dấu hỏi, timer "Đang chờ cấp phát"
+  const el = document.getElementById('qrcode');
+  if (el) {
+    el.innerHTML = '<div style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:4px;"><span style=\'font-size:80px;opacity:0.25;\'>?</span></div>';
+  }
+  const tokenEl = document.getElementById('qr-token-display');
+  if (tokenEl) tokenEl.textContent = '------';
+  const txtEl = document.getElementById('qr-timer-txt');
+  if (txtEl) txtEl.textContent = 'Đang chờ cấp phát';
+  const barEl = document.getElementById('qr-bar');
+  if (barEl) barEl.style.width = '0%';
+  // Ghi token ngẫu nhiên ẩn vào DB (người dùng không thể đọc từ màn hình)
+  const hiddenToken = Math.random().toString(36).substr(2, 6).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase();
+  set(ref(db, 'session/current_token'), hiddenToken).catch(e => console.error(e));
 }
 
 function initQR() {
-  regenerateQR(); clearInterval(STATE.qrInterval); STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS;
-  STATE.qrInterval = setInterval(() => {
-    STATE.qrCountdown--;
-    const pct = ((CONFIG.QR_REFRESH_SECONDS - STATE.qrCountdown) / CONFIG.QR_REFRESH_SECONDS) * 100;
-    const barEl = document.getElementById('qr-bar'); if (barEl) barEl.style.width = pct + '%';
-    const txtEl = document.getElementById('qr-timer-txt'); if (txtEl) txtEl.textContent = `Làm mới sau: ${STATE.qrCountdown}s`;
-    if (STATE.qrCountdown <= 0) { regenerateQR(); STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS; }
-  }, 1000);
+  clearInterval(STATE.qrInterval);
+  STATE.qrInterval = null;
+  // Luôn bắt đầu ở trạng thái chờ; QR thật chỉ khởi động sau khi "Phát địa điểm"
+  setQRWaitingState();
+  STATE.qrActive = false;
+  const btnRegen = document.getElementById('btn-regen-qr');
+  if (btnRegen) { btnRegen.disabled = true; btnRegen.style.opacity = '0.4'; btnRegen.style.cursor = 'not-allowed'; }
 }
 
 function regenerateQR() {
@@ -784,7 +911,6 @@ function regenerateQR() {
   set(ref(db, 'session/current_token'), token).catch(e => console.error(e));
   document.getElementById('qr-token-display').textContent = token;
   new QRCode(el, { text: `${CONFIG.SITE_URL}?token=${token}`, width: 220, height: 220, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
-  // Fix 6: reset cả đếm ngược, không chỉ thanh bar
   STATE.qrCountdown = CONFIG.QR_REFRESH_SECONDS;
   const barEl = document.getElementById('qr-bar'); if (barEl) barEl.style.width = '0%';
   const txtEl = document.getElementById('qr-timer-txt'); if (txtEl) txtEl.textContent = `Làm mới sau: ${CONFIG.QR_REFRESH_SECONDS}s`;
@@ -904,7 +1030,7 @@ window.seedTestData = async function(count = 30) {
 
   try {
     await Promise.all(promises);
-    toast(`✅ Đã thêm ${count} đảng viên test!`);
+    toast(`Đã thêm ${count} đảng viên test!`);
     if (btn) { btn.disabled = false; btn.textContent = `➕ Thêm ${count} đảng viên test`; }
   } catch(e) {
     toast('Lỗi seed data: ' + e.message, 'error');

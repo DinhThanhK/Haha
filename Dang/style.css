@@ -216,3 +216,59 @@ select option { background: #1C1C28; }
     flex-direction: column; 
   }
 }
+/* ═══════════════════════════════════
+   RANGE INPUT STYLING
+═══════════════════════════════════ */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  padding: 0;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 99px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.45);
+  cursor: pointer;
+  margin-top: -7px;
+  transition: transform .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.12);
+}
+input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--red);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.45);
+  cursor: pointer;
+}
+/* Fill left side red using JS-set CSS var */
+input[type="range"].styled-range {
+  background: linear-gradient(to right, var(--red) var(--range-pct, 0%), rgba(255,255,255,0.12) var(--range-pct, 0%));
+}
