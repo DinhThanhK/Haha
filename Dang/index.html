@@ -293,7 +293,7 @@
       <div id="step3" class="hidden">
         <div class="card">
           <div class="success-screen show" id="success-screen">
-            <div class="success-icon">🎉</div>
+            <div class="success-icon"></div>
             <div class="success-name" id="success-name"></div>
             <div class="success-msg">Đã điểm danh thành công!</div>
             <div class="success-meta">
@@ -313,7 +313,7 @@
     <div id="tab-admin" class="hidden">
       <div id="admin-login">
         <div class="card">
-          <div class="card-title">🔐 Đăng nhập Ban tổ chức</div>
+          <div class="card-title">Đăng nhập Ban tổ chức</div>
           <div class="form-group"><label>Mật khẩu</label><input type="password" id="admin-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter') adminLogin()"></div>
           <button class="btn btn-primary" onclick="adminLogin()">Đăng nhập</button>
         </div>
@@ -518,6 +518,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@4/dist/fp.min.js"></script>
 <script type="module" src="app.js"></script>
 
 </body>

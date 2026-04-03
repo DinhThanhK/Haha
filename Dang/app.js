@@ -139,9 +139,36 @@ window.toggleSettings = function() {
 const STATE = {
   step: 1, name: '', memberId: '', lop: '', geoOk: false, geoLat: null, geoLng: null,
   attendanceList: [], qrInterval: null, qrCountdown: CONFIG.QR_REFRESH_SECONDS,
-  isAdmin: false, leafletMap: null,
+  isAdmin: false, leafletMap: null, deviceFingerprint: null,
   SESSION: { name: 'Họp chi bộ', lat: 21.0036, lng: 105.8412, radius: 300 }
 };
+
+// ─── DEVICE FINGERPRINT ───
+async function initFingerprint() {
+  try {
+    if (typeof FingerprintJS === 'undefined') return;
+    const fp = await FingerprintJS.load();
+    const result = await fp.get();
+    STATE.deviceFingerprint = result.visitorId;
+  } catch(e) {
+    console.warn('Fingerprint init failed:', e);
+  }
+}
+
+async function checkDeviceAttended(todayVi) {
+  if (!STATE.deviceFingerprint) return false;
+  try {
+    const snap = await get(ref(db, `device_attendance/${STATE.deviceFingerprint}/${todayVi.replace(/\//g, '-')}`));
+    return snap.exists();
+  } catch(e) { return false; }
+}
+
+async function markDeviceAttended(todayVi) {
+  if (!STATE.deviceFingerprint) return;
+  try {
+    await set(ref(db, `device_attendance/${STATE.deviceFingerprint}/${todayVi.replace(/\//g, '-')}`), true);
+  } catch(e) { console.warn('markDeviceAttended error:', e); }
+}
 
 let adminLeafletMap = null;
 let adminMarker = null;
@@ -359,6 +386,7 @@ window.addEventListener('beforeunload', () => {
 // ─── KHỞI ĐỘNG SAU KHI DOM SẴN SÀNG ───
 document.addEventListener('DOMContentLoaded', () => {
   setStep(1);
+  initFingerprint();
 
   // Khởi tạo fill cho range inputs
   document.querySelectorAll('input[type="range"].styled-range').forEach(el => {
@@ -515,21 +543,25 @@ async function goStep2() {
       STATE.name = name; STATE.memberId = id; STATE.lop = lop;
       saveMemberInfoIfChecked();
       setStep(2);
-      // Kiểm tra đã điểm danh chưa – check Firebase (chống đa trình duyệt)
+      // Kiểm tra đã điểm danh chưa – check cả localStorage, Firebase MSSV, và device fingerprint
       const _n = new Date();
       const _dd2 = String(_n.getDate()).padStart(2,'0');
       const _mm2 = String(_n.getMonth()+1).padStart(2,'0');
       const todayVi2 = `${_dd2}/${_mm2}/${_n.getFullYear()}`;
+      const _tk2 = `attended_${id}_${_dd2}-${_mm2}-${_n.getFullYear()}`;
       setGeoStatus('checking', 'Đang kiểm tra trạng thái điểm danh...');
-      checkAlreadyAttended(id, todayVi2).then(alreadyDone => {
-        if (alreadyDone) {
+      Promise.all([
+        checkAlreadyAttended(id, todayVi2),
+        checkDeviceAttended(todayVi2)
+      ]).then(([byId, byDevice]) => {
+        if (byId || byDevice || localStorage.getItem(_tk2)) {
           const btn2 = document.getElementById('geo-next-btn');
           if (btn2) {
             btn2.disabled = true;
             btn2.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
             btn2.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
           }
-          setGeoStatus('ok', '✅ Bạn đã hoàn thành điểm danh hôm nay');
+          setGeoStatus('ok', '');
         } else {
           startGeoWithMap();
         }
@@ -677,9 +709,7 @@ async function checkAlreadyAttended(memberId, todayVi) {
       }
     });
     return found;
-  } catch(e) {
-    return false; // Nếu lỗi mạng thì cho qua, Firebase sẽ chặn nếu có rules
-  }
+  } catch(e) { return false; }
 }
 
 async function completeAttendance() {
@@ -693,10 +723,14 @@ async function completeAttendance() {
   const todayVi = `${dd}/${mm}/${yyyy}`;
   const todayKey = `attended_${STATE.memberId}_${dd}-${mm}-${yyyy}`;
 
-  // Kiểm tra Firebase trước – chặn mọi trình duyệt/thiết bị
-  const alreadyDone = await checkAlreadyAttended(STATE.memberId, todayVi);
-  if (alreadyDone) {
-    localStorage.setItem(todayKey, '1'); // đồng bộ lại localStorage
+  // Kiểm tra 3 lớp: localStorage + Firebase theo MSSV + Firebase theo device fingerprint
+  const [byId, byDevice] = await Promise.all([
+    checkAlreadyAttended(STATE.memberId, todayVi),
+    checkDeviceAttended(todayVi)
+  ]);
+
+  if (localStorage.getItem(todayKey) || byId || byDevice) {
+    localStorage.setItem(todayKey, '1');
     btn.disabled = true;
     btn.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
     btn.style.background = 'rgba(34,197,94,0.15)';
@@ -718,8 +752,9 @@ async function completeAttendance() {
   };
 
   push(ref(db, 'attendance_list'), record)
-    .then(() => {
+    .then(async () => {
       localStorage.setItem(todayKey, '1');
+      await markDeviceAttended(todayVi); // Ghi fingerprint lên Firebase
       document.getElementById('success-name').textContent = STATE.name;
       document.getElementById('suc-time').textContent = record.time;
       document.getElementById('suc-code').textContent = code;
