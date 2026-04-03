@@ -139,9 +139,94 @@ window.toggleSettings = function() {
 const STATE = {
   step: 1, name: '', memberId: '', lop: '', geoOk: false, geoLat: null, geoLng: null,
   attendanceList: [], qrInterval: null, qrCountdown: CONFIG.QR_REFRESH_SECONDS,
-  isAdmin: false, leafletMap: null, deviceFingerprint: null,
+  isAdmin: false, leafletMap: null, deviceFingerprint: null, zaloId: null, zaloName: null,
   SESSION: { name: 'Họp chi bộ', lat: 21.0036, lng: 105.8412, radius: 300 }
 };
+
+// ─── ZALO LOGIN ───
+const ZALO_APP_ID = '563672230994960830';
+const ZALO_REDIRECT_URI = 'https://diemdanh-chibo-huce.vercel.app';
+
+function generateCodeVerifier() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function generateCodeChallenge(verifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function startZaloLogin() {
+  const verifier = generateCodeVerifier();
+  const challenge = await generateCodeChallenge(verifier);
+  sessionStorage.setItem('zalo_code_verifier', verifier);
+
+  const params = new URLSearchParams({
+    app_id:                ZALO_APP_ID,
+    redirect_uri:          ZALO_REDIRECT_URI,
+    code_challenge:        challenge,
+    code_challenge_method: 'S256',
+    state:                 'diemdanh',
+  });
+  window.location.href = `https://oauth.zaloapp.com/v4/permission?${params}`;
+}
+
+async function handleZaloCallback(code) {
+  const verifier = sessionStorage.getItem('zalo_code_verifier') || '';
+  try {
+    const res = await fetch('/api/zalo-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, code_verifier: verifier }),
+    });
+    const data = await res.json();
+    if (!data.zaloId) throw new Error(data.error || 'Không lấy được Zalo ID');
+    STATE.zaloId   = data.zaloId;
+    STATE.zaloName = data.zaloName;
+    sessionStorage.removeItem('zalo_code_verifier');
+    // Tự điền tên nếu chưa có
+    const nameInput = document.getElementById('inp-name');
+    if (nameInput && !nameInput.value.trim()) nameInput.value = data.zaloName || '';
+    updateZaloUI(true);
+    toast('Xác thực Zalo thành công!');
+  } catch(e) {
+    toast('Lỗi xác thực Zalo: ' + e.message, 'error');
+    updateZaloUI(false);
+  }
+}
+
+function updateZaloUI(loggedIn) {
+  const btn   = document.getElementById('btn-zalo-login');
+  const badge = document.getElementById('zalo-badge');
+  if (!btn || !badge) return;
+  if (loggedIn) {
+    btn.style.display   = 'none';
+    badge.style.display = 'flex';
+    badge.querySelector('#zalo-name-display').textContent = STATE.zaloName || 'Đã xác thực';
+  } else {
+    btn.style.display   = 'flex';
+    badge.style.display = 'none';
+  }
+}
+
+async function checkZaloAttended(zaloId, todayVi) {
+  if (!zaloId) return false;
+  try {
+    const snap = await get(ref(db, `zalo_attendance/${zaloId}/${todayVi.replace(/\//g, '-')}`));
+    return snap.exists();
+  } catch(e) { return false; }
+}
+
+async function markZaloAttended(zaloId, todayVi) {
+  if (!zaloId) return;
+  try {
+    await set(ref(db, `zalo_attendance/${zaloId}/${todayVi.replace(/\//g, '-')}`), true);
+  } catch(e) { console.warn('markZaloAttended error:', e); }
+}
 
 // ─── DEVICE FINGERPRINT ───
 async function initFingerprint() {
@@ -388,6 +473,15 @@ document.addEventListener('DOMContentLoaded', () => {
   setStep(1);
   initFingerprint();
 
+  // Xử lý Zalo OAuth callback
+  const urlParams = new URLSearchParams(window.location.search);
+  const zaloCode  = urlParams.get('code');
+  const zaloState = urlParams.get('state');
+  if (zaloCode && zaloState === 'diemdanh') {
+    window.history.replaceState({}, '', window.location.pathname);
+    handleZaloCallback(zaloCode);
+  }
+
   // Khởi tạo fill cho range inputs
   document.querySelectorAll('input[type="range"].styled-range').forEach(el => {
     const pct = (((el.value - el.min) / (el.max - el.min)) * 100) + '%';
@@ -552,9 +646,10 @@ async function goStep2() {
       setGeoStatus('checking', 'Đang kiểm tra trạng thái điểm danh...');
       Promise.all([
         checkAlreadyAttended(id, todayVi2),
-        checkDeviceAttended(todayVi2)
-      ]).then(([byId, byDevice]) => {
-        if (byId || byDevice || localStorage.getItem(_tk2)) {
+        checkDeviceAttended(todayVi2),
+        checkZaloAttended(STATE.zaloId, todayVi2),
+      ]).then(([byId, byDevice, byZalo]) => {
+        if (byId || byDevice || byZalo || localStorage.getItem(_tk2)) {
           const btn2 = document.getElementById('geo-next-btn');
           if (btn2) {
             btn2.disabled = true;
@@ -724,12 +819,13 @@ async function completeAttendance() {
   const todayKey = `attended_${STATE.memberId}_${dd}-${mm}-${yyyy}`;
 
   // Kiểm tra 3 lớp: localStorage + Firebase theo MSSV + Firebase theo device fingerprint
-  const [byId, byDevice] = await Promise.all([
+  const [byId, byDevice, byZalo] = await Promise.all([
     checkAlreadyAttended(STATE.memberId, todayVi),
-    checkDeviceAttended(todayVi)
+    checkDeviceAttended(todayVi),
+    checkZaloAttended(STATE.zaloId, todayVi),
   ]);
 
-  if (localStorage.getItem(todayKey) || byId || byDevice) {
+  if (localStorage.getItem(todayKey) || byId || byDevice || byZalo) {
     localStorage.setItem(todayKey, '1');
     btn.disabled = true;
     btn.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
@@ -755,6 +851,7 @@ async function completeAttendance() {
     .then(async () => {
       localStorage.setItem(todayKey, '1');
       await markDeviceAttended(todayVi); // Ghi fingerprint lên Firebase
+      await markZaloAttended(STATE.zaloId, todayVi); // Ghi Zalo ID lên Firebase
       document.getElementById('success-name').textContent = STATE.name;
       document.getElementById('suc-time').textContent = record.time;
       document.getElementById('suc-code').textContent = code;
