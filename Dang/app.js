@@ -178,7 +178,7 @@ async function startZaloLogin() {
 async function handleZaloCallback(code) {
   const verifier = sessionStorage.getItem('zalo_code_verifier') || '';
   try {
-    // Bước 1: Server đổi code → access_token (server chỉ làm việc này)
+    // Bước 1: Server đổi code → access_token
     const res = await fetch('/api/zalo-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -187,56 +187,87 @@ async function handleZaloCallback(code) {
     const data = await res.json();
     if (!data.access_token) throw new Error(data.error || 'Không lấy được access_token');
 
-    // Bước 2: Client tự gọi graph.zalo.me từ trình duyệt (IP Việt Nam — không bị chặn)
+    // Bước 2: Client tự gọi graph.zalo.me (IP Việt Nam)
     const userRes = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name,picture', {
       headers: { 'access_token': data.access_token },
     });
     const userData = await userRes.json();
-    console.log('Zalo user data:', userData);
-
     if (!userData.id) throw new Error('Zalo không trả về ID: ' + JSON.stringify(userData));
 
     STATE.zaloId   = userData.id;
     STATE.zaloName = userData.name || null;
+    sessionStorage.setItem('zalo_id',   userData.id);
+    sessionStorage.setItem('zalo_name', userData.name || '');
     sessionStorage.removeItem('zalo_code_verifier');
 
     // Tự điền tên nếu chưa có
     const nameInput = document.getElementById('inp-name');
     if (nameInput && !nameInput.value.trim()) nameInput.value = STATE.zaloName || '';
-    updateZaloUI(true);
-    toast('Xác thực Zalo thành công!');
+
+    // Bước 3: Kiểm tra ngay hôm nay đã điểm danh chưa
+    const now = new Date();
+    const dd  = String(now.getDate()).padStart(2,'0');
+    const mm  = String(now.getMonth()+1).padStart(2,'0');
+    const todayKey = `${dd}-${mm}-${now.getFullYear()}`;
+    const alreadyDone = await checkZaloAttended(STATE.zaloId, todayKey);
+
+    if (alreadyDone) {
+      updateZaloUI(true, true);
+      toast('⚠️ Tài khoản Zalo này đã điểm danh hôm nay rồi!', 'error');
+      const btnVerify = document.getElementById('btn-verify');
+      if (btnVerify) {
+        btnVerify.disabled = true;
+        btnVerify.textContent = '✓ Đã điểm danh hôm nay';
+        btnVerify.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
+      }
+    } else {
+      updateZaloUI(true, false);
+      toast('Xác thực Zalo thành công!');
+    }
   } catch(e) {
     toast('Lỗi xác thực Zalo: ' + e.message, 'error');
-    updateZaloUI(false);
+    updateZaloUI(false, false);
   }
 }
 
-function updateZaloUI(loggedIn) {
+function updateZaloUI(loggedIn, alreadyAttended = false) {
   const btn   = document.getElementById('btn-zalo-login');
   const badge = document.getElementById('zalo-badge');
   if (!btn || !badge) return;
   if (loggedIn) {
     btn.style.display   = 'none';
     badge.style.display = 'flex';
-    badge.querySelector('#zalo-name-display').textContent = STATE.zaloName || 'Đã xác thực';
+    const nameEl = badge.querySelector('#zalo-name-display');
+    if (nameEl) {
+      if (alreadyAttended) {
+        nameEl.textContent = (STATE.zaloName || 'Đã xác thực') + ' · ✓ Đã điểm danh hôm nay';
+        nameEl.style.color = '#86efac';
+      } else {
+        nameEl.textContent = STATE.zaloName || 'Đã xác thực';
+        nameEl.style.color = '';
+      }
+    }
   } else {
     btn.style.display   = 'flex';
     badge.style.display = 'none';
   }
 }
 
-async function checkZaloAttended(zaloId, todayVi) {
+async function checkZaloAttended(zaloId, todayKey) {
   if (!zaloId) return false;
+  // todayKey format: dd-mm-yyyy
+  const key = todayKey.includes('/') ? todayKey.replace(/\//g, '-') : todayKey;
   try {
-    const snap = await get(ref(db, `zalo_attendance/${zaloId}/${todayVi.replace(/\//g, '-')}`));
+    const snap = await get(ref(db, `zalo_attendance/${zaloId}/${key}`));
     return snap.exists();
   } catch(e) { return false; }
 }
 
-async function markZaloAttended(zaloId, todayVi) {
+async function markZaloAttended(zaloId, todayKey) {
   if (!zaloId) return;
+  const key = todayKey.includes('/') ? todayKey.replace(/\//g, '-') : todayKey;
   try {
-    await set(ref(db, `zalo_attendance/${zaloId}/${todayVi.replace(/\//g, '-')}`), true);
+    await set(ref(db, `zalo_attendance/${zaloId}/${key}`), true);
   } catch(e) { console.warn('markZaloAttended error:', e); }
 }
 
@@ -525,6 +556,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const todayISO = new Date().toISOString().split('T')[0];
   const dateFilterEl = document.getElementById('export-date-filter');
   if (dateFilterEl) dateFilterEl.value = todayISO;
+
+  // Khôi phục Zalo session nếu còn
+  const savedZaloId = sessionStorage.getItem('zalo_id');
+  if (savedZaloId) {
+    STATE.zaloId   = savedZaloId;
+    STATE.zaloName = sessionStorage.getItem('zalo_name') || null;
+    updateZaloUI(true, false);
+  }
 
   loadSavedMemberInfo();
 
@@ -861,7 +900,9 @@ async function completeAttendance() {
     name: STATE.name, id: STATE.memberId, unit: STATE.lop,
     time: now.toLocaleTimeString('vi-VN'),
     date: todayVi,
-    lat: STATE.geoLat, lng: STATE.geoLng, code, timestamp: Date.now()
+    lat: STATE.geoLat, lng: STATE.geoLng, code, timestamp: Date.now(),
+    zaloId: STATE.zaloId || null,
+    zaloName: STATE.zaloName || null,
   };
 
   push(ref(db, 'attendance_list'), record)
