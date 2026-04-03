@@ -269,13 +269,34 @@ async function handleZaloCallback(code) {
   }
 }
 
-function updateZaloUI(loggedIn, alreadyAttended = false) {
+function updateZaloUI(loggedIn, alreadyAttended = false, checking = false) {
   const box     = document.getElementById('verify-zalo-box');
   const subText = document.getElementById('zalo-box-sub');
   const iconEmpty = document.getElementById('zalo-icon-empty');
   const iconDone  = document.getElementById('zalo-icon-done');
 
   if (!box) return;
+
+  // Trạng thái đang kiểm tra
+  if (checking) {
+    box.classList.remove('done');
+    if (iconEmpty) iconEmpty.style.display = 'block';
+    if (iconDone)  iconDone.style.display  = 'none';
+    if (subText) {
+      subText.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">'
+        + '<span style="display:inline-block;width:10px;height:10px;border:2px solid rgba(10,132,255,0.4);border-top-color:#0a84ff;border-radius:50%;animation:zalo-spin .7s linear infinite;"></span>'
+        + 'Đang kiểm tra Zalo...</span>';
+      subText.style.color = '#60a5fa';
+    }
+    // Inject spinner keyframes nếu chưa có
+    if (!document.getElementById('zalo-spin-style')) {
+      const s = document.createElement('style');
+      s.id = 'zalo-spin-style';
+      s.textContent = '@keyframes zalo-spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(s);
+    }
+    return;
+  }
 
   if (loggedIn) {
     box.classList.add('done');
@@ -649,6 +670,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const zaloState = urlParams.get('state');
   if (zaloCode && zaloState === 'diemdanh') {
     window.history.replaceState({}, '', window.location.pathname);
+    // Hiển thị trạng thái đang kiểm tra ngay khi redirect về
+    updateZaloUI(false, false, true);
     handleZaloCallback(zaloCode);
   }
 
@@ -684,6 +707,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (savedZaloId) {
     STATE.zaloId   = savedZaloId;
     STATE.zaloName = sessionStorage.getItem('zalo_name') || null;
+    // Hiển thị spinner trong khi kiểm tra Firebase
+    updateZaloUI(false, false, true);
     // Kiểm tra đã điểm danh hôm nay chưa
     const _now2 = new Date();
     const _dd2  = String(_now2.getDate()).padStart(2,'0');
