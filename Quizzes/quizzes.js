@@ -1125,9 +1125,9 @@ function renderQuestionItem(q, qi, container, isInline) {
       <div class="answers-grid" id="answers-${qi}">
         ${q.type==='fill' ? `
           <div style="margin-top:4px">
-            <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án đúng (dùng | để phân cách)</label>
-            <input type="text" class="form-input" placeholder="VD: Hà Nội | hà nội"
-              value="${escHtml((q.answers||[]).filter(a=>a.correct).map(a=>a.text).join(' | '))}"
+            <label style="font-size:.78rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Đáp án đúng (dùng / để phân cách)</label>
+            <input type="text" class="form-input" placeholder="VD: Hà Nội / hà nội"
+              value="${escHtml((q.answers||[]).filter(a=>a.correct).map(a=>a.text).join(' / '))}"
               oninput="editFillAnswer(${qi},this.value)">
           </div>` :
         q.type==='multifill' ? `
@@ -1205,7 +1205,7 @@ function renderQuestionItem(q, qi, container, isInline) {
             oninput="editFillAnswer(${qi},this.value);syncFormToText(${qi})">
           <div style="font-size:.72rem;color:var(--text3);margin-top:4px;line-height:1.6">
             <i class="fas fa-info-circle"></i> Dùng <code style="color:var(--accent2);background:rgba(0,212,170,.1);padding:1px 4px;border-radius:3px">&lt;từ_khoá&gt;</code> để đánh dấu từ quan trọng.<br>
-            Dùng <code style="color:var(--accent4);background:rgba(255,217,61,.1);padding:1px 4px;border-radius:3px">|</code> để phân cách nhiều đáp án chấp nhận. Dùng <code style="color:var(--accent);background:rgba(108,99,255,.1);padding:1px 4px;border-radius:3px">&lt;*Prefix*&gt;</code> để điền sẵn vào ô trả lời.
+            Dùng <code style="color:var(--accent4);background:rgba(255,217,61,.1);padding:1px 4px;border-radius:3px">/</code> để phân cách nhiều đáp án chấp nhận. Dùng <code style="color:var(--accent);background:rgba(108,99,255,.1);padding:1px 4px;border-radius:3px">&lt;*Prefix*&gt;</code> để điền sẵn vào ô trả lời.
           </div>
         </div>` :
       q.type==='multifill' ? `
