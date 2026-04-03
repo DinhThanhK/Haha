@@ -296,6 +296,7 @@ function watchAdminSessions() {
 }
 
 window.switchTab = switchTab; window.goStep2 = goStep2; window.completeAttendance = completeAttendance;
+window.startZaloLogin = startZaloLogin;
 window.bypassGeo = bypassGeo; window.adminLogin = adminLogin; window.regenerateQR = regenerateQR;
 window.saveSession = saveSession; window.exportData = exportData; window.resetForm = resetForm;
 window.saveNewLocationToDB = saveNewLocationToDB; window.applySavedLocation = applySavedLocation;
