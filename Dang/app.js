@@ -647,12 +647,12 @@ function bypassGeo() {
   const hadKey = !!localStorage.getItem(todayKey);
   localStorage.removeItem(todayKey);
 
-  setGeoStatus('ok', '🧪 Test mode – Đã bỏ qua kiểm tra vị trí (có thể điểm danh lại)');
+  setGeoStatus('ok', 'Test mode – Đã bỏ qua kiểm tra vị trí');
   updateMapInfoBox(STATE.SESSION.lat, STATE.SESSION.lng, 0, 5);
   renderLeafletMap(STATE.SESSION.lat, STATE.SESSION.lng, 0);
   const btn = document.getElementById('geo-next-btn');
   if (btn) btn.disabled = false;
-  toast('🧪 Test mode OK – Bấm "Xác nhận điểm danh" để lưu!');
+  
 }
 
 function haversineDistance(lat1, lng1, lat2, lng2) {
