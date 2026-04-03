@@ -240,6 +240,7 @@ async function handleZaloCallback(code) {
       }
     } else {
       updateZaloUI(true, false);
+      checkVerifyReady();
       toast('Xác thực Zalo thành công!');
     }
   } catch(e) {
@@ -376,6 +377,37 @@ window.syncRadiusFromInput = syncRadiusFromInput;
 window.startGeoWithMap = startGeoWithMap;
 window.updateExportCount = updateExportCount;
 window.reloadAdminMap = reloadAdminMap;
+window.checkVerifyReady = checkVerifyReady;
+
+// ─── KIỂM TRA SẴN SÀNG XÁC THỰC ───
+// Gọi mỗi khi người dùng nhập mã QR — bật/tắt nút "Kiểm tra mã"
+function checkVerifyReady() {
+  const token = document.getElementById('inp-token')?.value.trim() || '';
+  const btn   = document.getElementById('btn-verify');
+  if (!btn) return;
+
+  // Bắt buộc: mã QR >= 4 ký tự VÀ đã xác thực Zalo
+  const hasToken = token.length >= 4;
+  const hasZalo  = !!STATE.zaloId;
+  const ready    = hasToken && hasZalo;
+
+  btn.disabled          = !ready;
+  btn.style.opacity     = ready ? '1'           : '0.45';
+  btn.style.cursor      = ready ? 'pointer'     : 'not-allowed';
+
+  // Cập nhật icon tick cho ô QR
+  const qrDot = document.getElementById('qr-status-dot');
+  if (qrDot) {
+    qrDot.innerHTML = hasToken
+      ? `<svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+           <circle cx="11" cy="11" r="10" fill="rgba(34,197,94,0.2)" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+           <polyline points="6.5,11 9.5,14 15.5,8" stroke="#86efac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+         </svg>`
+      : `<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+           <circle cx="10" cy="10" r="9" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+         </svg>`;
+  }
+}
 
 function reloadAdminMap() {
   if (adminLeafletMap) {
