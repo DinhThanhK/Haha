@@ -193,8 +193,7 @@ async function handleZaloCallback(code) {
     const nameInput = document.getElementById('inp-name');
     if (nameInput && !nameInput.value.trim()) nameInput.value = data.zaloName || '';
     updateZaloUI(true);
-    checkVerifyReady();
-    toast('✅ Zalo đã xác thực – Nhập mã QR để tiếp tục!');
+    toast('Xác thực Zalo thành công!');
   } catch(e) {
     toast('Lỗi xác thực Zalo: ' + e.message, 'error');
     updateZaloUI(false);
@@ -202,59 +201,16 @@ async function handleZaloCallback(code) {
 }
 
 function updateZaloUI(loggedIn) {
-  const box     = document.getElementById('verify-zalo-box');
-  const dot     = document.getElementById('zalo-status-dot');
-  const sub     = document.getElementById('zalo-box-sub');
-  const iconWrap = document.getElementById('zalo-icon-wrap');
-  if (!box) return;
-
+  const btn   = document.getElementById('btn-zalo-login');
+  const badge = document.getElementById('zalo-badge');
+  if (!btn || !badge) return;
   if (loggedIn) {
-    box.classList.add('done');
-    box.onclick = null;
-    if (sub) sub.textContent = STATE.zaloName ? `Đã xác thực (${STATE.zaloName})` : 'Đã xác thực';
-    if (dot) dot.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="rgba(34,197,94,0.25)"/><path d="M6 10l3 3 5-5" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
-    if (iconWrap) { iconWrap.querySelector('.verify-ring').style.animation='none'; iconWrap.querySelector('.verify-ring-fill').style.animation='none'; }
+    btn.style.display   = 'none';
+    badge.style.display = 'flex';
+    badge.querySelector('#zalo-name-display').textContent = STATE.zaloName || 'Đã xác thực';
   } else {
-    box.classList.remove('done');
-    box.onclick = () => !STATE.zaloId && startZaloLogin();
-    if (sub) sub.textContent = 'Bấm để đăng nhập Zalo';
-    if (dot) dot.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="rgba(255,255,255,0.15)" stroke-width="2"/></svg>';
-  }
-  checkVerifyReady();
-}
-
-function checkVerifyReady() {
-  const token   = document.getElementById('inp-token')?.value.trim();
-  const hasZalo = !!STATE.zaloId;
-  const hasQr   = token && token.length >= 4;
-
-  // Cập nhật dot QR
-  const qrDot = document.getElementById('qr-status-dot');
-  const qrSub = document.getElementById('qr-box-sub');
-  const qrBox = document.getElementById('verify-qr-box');
-  if (qrDot) {
-    if (hasQr) {
-      qrDot.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="rgba(34,197,94,0.25)"/><path d="M6 10l3 3 5-5" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
-      if (qrBox) qrBox.classList.add('done');
-      if (qrSub) qrSub.textContent = 'Mã đã nhập: ' + token;
-    } else {
-      qrDot.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="rgba(255,255,255,0.15)" stroke-width="2"/></svg>';
-      if (qrBox) qrBox.classList.remove('done');
-      if (qrSub) qrSub.textContent = 'Quét QR hoặc nhập tay';
-    }
-  }
-
-  // Bật/tắt nút kiểm tra mã
-  const btn = document.getElementById('btn-verify');
-  if (!btn) return;
-  if (hasZalo && hasQr) {
-    btn.disabled = false;
-    btn.style.opacity = '';
-    btn.style.cursor  = '';
-  } else {
-    btn.disabled = true;
-    btn.style.opacity = '0.45';
-    btn.style.cursor  = 'not-allowed';
+    btn.style.display   = 'flex';
+    badge.style.display = 'none';
   }
 }
 
@@ -342,7 +298,6 @@ function watchAdminSessions() {
 
 window.switchTab = switchTab; window.goStep2 = goStep2; window.completeAttendance = completeAttendance;
 window.startZaloLogin = startZaloLogin;
-window.checkVerifyReady = checkVerifyReady;
 window.bypassGeo = bypassGeo; window.adminLogin = adminLogin; window.regenerateQR = regenerateQR;
 window.saveSession = saveSession; window.exportData = exportData; window.resetForm = resetForm;
 window.saveNewLocationToDB = saveNewLocationToDB; window.applySavedLocation = applySavedLocation;
@@ -520,6 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setStep(1);
   initFingerprint();
 
+  // Gắn onclick cho Zalo box sau khi module load xong (tránh STATE not defined)
+  const zaloBox = document.getElementById('verify-zalo-box');
+  if (zaloBox) zaloBox.addEventListener('click', () => { if (!STATE.zaloId) startZaloLogin(); });
+
   // Xử lý Zalo OAuth callback
   const urlParams = new URLSearchParams(window.location.search);
   const zaloCode  = urlParams.get('code');
@@ -675,7 +634,6 @@ async function goStep2() {
   const token = document.getElementById('inp-token').value.trim().toUpperCase();
 
   if (!name || !id || !lop || !token) { toast('Vui lòng nhập đầy đủ thông tin và mã xác thực', 'error'); return; }
-  if (!STATE.zaloId) { toast('Vui lòng xác thực Zalo trước!', 'error'); return; }
 
   const btn = document.getElementById('btn-verify');
   btn.disabled = true; btn.textContent = 'Đang kiểm tra mã...';
@@ -1213,7 +1171,6 @@ function scanFrame(video, status) {
 
         status.textContent = 'Đã quét: ' + token;
         document.getElementById('inp-token').value = token;
-        checkVerifyReady();
         toast('Quét QR thành công: ' + token);
 
         setTimeout(() => closeQrScanner(), 600);
