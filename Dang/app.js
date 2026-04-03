@@ -515,22 +515,25 @@ async function goStep2() {
       STATE.name = name; STATE.memberId = id; STATE.lop = lop;
       saveMemberInfoIfChecked();
       setStep(2);
-      // Kiểm tra đã điểm danh chưa NGAY khi vào step 2
+      // Kiểm tra đã điểm danh chưa – check Firebase (chống đa trình duyệt)
       const _n = new Date();
       const _dd2 = String(_n.getDate()).padStart(2,'0');
       const _mm2 = String(_n.getMonth()+1).padStart(2,'0');
-      const _tk2 = `attended_${id}_${_dd2}-${_mm2}-${_n.getFullYear()}`;
-      if (localStorage.getItem(_tk2)) {
-        const btn2 = document.getElementById('geo-next-btn');
-        if (btn2) {
-          btn2.disabled = true;
-          btn2.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
-          btn2.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
+      const todayVi2 = `${_dd2}/${_mm2}/${_n.getFullYear()}`;
+      setGeoStatus('checking', 'Đang kiểm tra trạng thái điểm danh...');
+      checkAlreadyAttended(id, todayVi2).then(alreadyDone => {
+        if (alreadyDone) {
+          const btn2 = document.getElementById('geo-next-btn');
+          if (btn2) {
+            btn2.disabled = true;
+            btn2.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
+            btn2.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
+          }
+          setGeoStatus('ok', '✅ Bạn đã hoàn thành điểm danh hôm nay');
+        } else {
+          startGeoWithMap();
         }
-        setGeoStatus('ok', '✅ Bạn đã hoàn thành điểm danh hôm nay');
-      } else {
-        startGeoWithMap();
-      }
+      });
     } else {
       toast('Mã điểm danh không đúng hoặc đã hết hạn!', 'error');
     }
@@ -661,16 +664,39 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function completeAttendance() {
+// Kiểm tra đã điểm danh chưa trực tiếp trên Firebase (chống bypass localStorage)
+async function checkAlreadyAttended(memberId, todayVi) {
+  try {
+    const snap = await get(ref(db, 'attendance_list'));
+    if (!snap.exists()) return false;
+    let found = false;
+    snap.forEach(child => {
+      const r = child.val();
+      if (r.id === memberId && normalizeViDate(r.date || '') === normalizeViDate(todayVi)) {
+        found = true;
+      }
+    });
+    return found;
+  } catch(e) {
+    return false; // Nếu lỗi mạng thì cho qua, Firebase sẽ chặn nếu có rules
+  }
+}
+
+async function completeAttendance() {
   const btn = document.getElementById('geo-next-btn');
+  btn.disabled = true; btn.textContent = 'Đang kiểm tra...';
 
-  const _now = new Date();
-  const _dd = String(_now.getDate()).padStart(2,'0');
-  const _mm = String(_now.getMonth()+1).padStart(2,'0');
-  const todayKey = `attended_${STATE.memberId}_${_dd}-${_mm}-${_now.getFullYear()}`;
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  const todayVi = `${dd}/${mm}/${yyyy}`;
+  const todayKey = `attended_${STATE.memberId}_${dd}-${mm}-${yyyy}`;
 
-  // Kiểm tra TRƯỚC khi đổi UI – tránh nút bị kẹt ở "Đang lưu dữ liệu..."
-  if (localStorage.getItem(todayKey)) {
+  // Kiểm tra Firebase trước – chặn mọi trình duyệt/thiết bị
+  const alreadyDone = await checkAlreadyAttended(STATE.memberId, todayVi);
+  if (alreadyDone) {
+    localStorage.setItem(todayKey, '1'); // đồng bộ lại localStorage
     btn.disabled = true;
     btn.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
     btn.style.background = 'rgba(34,197,94,0.15)';
@@ -679,19 +705,15 @@ function completeAttendance() {
     toast('✅ Bạn đã điểm danh hôm nay rồi!');
     return;
   }
-  btn.disabled = true; btn.textContent = 'Đang lưu dữ liệu...';
+
+  btn.textContent = 'Đang lưu dữ liệu...';
   btn.style.background = ''; btn.style.border = ''; btn.style.color = '';
 
   const code = 'DD-' + Math.random().toString(36).substr(2,6).toUpperCase();
-  const now = new Date();
-  // Lưu date dạng chuẩn dd/mm/yyyy có số 0 đệm để so sánh nhất quán
-  const dd = String(now.getDate()).padStart(2, '0');
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const yyyy = now.getFullYear();
   const record = {
     name: STATE.name, id: STATE.memberId, unit: STATE.lop,
     time: now.toLocaleTimeString('vi-VN'),
-    date: `${dd}/${mm}/${yyyy}`,
+    date: todayVi,
     lat: STATE.geoLat, lng: STATE.geoLng, code, timestamp: Date.now()
   };
 
