@@ -171,7 +171,6 @@ async function startZaloLogin() {
     code_challenge:        challenge,
     code_challenge_method: 'S256',
     state:                 'diemdanh',
-    scope:                 'openid,profile',
   });
   window.location.href = `https://oauth.zaloapp.com/v4/permission?${params}`;
 }
@@ -179,20 +178,31 @@ async function startZaloLogin() {
 async function handleZaloCallback(code) {
   const verifier = sessionStorage.getItem('zalo_code_verifier') || '';
   try {
+    // Bước 1: Server đổi code → access_token (server chỉ làm việc này)
     const res = await fetch('/api/zalo-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, code_verifier: verifier }),
     });
     const data = await res.json();
-    console.log('Zalo token response:', data);
-    if (!data.zaloId) throw new Error((data.error || 'Không lấy được Zalo ID') + ' | ' + JSON.stringify(data.detail || {}));
-    STATE.zaloId   = data.zaloId;
-    STATE.zaloName = data.zaloName;
+    if (!data.access_token) throw new Error(data.error || 'Không lấy được access_token');
+
+    // Bước 2: Client tự gọi graph.zalo.me từ trình duyệt (IP Việt Nam — không bị chặn)
+    const userRes = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name,picture', {
+      headers: { 'access_token': data.access_token },
+    });
+    const userData = await userRes.json();
+    console.log('Zalo user data:', userData);
+
+    if (!userData.id) throw new Error('Zalo không trả về ID: ' + JSON.stringify(userData));
+
+    STATE.zaloId   = userData.id;
+    STATE.zaloName = userData.name || null;
     sessionStorage.removeItem('zalo_code_verifier');
+
     // Tự điền tên nếu chưa có
     const nameInput = document.getElementById('inp-name');
-    if (nameInput && !nameInput.value.trim()) nameInput.value = data.zaloName || '';
+    if (nameInput && !nameInput.value.trim()) nameInput.value = STATE.zaloName || '';
     updateZaloUI(true);
     toast('Xác thực Zalo thành công!');
   } catch(e) {
