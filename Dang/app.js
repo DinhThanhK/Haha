@@ -171,6 +171,7 @@ async function startZaloLogin() {
     code_challenge:        challenge,
     code_challenge_method: 'S256',
     state:                 'diemdanh',
+    scope:                 'openid,profile',
   });
   window.location.href = `https://oauth.zaloapp.com/v4/permission?${params}`;
 }

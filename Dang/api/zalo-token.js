@@ -36,30 +36,39 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Không lấy được access_token', detail: tokenData });
     }
 
-    // Lấy thông tin user — nếu lỗi -501 (sandbox) thì vẫn dùng được uid từ token
+    // Lấy thông tin user
     let zaloId   = null;
     let zaloName = null;
 
     try {
-      const userRes  = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
+      const userRes  = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name,picture', {
         headers: { 'access_token': tokenData.access_token },
       });
       const userData = await userRes.json();
+      console.log('Zalo user data:', JSON.stringify(userData));
       if (userData.id) {
         zaloId   = userData.id;
         zaloName = userData.name || null;
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error('Zalo user fetch error:', e.message);
+    }
 
-    // Fallback: lấy uid từ access_token (base64 phần giữa)
+    // Fallback: lấy uid từ access_token nếu là JWT
     if (!zaloId) {
       try {
         const parts = tokenData.access_token.split('.');
         if (parts.length >= 2) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+          // Chuẩn hóa base64url → base64 chuẩn có padding
+          const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          const padded = b64 + '=='.slice((b64.length % 4) || 4);
+          const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8'));
+          console.log('JWT payload:', JSON.stringify(payload));
           zaloId = String(payload.uid || payload.sub || payload.id || '');
         }
-      } catch(e) {}
+      } catch(e) {
+        console.error('JWT decode error:', e.message);
+      }
     }
 
     if (!zaloId) {
