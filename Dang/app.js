@@ -70,6 +70,15 @@ window.saveSettings = function() {
     XLSX_SHEET_NAME: sheetName, XLSX_FILE_PREFIX: filePrefix,
   }));
 
+  // Lưu 5 trường field lên Firebase để đồng bộ cho tất cả người dùng
+  set(ref(db, 'settings/fields'), {
+    FIELD_NAME: fieldName,
+    FIELD_ID:   fieldId,
+    FIELD_LOP:  fieldLop,
+    FIELD_TOKEN: fieldToken,
+    FIELD_ZALO:  fieldZalo,
+  }).catch(e => console.warn('Lưu settings Firebase thất bại:', e));
+
   // Cập nhật thống kê ngay với tổng số mới
   updateAdminStats();
 
@@ -582,22 +591,45 @@ window.addEventListener('beforeunload', () => {
   unregisterAdminSession();
 });
 
+// ─── ÁP DỤNG FIELD SETTINGS VÀO UI ───
+function applyFieldSettings() {
+  const fieldMap = {
+    'group-name':  CONFIG.FIELD_NAME,
+    'group-id':    CONFIG.FIELD_ID,
+    'group-lop':   CONFIG.FIELD_LOP,
+    'group-token': CONFIG.FIELD_TOKEN,
+  };
+  Object.entries(fieldMap).forEach(([id, show]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+  const zaloBoxEl = document.getElementById('verify-zalo-box');
+  if (zaloBoxEl) zaloBoxEl.style.display = CONFIG.FIELD_ZALO ? '' : 'none';
+  if (!CONFIG.FIELD_ZALO) { STATE.zaloId = null; STATE.zaloName = null; }
+  checkVerifyReady();
+}
+
 // ─── KHỞI ĐỘNG SAU KHI DOM SẴN SÀNG ───
 document.addEventListener('DOMContentLoaded', () => {
   setStep(1);
   initFingerprint();
 
-  // Áp dụng trạng thái ẩn/hiện fields từ CONFIG đã load (localStorage)
-  const _initFieldMap = {
-    'group-name': CONFIG.FIELD_NAME, 'group-id': CONFIG.FIELD_ID,
-    'group-lop': CONFIG.FIELD_LOP,   'group-token': CONFIG.FIELD_TOKEN,
-  };
-  Object.entries(_initFieldMap).forEach(([id, show]) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = show ? '' : 'none';
-  });
-  const _initZaloBox = document.getElementById('verify-zalo-box');
-  if (_initZaloBox) _initZaloBox.style.display = CONFIG.FIELD_ZALO ? '' : 'none';
+  // 1) Áp dụng ngay từ localStorage (nhanh, tránh flash layout)
+  applyFieldSettings();
+
+  // 2) Đọc settings từ Firebase — đồng bộ cài đặt admin cho mọi người dùng
+  get(ref(db, 'settings/fields')).then(snap => {
+    if (!snap.exists()) return;
+    const remote = snap.val();
+    let changed = false;
+    ['FIELD_NAME','FIELD_ID','FIELD_LOP','FIELD_TOKEN','FIELD_ZALO'].forEach(key => {
+      if (typeof remote[key] === 'boolean' && CONFIG[key] !== remote[key]) {
+        CONFIG[key] = remote[key];
+        changed = true;
+      }
+    });
+    if (changed) applyFieldSettings();
+  }).catch(e => console.warn('Đọc settings Firebase thất bại:', e));
 
   // Gắn onclick cho Zalo box sau khi module load xong (tránh STATE not defined)
   const zaloBox = document.getElementById('verify-zalo-box');
