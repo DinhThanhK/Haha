@@ -272,3 +272,61 @@ input[type="range"]::-moz-range-thumb {
 input[type="range"].styled-range {
   background: linear-gradient(to right, var(--red) var(--range-pct, 0%), rgba(255,255,255,0.12) var(--range-pct, 0%));
 }
+/* ═══════════════════════════════════
+   VERIFY BOXES (Bước 1)
+═══════════════════════════════════ */
+.verify-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.verify-box:hover { border-color: rgba(200,16,46,0.5); background: rgba(200,16,46,0.04); }
+.verify-box.done  { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.06); cursor: default; }
+.verify-box-left  { display: flex; align-items: center; gap: 12px; flex: 1; }
+.verify-box-info  { display: flex; flex-direction: column; gap: 2px; }
+.verify-box-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.verify-box-sub   { font-size: 11px; color: var(--text-muted); }
+.verify-status    { flex-shrink: 0; }
+
+/* Icon vòng tròn Zalo kiểu animated */
+.verify-icon-wrap {
+  position: relative;
+  width: 44px; height: 44px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.verify-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(200,16,46,0.4);
+  animation: verifyRingPulse 2s ease-out infinite;
+}
+.verify-ring-fill {
+  position: absolute; inset: 4px;
+  border-radius: 50%;
+  background: rgba(200,16,46,0.2);
+  animation: verifyFillPulse 2s ease-out infinite;
+}
+.verify-icon-img {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+@keyframes verifyRingPulse {
+  0%   { transform: scale(1);    opacity: 1; }
+  70%  { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+@keyframes verifyFillPulse {
+  0%   { transform: scale(1);    opacity: 0.8; }
+  70%  { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+.verify-box.done .verify-ring,
+.verify-box.done .verify-ring-fill { animation: none; }

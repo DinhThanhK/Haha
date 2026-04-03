@@ -1,8 +1,7 @@
 // api/zalo-token.js — Vercel Serverless Function
-// Đổi Zalo authorization code → access_token → user info
+// Đổi Zalo authorization code → access_token → Zalo user ID
 
 export default async function handler(req, res) {
-  // Cho phép CORS từ domain của bạn
   res.setHeader('Access-Control-Allow-Origin', 'https://diemdanh-chibo-huce.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -17,7 +16,7 @@ export default async function handler(req, res) {
   const APP_SECRET = process.env.ZALO_APP_SECRET;
 
   try {
-    // Bước 1: Đổi code lấy access_token
+    // Đổi code lấy access_token
     const tokenRes = await fetch('https://oauth.zaloapp.com/v4/access_token', {
       method: 'POST',
       headers: {
@@ -37,21 +36,37 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Không lấy được access_token', detail: tokenData });
     }
 
-    // Bước 2: Lấy thông tin user (id + name)
-    const userRes = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name,picture', {
-      headers: { 'access_token': tokenData.access_token },
-    });
-    const userData = await userRes.json();
+    // Lấy thông tin user — nếu lỗi -501 (sandbox) thì vẫn dùng được uid từ token
+    let zaloId   = null;
+    let zaloName = null;
 
-    if (!userData.id) {
-      return res.status(400).json({ error: 'Không lấy được thông tin user', detail: userData });
+    try {
+      const userRes  = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
+        headers: { 'access_token': tokenData.access_token },
+      });
+      const userData = await userRes.json();
+      if (userData.id) {
+        zaloId   = userData.id;
+        zaloName = userData.name || null;
+      }
+    } catch(e) {}
+
+    // Fallback: lấy uid từ access_token (base64 phần giữa)
+    if (!zaloId) {
+      try {
+        const parts = tokenData.access_token.split('.');
+        if (parts.length >= 2) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+          zaloId = String(payload.uid || payload.sub || payload.id || '');
+        }
+      } catch(e) {}
     }
 
-    // Chỉ trả về những gì frontend cần — KHÔNG trả access_token
-    return res.status(200).json({
-      zaloId:   userData.id,
-      zaloName: userData.name,
-    });
+    if (!zaloId) {
+      return res.status(400).json({ error: 'Không lấy được Zalo ID', detail: tokenData });
+    }
+
+    return res.status(200).json({ zaloId, zaloName });
 
   } catch (e) {
     return res.status(500).json({ error: 'Lỗi server', detail: e.message });

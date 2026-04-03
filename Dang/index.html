@@ -250,40 +250,82 @@
           <div class="form-group" id="group-name"><label>Họ và tên *</label><input type="text" id="inp-name" placeholder="Nguyễn Văn A"></div>
           <div class="form-group" id="group-id"><label>MSSV *</label><input type="text" id="inp-id" placeholder="Ví dụ: 0191334"></div>
           <div class="form-group" id="group-lop"><label>Lớp *</label><input type="text" id="inp-lop" placeholder="Ví dụ: 70IT1"></div>
-          <div class="form-group" id="group-token">
-            <label>Mã xác thực (Quét QR hoặc nhập tay) *</label>
-            <div style="display:flex; gap:8px;">
-              <input type="text" id="inp-token" placeholder="VD: A1B2C3" style="flex:1; text-transform: uppercase; font-weight: 700; letter-spacing: 2px;">
-              <button type="button" onclick="openQrScanner()" title="Quét mã QR bằng camera"
-                style="flex-shrink:0; width:46px; height:46px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--gold);">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
-                  <rect x="3" y="16" width="5" height="5" rx="1"/>
-                  <line x1="16" y1="16" x2="21" y2="16"/><line x1="21" y1="16" x2="21" y2="21"/>
-                  <line x1="16" y1="21" x2="16" y2="18"/><line x1="10" y1="3" x2="10" y2="8"/>
-                  <line x1="10" y1="11" x2="10" y2="13"/><line x1="3" y1="10" x2="8" y2="10"/>
-                  <line x1="13" y1="10" x2="13" y2="8"/><line x1="13" y1="13" x2="21" y2="13"/>
-                </svg>
-              </button>
+
+          <!-- Lưu thông tin -->
+          <div class="form-group" style="display:flex;flex-direction:row;align-items:center;gap:10px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="document.getElementById('inp-remember').click()">
+            <input type="checkbox" id="inp-remember" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;" checked>
+            <div style="font-size:13px;font-weight:400;color:var(--gold);">Lưu thông tin cho lần điểm danh sau</div>
+          </div>
+
+          <!-- Tiêu đề xác thực -->
+          <div style="margin:16px 0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Yêu cầu xác thực</div>
+
+          <!-- Ô 1: Zalo -->
+          <div id="verify-zalo-box" class="verify-box" onclick="!STATE.zaloId && startZaloLogin()">
+            <div class="verify-box-left">
+              <div class="verify-icon-wrap" id="zalo-icon-wrap">
+                <div class="verify-ring"></div>
+                <div class="verify-ring-fill"></div>
+                <span class="verify-icon-img">
+                  <img src="https://vutruso.com/wp-content/uploads/2024/05/zalo-2.png" alt="Zalo" style="width:28px;height:28px;border-radius:50%;">
+                </span>
+              </div>
+              <div class="verify-box-info">
+                <div class="verify-box-title">Xác thực Zalo</div>
+                <div class="verify-box-sub" id="zalo-box-sub">Bấm để đăng nhập Zalo</div>
+              </div>
+            </div>
+            <div class="verify-status" id="zalo-status-dot">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="rgba(255,255,255,0.15)" stroke-width="2"/></svg>
             </div>
           </div>
-          <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 10px; background: rgba(255,215,0,0.05); border: 1px solid rgba(255,215,0,0.2); border-radius: 8px; padding: 10px 14px; cursor: pointer;" onclick="document.getElementById('inp-remember').click()">
-            <input type="checkbox" id="inp-remember" style="width:18px; height:18px; accent-color: var(--gold); cursor:pointer; flex-shrink:0;" checked>
-            <div style="display: flex; flex-direction: column; font-size: 13px; font-weight: 400; color: var(--gold);">Lưu thông tin cho lần điểm danh sau</div>
-          </div>
-          <!-- Zalo Login -->
-          <div style="margin-bottom:10px;">
-            <button id="btn-zalo-login" onclick="startZaloLogin()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px;background:#0068FF;border:none;border-radius:8px;color:#fff;font-family:'Be Vietnam Pro',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
-              <svg width="22" height="22" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#0068FF"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="22" font-family="Arial" font-weight="bold">Z</text></svg>
-              Xác thực bằng Zalo
-            </button>
-            <div id="zalo-badge" style="display:none;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,104,255,0.1);border:1px solid rgba(0,104,255,0.35);border-radius:8px;">
-              <svg width="20" height="20" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#0068FF"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="20" font-family="Arial" font-weight="bold">Z</text></svg>
-              <span style="font-size:13px;color:#60a5fa;font-weight:600;">Zalo: <span id="zalo-name-display"></span></span>
-              <span style="margin-left:auto;font-size:11px;background:rgba(34,197,94,0.2);color:#4ade80;padding:2px 8px;border-radius:4px;font-weight:700;">✓ Đã xác thực</span>
+
+          <!-- Ô 2: Mã QR -->
+          <div id="verify-qr-box" class="verify-box" id="group-token">
+            <div class="verify-box-left" style="flex:1;flex-direction:column;align-items:stretch;gap:8px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="verify-icon-wrap" style="animation:none;">
+                  <div class="verify-ring" style="animation:none;border-color:rgba(200,16,46,0.3);"></div>
+                  <div class="verify-ring-fill" style="animation:none;background:rgba(200,16,46,0.25);"></div>
+                  <span class="verify-icon-img">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
+                      <rect x="3" y="16" width="5" height="5" rx="1"/>
+                      <line x1="16" y1="16" x2="21" y2="16"/><line x1="21" y1="16" x2="21" y2="21"/>
+                      <line x1="16" y1="21" x2="16" y2="18"/><line x1="10" y1="3" x2="10" y2="8"/>
+                      <line x1="10" y1="11" x2="10" y2="13"/><line x1="3" y1="10" x2="8" y2="10"/>
+                      <line x1="13" y1="10" x2="13" y2="8"/><line x1="13" y1="13" x2="21" y2="13"/>
+                    </svg>
+                  </span>
+                </div>
+                <div class="verify-box-info">
+                  <div class="verify-box-title">Mã QR điểm danh</div>
+                  <div class="verify-box-sub" id="qr-box-sub">Quét QR hoặc nhập tay</div>
+                </div>
+                <div class="verify-status" id="qr-status-dot" style="margin-left:auto;flex-shrink:0;">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="rgba(255,255,255,0.15)" stroke-width="2"/></svg>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="inp-token" placeholder="VD: A1B2C3" oninput="checkVerifyReady()"
+                  style="flex:1;text-transform:uppercase;font-weight:700;letter-spacing:2px;">
+                <button type="button" onclick="openQrScanner()" title="Quét mã QR bằng camera"
+                  style="flex-shrink:0;width:46px;height:46px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gold);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
+                    <rect x="3" y="16" width="5" height="5" rx="1"/>
+                    <line x1="16" y1="16" x2="21" y2="16"/><line x1="21" y1="16" x2="21" y2="21"/>
+                    <line x1="16" y1="21" x2="16" y2="18"/><line x1="10" y1="3" x2="10" y2="8"/>
+                    <line x1="10" y1="11" x2="10" y2="13"/><line x1="3" y1="10" x2="8" y2="10"/>
+                    <line x1="13" y1="10" x2="13" y2="8"/><line x1="13" y1="13" x2="21" y2="13"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-          <button class="btn btn-primary" id="btn-verify" onclick="goStep2()">Kiểm tra mã</button>
+
+          <button class="btn btn-primary" id="btn-verify" onclick="goStep2()" disabled
+            style="opacity:0.45;cursor:not-allowed;">Kiểm tra mã</button>
         </div>
       </div>
 
