@@ -6,7 +6,7 @@ window.WAITING_GIFS = [
   // Cờ Đảng + cờ đỏ
   "https://media1.tenor.com/m/uR3_f6vNZw0AAAAC/h%E1%BB%99i-lhpnt%E1%BB%89nh-c%C3%A0mau.gif",
   // Bác Hồ + cờ
-  "https://media1.tenor.com/m/lJIT2uBWWSkAAAAd/vietnam-ho-chi-minh.gif",
+  "https://media1.tenor.com/m/lJIT2uBWWSkAAAAd/vietnam-ho-chi-minh.gif"
 ];
  
 
