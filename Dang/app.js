@@ -1118,6 +1118,16 @@ async function completeAttendance() {
       document.getElementById('suc-time').textContent = record.time;
       document.getElementById('suc-code').textContent = code;
       document.getElementById('suc-unit').textContent = STATE.lop;
+      // Hien thi trang thai hop le / chua hop le o buoc 3
+      const sucStatusEl = document.getElementById('suc-status');
+      if (sucStatusEl) {
+        const valid = isNameValid(STATE.name, STATE.zaloName);
+        if (valid === false) {
+          sucStatusEl.innerHTML = '<span style="color:#FCD34D;font-size:12px;font-weight:700;">26A0 Ch01B0a h1EE3p l1EC7</span>';
+        } else {
+          sucStatusEl.innerHTML = '<span class="badge-ok">2713 H1EE3p l1EC7</span>';
+        }
+      }
       setStep(3);
     }).catch(e => {
       toast('Lỗi lưu dữ liệu!', 'error'); btn.disabled = false; btn.textContent = 'Vị trí hợp lệ – Xác nhận điểm danh';
@@ -1332,10 +1342,20 @@ function saveSession() {
 }
 
 function setQRWaitingState() {
-  // Hiển thị trạng thái chờ: token ẩn, QR dấu hỏi, timer "Đang chờ cấp phát"
+  // Hiển thị trạng thái chờ: GIF ngẫu nhiên thay vì ô trắng
   const el = document.getElementById('qrcode');
   if (el) {
-    el.innerHTML = '<div style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:4px;"><span style=\'font-size:80px;opacity:0.25;\'>?</span></div>';
+    const gifUrl = (typeof window.getRandomWaitingGif === 'function')
+      ? window.getRandomWaitingGif()
+      : '';
+    if (gifUrl) {
+      el.innerHTML = `<div style="width:220px;height:220px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#111;">
+        <img src="${gifUrl}" alt="Đang chờ..." style="width:100%;height:100%;object-fit:cover;"
+          onerror="this.parentElement.innerHTML='<span style=\\'font-size:56px;opacity:0.25;\\'>🇻🇳</span>'">
+      </div>`;
+    } else {
+      el.innerHTML = '<div style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border-radius:8px;border:1px dashed rgba(255,215,0,0.2);"><span style=\'font-size:56px;opacity:0.3;\'>🇻🇳</span></div>';
+    }
   }
   const tokenEl = document.getElementById('qr-token-display');
   if (tokenEl) tokenEl.textContent = '------';
