@@ -1123,9 +1123,9 @@ async function completeAttendance() {
       if (sucStatusEl) {
         const valid = isNameValid(STATE.name, STATE.zaloName);
         if (valid === false) {
-          sucStatusEl.innerHTML = '<span style="color:#FCD34D;font-size:12px;font-weight:700;">26A0 Ch01B0a h1EE3p l1EC7</span>';
+          sucStatusEl.innerHTML = '<span style="color:#FCD34D;font-size:12px;font-weight:700;">⚠ Chưa hợp lệ</span>';
         } else {
-          sucStatusEl.innerHTML = '<span class="badge-ok">2713 H1EE3p l1EC7</span>';
+          sucStatusEl.innerHTML = '<span class="badge-ok">✓ Hợp lệ</span>';
         }
       }
       setStep(3);
