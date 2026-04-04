@@ -28,7 +28,7 @@ button, .verify-box { -webkit-user-select: none; user-select: none; }
    RESET & BASE
 ═══════════════════════════════════ */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Inter-Bold', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+body { font-family: 'Be Vietnam Pro', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
 /* ═══════════════════════════════════
    BACKGROUND EFFECTS
@@ -59,7 +59,7 @@ header::before { content: ''; position: absolute; inset: 0; background: repeatin
    TABS & CARDS
 ═══════════════════════════════════ */
 .tab-bar { display: flex; gap: 6px; margin-bottom: 20px; background: var(--surface); padding: 6px; border-radius: var(--radius); border: 1px solid var(--border); }
-.tab-btn { flex: 1; padding: 10px 6px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-family: 'Inter-Bold', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.tab-btn { flex: 1; padding: 10px 6px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-family: 'Be Vietnam Pro', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
 .tab-btn.active { background: var(--red); color: #fff; box-shadow: 0 2px 12px rgba(200,16,46,0.4); }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; }
@@ -71,7 +71,7 @@ header::before { content: ''; position: absolute; inset: 0; background: repeatin
 ═══════════════════════════════════ */
 .form-group { margin-bottom: 14px; }
 label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-input, select { width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Inter-Bold', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; }
+input, select { width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Be Vietnam Pro', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; }
 input:focus, select:focus { border-color: var(--red); }
 input::placeholder { color: var(--text-muted); }
 select option { background: #1C1C28; }
