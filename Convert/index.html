@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IMG Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <main class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-bracket">[</span>
+        <span class="logo-text">IMG</span>
+        <span class="logo-dot">·</span>
+        <span class="logo-sub">tools</span>
+        <span class="logo-bracket">]</span>
+      </div>
+      <p class="tagline">Xử lý ảnh ngay trên trình duyệt — không upload, không server.</p>
+    </header>
+
+    <!-- Tab nav -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="png-simplify">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M3 9.5l2.5-2.5 2 2 2-2.5 1.5 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        PNG Simplify
+      </button>
+      <button class="tab-btn" data-tab="gif-to-png">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 9V7h2.5v1.5H5.5V5H9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        GIF → PNG
+      </button>
+      <button class="tab-btn" data-tab="remove-wm">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><line x1="4" y1="4" x2="10" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="10" y1="4" x2="4" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Xoá Logo
+      </button>
+    </nav>
+
+    <!-- ══ TAB 1: PNG SIMPLIFY ══ -->
+    <section class="tab-panel" id="tab-png-simplify">
+      <p class="panel-desc">Loại bỏ metadata thừa (ICC profile, tEXt, gAMA…) và re-encode lại. Giữ nguyên độ phân giải, giảm dung lượng.</p>
+      <div class="dropzone" id="dz-png">
+        <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 40 40" fill="none"><rect x="4" y="8" width="32" height="24" rx="3" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="14" cy="17" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M4 26l8-7 6 5 5-4 13 9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <p class="drop-title">Kéo thả file <em>.png</em> vào đây</p>
+        <p class="drop-sub">hoặc <span class="drop-link" id="browse-png">chọn từ máy tính</span></p>
+        <p class="drop-hint">Nhiều file cùng lúc · 100% trên trình duyệt</p>
+        <input type="file" id="input-png" accept="image/png" multiple hidden />
+      </div>
+      <section class="toolbar" id="toolbar-png" hidden>
+        <div class="toolbar-left"><span class="file-count" id="count-png">0 file</span></div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost" id="clear-png">Xoá tất cả</button>
+          <button class="btn btn-ghost" id="dlall-png">↓ Tải tất cả</button>
+          <button class="btn btn-primary" id="process-png">Xử lý →</button>
+        </div>
+      </section>
+      <div class="file-list" id="list-png"></div>
+    </section>
+
+    <!-- ══ TAB 2: GIF → PNG ══ -->
+    <section class="tab-panel" id="tab-gif-to-png" hidden>
+      <p class="panel-desc">Chuyển từng file <em>.gif</em> (frame đơn từ Adobe Premiere) sang <em>.png</em>. Tên file giữ nguyên, chỉ đổi đuôi.</p>
+      <div class="dropzone" id="dz-gif">
+        <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 40 40" fill="none"><rect x="4" y="6" width="32" height="28" rx="3" stroke="currentColor" stroke-width="1.5" fill="none"/><text x="20" y="26" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="currentColor">GIF</text></svg></div>
+        <p class="drop-title">Kéo thả file <em>.gif</em> vào đây</p>
+        <p class="drop-sub">hoặc <span class="drop-link" id="browse-gif">chọn từ máy tính</span></p>
+        <p class="drop-hint">Frame sequence từ Premiere · Xuất PNG cùng tên file</p>
+        <input type="file" id="input-gif" accept="image/gif" multiple hidden />
+      </div>
+      <section class="toolbar" id="toolbar-gif" hidden>
+        <div class="toolbar-left"><span class="file-count" id="count-gif">0 file</span><span class="toolbar-tag">gif → png</span></div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost" id="clear-gif">Xoá tất cả</button>
+          <button class="btn btn-ghost" id="dlall-gif">↓ Tải tất cả</button>
+          <button class="btn btn-primary" id="process-gif">Chuyển đổi →</button>
+        </div>
+      </section>
+      <div class="file-list" id="list-gif"></div>
+    </section>
+
+    <!-- ══ TAB 3: REMOVE WATERMARK ══ -->
+    <section class="tab-panel" id="tab-remove-wm" hidden>
+      <p class="panel-desc">Xoá logo/watermark bằng cách fill vùng chọn thành <em>trong suốt</em>. Kéo góc hình xanh để điều chỉnh vùng xoá. Áp dụng cho tất cả frame cùng lúc.</p>
+
+      <!-- Save path row -->
+      <div class="savepath-row">
+        <label class="savepath-label">Thư mục lưu file</label>
+        <div class="savepath-input-wrap">
+          <input type="text" id="save-path" class="savepath-input" placeholder="Ví dụ: C:\Users\Ten\Desktop\Output" spellcheck="false" />
+          <span class="savepath-hint">Đường dẫn được lưu tự động</span>
+        </div>
+      </div>
+
+      <!-- Preview + region editor -->
+      <div class="wm-editor-wrap">
+        <div class="wm-preview-col">
+          <p class="wm-section-label">Preview & chỉnh vùng xoá</p>
+          <div class="wm-canvas-wrap" id="wm-canvas-wrap">
+            <canvas id="wm-preview-canvas"></canvas>
+            <!-- Erase region overlay -->
+            <div class="erase-box" id="erase-box">
+              <div class="erase-handle" data-corner="tl"></div>
+              <div class="erase-handle" data-corner="tr"></div>
+              <div class="erase-handle" data-corner="bl"></div>
+              <div class="erase-handle" data-corner="br"></div>
+              <div class="erase-label" id="erase-label">vùng xoá</div>
+            </div>
+            <div class="wm-no-preview" id="wm-no-preview">
+              <p>Upload ảnh mẫu để chỉnh vùng xoá</p>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm wm-load-sample" id="wm-load-sample-btn">↑ Tải ảnh mẫu</button>
+          <input type="file" id="wm-sample-input" accept="image/png,image/gif" hidden />
+        </div>
+
+        <div class="wm-coords-col">
+          <p class="wm-section-label">Toạ độ vùng xoá (%)</p>
+          <div class="coords-grid">
+            <div class="coord-field">
+              <label>Trái (left)</label>
+              <input type="number" id="coord-x1" min="0" max="100" value="50" step="0.5" />
+              <span>%</span>
+            </div>
+            <div class="coord-field">
+              <label>Trên (top)</label>
+              <input type="number" id="coord-y1" min="0" max="100" value="77" step="0.5" />
+              <span>%</span>
+            </div>
+            <div class="coord-field">
+              <label>Phải (right)</label>
+              <input type="number" id="coord-x2" min="0" max="100" value="96" step="0.5" />
+              <span>%</span>
+            </div>
+            <div class="coord-field">
+              <label>Dưới (bottom)</label>
+              <input type="number" id="coord-y2" min="0" max="100" value="100" step="0.5" />
+              <span>%</span>
+            </div>
+          </div>
+          <p class="coord-note">Toạ độ tính theo % kích thước ảnh → áp dụng cho mọi độ phân giải.</p>
+
+          <div class="wm-preview-btns">
+            <button class="btn btn-ghost btn-sm" id="wm-reset-coords">Reset mặc định</button>
+            <button class="btn btn-primary btn-sm" id="wm-apply-preview">Xem thử →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch drop -->
+      <div class="dropzone" id="dz-wm">
+        <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 40 40" fill="none"><rect x="4" y="8" width="32" height="24" rx="3" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="13" y1="13" x2="27" y2="27" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="27" y1="13" x2="13" y2="27" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <p class="drop-title">Kéo thả hàng loạt file vào đây</p>
+        <p class="drop-sub">hoặc <span class="drop-link" id="browse-wm">chọn từ máy tính</span></p>
+        <p class="drop-hint">PNG & GIF · Xoá logo theo vùng đã chỉnh ở trên</p>
+        <input type="file" id="input-wm" accept="image/png,image/gif" multiple hidden />
+      </div>
+
+      <section class="toolbar" id="toolbar-wm" hidden>
+        <div class="toolbar-left"><span class="file-count" id="count-wm">0 file</span><span class="toolbar-tag">xoá logo</span></div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost" id="clear-wm">Xoá tất cả</button>
+          <button class="btn btn-ghost" id="dlall-wm">↓ Tải tất cả</button>
+          <button class="btn btn-primary" id="process-wm">Xử lý →</button>
+        </div>
+      </section>
+      <div class="file-list" id="list-wm"></div>
+    </section>
+
+    <footer class="footer">
+      <span>File không rời khỏi trình duyệt của bạn</span>
+      <span class="sep">·</span>
+      <span>Canvas API · OffscreenCanvas</span>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

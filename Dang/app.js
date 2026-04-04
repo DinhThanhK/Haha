@@ -264,7 +264,7 @@ async function handleZaloCallback(code) {
       toast('Xác thực Zalo thành công!');
     }
   } catch(e) {
-    toast('Lỗi xác thực Zalo: ' + e.message, 'error');
+    toast('Lỗi xác thực, vui lòng thử lại!', 'error');
     updateZaloUI(false, false);
   }
 }
@@ -501,17 +501,45 @@ function updateAdminStats() {
   document.getElementById('stat-pct').textContent = Math.min(100, Math.round(t / CONFIG.TOTAL_MEMBERS * 100)) + '%';
 }
 
+// ─── KIỂM TRA TÊN HỢP LỆ VỚI ZALO ───
+// Hợp lệ khi: ít nhất 1 từ của họ và tên (bỏ dấu) khớp với tên Zalo (bỏ dấu)
+function removeAccents(str) {
+  if (!str) return '';
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function isNameValid(recordName, zaloName) {
+  if (!zaloName) return null; // Không có Zalo → không xác định
+  const normZalo = removeAccents(zaloName);
+  const normName = removeAccents(recordName || '');
+  // Lấy từng từ của họ tên đăng ký
+  const nameWords = normName.split(/\s+/).filter(w => w.length > 0);
+  // Lấy từng từ của tên Zalo
+  const zaloWords = normZalo.split(/\s+/).filter(w => w.length > 0);
+  // Hợp lệ nếu có ít nhất 1 từ bất kỳ trùng nhau
+  return nameWords.some(nw => zaloWords.includes(nw));
+}
+
 function renderAttList() {
   const el = document.getElementById('att-list');
   if (!el) return;
   const list = getFilteredList();
   if (!list.length) return el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Chưa có dữ liệu cho ngày này</p>';
-  el.innerHTML = list.map(r => `
+  el.innerHTML = list.map(r => {
+    const valid = isNameValid(r.name, r.zaloName);
+    // valid===null: không có Zalo → hiện badge "Hợp lệ" bình thường
+    // valid===true: tên khớp → Hợp lệ (xanh)
+    // valid===false: tên không khớp → Chưa hợp lệ (vàng)
+    const badge = (valid === false)
+      ? `<span style="color:#FCD34D;font-size:11px;font-weight:700;">⚠ Chưa hợp lệ</span>`
+      : `<span class="badge-ok">✓ Hợp lệ</span>`;
+    return `
     <div class="attendance-item">
-      <div class="att-avatar">${r.name.split(' ').pop()[0]}</div>
+      <div class="att-avatar">${(r.name||'?').split(' ').pop()[0]}</div>
       <div class="att-info"><div class="att-name">${r.name}</div><div class="att-detail">${r.id} · ${r.unit || '—'}</div></div>
-      <div style="text-align:right;"><div class="att-time">${r.time}</div><span class="badge-ok">✓ Hợp lệ</span></div>
-    </div>`).join('');
+      <div style="text-align:right;"><div class="att-time">${r.time}</div>${badge}</div>
+    </div>`;
+  }).join('');
 }
 
 function exportData() {
@@ -519,14 +547,19 @@ function exportData() {
   const list = getFilteredList();
   if (!list.length) return toast('Không có dữ liệu để xuất', 'error');
 
-  const rows = list.map((r, i) => ({
-    'STT': i + 1, 'Họ tên': r.name, 'MSSV': r.id, 'Lớp': r.unit || '',
-    'Ngày': r.date || '', 'Thời gian': r.time || '',
-    'Mã xác nhận': r.code, 'Vĩ độ': r.lat, 'Kinh độ': r.lng,
-  }));
+  const rows = list.map((r, i) => {
+    const valid = isNameValid(r.name, r.zaloName);
+    const trangThai = (valid === false) ? 'Chưa hợp lệ' : 'Hợp lệ';
+    return {
+      'STT': i + 1, 'Họ tên': r.name, 'MSSV': r.id, 'Lớp': r.unit || '',
+      'Ngày': r.date || '', 'Thời gian': r.time || '',
+      'Mã xác nhận': r.code, 'Vĩ độ': r.lat, 'Kinh độ': r.lng,
+      'Trạng thái': trangThai,
+    };
+  });
 
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch:5},{wch:25},{wch:15},{wch:15},{wch:14},{wch:12},{wch:16},{wch:14},{wch:14}];
+  ws['!cols'] = [{ wch:5},{wch:25},{wch:15},{wch:15},{wch:14},{wch:12},{wch:16},{wch:14},{wch:14},{wch:14}];
   const wb = XLSX.utils.book_new();
   const sheetName = CONFIG.XLSX_SHEET_NAME || 'Điểm danh';
   const filePrefix = CONFIG.XLSX_FILE_PREFIX || 'diemdanh';
@@ -846,7 +879,15 @@ async function goStep2() {
   const lop   = document.getElementById('inp-lop').value.trim();
   const token = document.getElementById('inp-token').value.trim().toUpperCase();
 
-  if (!name || !id || !lop || !token) { toast('Vui lòng nhập đầy đủ thông tin và mã xác thực', 'error'); return; }
+  // Chỉ kiểm tra những field đang hiển thị (không bị ẩn bởi admin settings)
+  const nameRequired  = CONFIG.FIELD_NAME  && document.getElementById('group-name')?.style.display !== 'none';
+  const idRequired    = CONFIG.FIELD_ID    && document.getElementById('group-id')?.style.display   !== 'none';
+  const lopRequired   = CONFIG.FIELD_LOP   && document.getElementById('group-lop')?.style.display  !== 'none';
+  const tokenRequired = CONFIG.FIELD_TOKEN && document.getElementById('group-token')?.style.display !== 'none';
+
+  if ((nameRequired && !name) || (idRequired && !id) || (lopRequired && !lop) || (tokenRequired && !token)) {
+    toast('Vui lòng nhập đầy đủ thông tin và mã xác thực', 'error'); return;
+  }
 
   const btn = document.getElementById('btn-verify');
   btn.disabled = true; btn.textContent = 'Đang kiểm tra mã...';
