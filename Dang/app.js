@@ -529,9 +529,9 @@ function renderAttList() {
     const valid = isNameValid(r.name, r.zaloName);
     // valid===null: không có Zalo → hiện badge "Hợp lệ" bình thường
     // valid===true: tên khớp → Hợp lệ (xanh)
-    // valid===false: tên không khớp → Chưa hợp lệ (vàng)
+    // valid===false: tên không khớp → Không chính chủ (vàng)
     const badge = (valid === false)
-      ? `<span style="color:#FCD34D;font-size:11px;font-weight:700;">⚠ Chưa hợp lệ</span>`
+      ? `<span style="color:#FCD34D;font-size:11px;font-weight:700;">⚠ Không chính chủ</span>`
       : `<span class="badge-ok">✓ Hợp lệ</span>`;
     return `
     <div class="attendance-item">
@@ -549,7 +549,7 @@ function exportData() {
 
   const rows = list.map((r, i) => {
     const valid = isNameValid(r.name, r.zaloName);
-    const trangThai = (valid === false) ? 'Chưa hợp lệ' : 'Hợp lệ';
+    const trangThai = (valid === false) ? 'Không chính chủ' : 'Hợp lệ';
     return {
       'STT': i + 1, 'Họ tên': r.name, 'MSSV': r.id, 'Lớp': r.unit || '',
       'Ngày': r.date || '', 'Thời gian': r.time || '',
@@ -1123,7 +1123,7 @@ async function completeAttendance() {
       if (sucStatusEl) {
         const valid = isNameValid(STATE.name, STATE.zaloName);
         if (valid === false) {
-          sucStatusEl.innerHTML = '<span style="color:#FCD34D;font-size:12px;font-weight:700;">⚠ Chưa hợp lệ</span>';
+          sucStatusEl.innerHTML = '<span style="color:#FCD34D;font-size:12px;font-weight:700;">⚠ Không chính chủ</span>';
         } else {
           sucStatusEl.innerHTML = '<span class="badge-ok">✓ Hợp lệ</span>';
         }
@@ -1341,7 +1341,76 @@ function saveSession() {
     });
 }
 
+// ─── GIF CYCLE: mỗi GIF phát 2 lần trước khi chuyển sang GIF khác (ngẫu nhiên) ───
+const _gifCycle = {
+  current: null,   // url đang phát
+  playCount: 0,    // số lần đã phát gif hiện tại
+  timer: null,     // interval handle
+};
+
+function _startGifCycle() {
+  if (_gifCycle.timer) return; // đã chạy rồi
+  if (typeof window.getRandomWaitingGif !== 'function') return;
+
+  function _pickNextGif() {
+    // Chọn ngẫu nhiên khác gif hiện tại (nếu có nhiều hơn 1)
+    let next;
+    let tries = 0;
+    do {
+      next = window.getRandomWaitingGif();
+      tries++;
+    } while (next === _gifCycle.current && tries < 10);
+    return next;
+  }
+
+  function _loadGif(url, playIndex) {
+    _gifCycle.current = url;
+    _gifCycle.playCount = playIndex;
+    const el = document.getElementById('qrcode');
+    if (!el || !el.querySelector('img[data-gif-cycle]')) return; // đã bị thay (QR thật)
+    const img = el.querySelector('img[data-gif-cycle]');
+    if (img) {
+      // Force reload gif để bắt đầu lại từ đầu
+      img.src = url + (url.includes('?') ? '&' : '?') + '_r=' + Date.now();
+    }
+  }
+
+  // Khởi tạo gif đầu tiên
+  const firstGif = _pickNextGif();
+  _gifCycle.current = firstGif;
+  _gifCycle.playCount = 1;
+
+  // Mỗi N giây kiểm tra: nếu đã phát 2 lần thì đổi gif
+  // Thời gian một vòng gif ước tính ~3-6s; dùng 5s/lần kiểm tra
+  _gifCycle.timer = setInterval(() => {
+    const el = document.getElementById('qrcode');
+    if (!el || !el.querySelector('img[data-gif-cycle]')) {
+      // QR thật đã hiển thị, dừng cycle
+      clearInterval(_gifCycle.timer);
+      _gifCycle.timer = null;
+      return;
+    }
+    _gifCycle.playCount++;
+    if (_gifCycle.playCount > 2) {
+      // Đổi sang gif khác
+      const next = _pickNextGif();
+      _loadGif(next, 1);
+    } else {
+      // Phát lại gif hiện tại lần 2
+      _loadGif(_gifCycle.current, _gifCycle.playCount);
+    }
+  }, 5000); // 5 giây/lần phát (điều chỉnh nếu gif dài hơn)
+
+  return firstGif;
+}
+
+function _stopGifCycle() {
+  if (_gifCycle.timer) { clearInterval(_gifCycle.timer); _gifCycle.timer = null; }
+  _gifCycle.current = null; _gifCycle.playCount = 0;
+}
+
 function setQRWaitingState() {
+  _stopGifCycle();
   // Hiển thị trạng thái chờ: GIF ngẫu nhiên thay vì ô trắng
   const el = document.getElementById('qrcode');
   if (el) {
@@ -1350,9 +1419,12 @@ function setQRWaitingState() {
       : '';
     if (gifUrl) {
       el.innerHTML = `<div style="width:220px;height:220px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#111;">
-        <img src="${gifUrl}" alt="Đang chờ..." style="width:100%;height:100%;object-fit:cover;"
+        <img data-gif-cycle="1" src="${gifUrl}" alt="Đang chờ..." style="width:100%;height:100%;object-fit:cover;"
           onerror="this.parentElement.innerHTML='<span style=\\'font-size:56px;opacity:0.25;\\'>🇻🇳</span>'">
       </div>`;
+      _gifCycle.current = gifUrl;
+      _gifCycle.playCount = 1;
+      _startGifCycle();
     } else {
       el.innerHTML = '<div style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border-radius:8px;border:1px dashed rgba(255,215,0,0.2);"><span style=\'font-size:56px;opacity:0.3;\'>🇻🇳</span></div>';
     }
@@ -1379,6 +1451,7 @@ function initQR() {
 }
 
 function regenerateQR() {
+  _stopGifCycle();
   const el = document.getElementById('qrcode'); if (!el) return; el.innerHTML = '';
   const token = Math.random().toString(36).substr(2, 6).toUpperCase();
   set(ref(db, 'session/current_token'), token).catch(e => console.error(e));
