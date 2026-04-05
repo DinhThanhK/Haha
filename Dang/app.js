@@ -1341,15 +1341,8 @@ function saveSession() {
     });
 }
 
-  // Khởi tạo gif đầu tiên
-  const firstGif = _pickNextGif();
-  _gifCycle.current = firstGif;
-  _gifCycle.playCount = 1;
-
-  // Mỗi N giây kiểm tra: nếu đã phát 2 lần thì đổi gif
-  // Thời gian một vòng gif ước tính ~3-6s; dùng 5s/lần kiểm tra
-
 function setQRWaitingState() {
+  // Hiển thị trạng thái chờ: GIF ngẫu nhiên thay vì ô trắng
   const el = document.getElementById('qrcode');
   if (el) {
     const gifUrl = (typeof window.getRandomWaitingGif === 'function')
@@ -1361,7 +1354,7 @@ function setQRWaitingState() {
           onerror="this.parentElement.innerHTML='<span style=\\'font-size:56px;opacity:0.25;\\'>🇻🇳</span>'">
       </div>`;
     } else {
-      el.innerHTML = '<div style="width:220px;height:220px;...">...</div>';
+      el.innerHTML = '<div style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border-radius:8px;border:1px dashed rgba(255,215,0,0.2);"><span style=\'font-size:56px;opacity:0.3;\'>🇻🇳</span></div>';
     }
   }
   const tokenEl = document.getElementById('qr-token-display');
@@ -1386,7 +1379,6 @@ function initQR() {
 }
 
 function regenerateQR() {
-  _stopGifCycle();
   const el = document.getElementById('qrcode'); if (!el) return; el.innerHTML = '';
   const token = Math.random().toString(36).substr(2, 6).toUpperCase();
   set(ref(db, 'session/current_token'), token).catch(e => console.error(e));
