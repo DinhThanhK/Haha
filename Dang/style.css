@@ -353,3 +353,10 @@ input[type="range"].styled-range {
 }
 .verify-box.done .verify-ring,
 .verify-box.done .verify-ring-fill { animation: none; }
+
+/* Vòng QR dùng màu vàng gold thay vì đỏ */
+#qr-icon-wrap .verify-ring      { border-color: rgba(255,215,0,0.5); }
+#qr-icon-wrap .verify-ring-fill { background: rgba(255,215,0,0.18); }
+/* Khi đã nhập mã → dừng animation vòng QR */
+#verify-qr-box.done #qr-ring,
+#verify-qr-box.done #qr-ring-fill { animation: none; }

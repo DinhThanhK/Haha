@@ -438,6 +438,11 @@ function checkVerifyReady() {
 
   // Cập nhật icon tick cho ô QR
   const qrDot = document.getElementById('qr-status-dot');
+  const qrBox = document.getElementById('verify-qr-box');
+  if (qrBox) {
+    if (hasToken) qrBox.classList.add('done');
+    else qrBox.classList.remove('done');
+  }
   if (qrDot) {
     qrDot.innerHTML = hasToken
       ? `<svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -731,9 +736,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
-  const todayISO = new Date().toISOString().split('T')[0];
+  // Lấy ngày hiện tại theo giờ Việt Nam (UTC+7), tránh lệch múi giờ
+  const todayVN = new Date(Date.now() + 7 * 3600 * 1000).toISOString().split('T')[0];
   const dateFilterEl = document.getElementById('export-date-filter');
-  if (dateFilterEl) dateFilterEl.value = todayISO;
+  if (dateFilterEl) dateFilterEl.value = todayVN;
 
   // Khôi phục Zalo session khi reload trang (trong cùng phiên trình duyệt)
   const savedZaloId = sessionStorage.getItem('zalo_id');
