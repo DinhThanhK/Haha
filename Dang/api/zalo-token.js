@@ -1,7 +1,5 @@
-// api/zalo-token.js — Vercel Serverless Function
-// Chỉ đổi code → access_token, KHÔNG gọi graph API (bị chặn IP ngoài VN)
-
-export default async function handler(req, res) {
+// api/zalo-token.js
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://diemdanh-chibo-huce.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -35,7 +33,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Không lấy được access_token', detail: tokenData });
     }
 
-    // Trả access_token về client — client sẽ tự gọi graph.zalo.me từ IP VN
     return res.status(200).json({ access_token: tokenData.access_token });
 
   } catch (e) {

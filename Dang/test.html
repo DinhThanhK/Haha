@@ -83,6 +83,16 @@
     transition: color .2s;
   }
   .btn-clear:hover { color: var(--red); }
+  .btn-copy-log {
+    font-size: 10px; font-weight: 700; cursor: pointer; border-radius: 5px;
+    padding: 3px 10px; border: 1px solid rgba(10,132,255,0.35);
+    background: rgba(10,132,255,0.12); color: var(--blue);
+    transition: all .2s; font-family: var(--mono);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .btn-copy-log:hover { background: rgba(10,132,255,0.25); border-color: var(--blue); }
+  .btn-copy-log.copied { background: rgba(48,209,88,0.15); border-color: var(--green); color: var(--green); }
+  .console-actions { display: flex; align-items: center; gap: 6px; }
   #log-output {
     font-family: var(--mono); font-size: 11px; line-height: 1.7;
     padding: 10px 12px; max-height: 280px; overflow-y: auto;
@@ -330,7 +340,10 @@
   <div class="console-wrap">
     <div class="console-header">
       <span class="console-title">debug log</span>
-      <button class="btn-clear" onclick="clearLog()">clear</button>
+      <div class="console-actions">
+        <button class="btn-copy-log" id="btn-copy-log" onclick="copyLog()">📋 Copy log</button>
+        <button class="btn-clear" onclick="clearLog()">clear</button>
+      </div>
     </div>
     <div id="log-output"></div>
   </div>
@@ -356,6 +369,53 @@ function log(msg, type='info') {
   logEl.scrollTop = logEl.scrollHeight;
 }
 function clearLog() { logEl.innerHTML = ''; }
+
+function copyLog() {
+  const lines = Array.from(logEl.querySelectorAll('.log-line')).map(line => {
+    const time = line.querySelector('.log-time')?.textContent || '';
+    const msg  = line.querySelector('[class^="log-"]')?.textContent || '';
+    return `[${time}] ${msg}`;
+  });
+
+  // Thêm header thông tin thiết bị
+  const header = [
+    '═══════════════════════════════════',
+    ' Zalo Auth Debug Log',
+    ' ' + new Date().toLocaleString('vi-VN'),
+    ' UA: ' + navigator.userAgent.slice(0, 80),
+    ' URL: ' + location.href.split('?')[0],
+    '═══════════════════════════════════',
+    '',
+  ];
+
+  const fullText = [...header, ...lines].join('\n');
+
+  const btn = document.getElementById('btn-copy-log');
+  navigator.clipboard.writeText(fullText)
+    .then(() => {
+      btn.textContent = '✅ Đã copy!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '📋 Copy log'; btn.classList.remove('copied'); }, 2000);
+    })
+    .catch(() => {
+      // Fallback cho trình duyệt không hỗ trợ clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = fullText;
+      ta.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        btn.textContent = '✅ Đã copy!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋 Copy log'; btn.classList.remove('copied'); }, 2000);
+      } catch(e) {
+        btn.textContent = '❌ Lỗi copy';
+        setTimeout(() => { btn.textContent = '📋 Copy log'; btn.classList.remove('copied'); }, 2000);
+      }
+      document.body.removeChild(ta);
+    });
+}
 
 // ══════════════════════════════════════
 //  ENV INFO
