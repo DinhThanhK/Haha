@@ -430,7 +430,7 @@ body::before {
 }
 .copy-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent2); }
 .inline-copy { padding:7px 10px; flex-shrink:0; }
-.ta-copy { position:absolute; top:6px; right:6px; padding:4px 8px; font-size:13px; }
+.ta-copy { position:absolute; top:0px; right:-20px; padding:4px 8px; font-size:13px; }
 
 /* Modal footer */
 .modal-footer {
