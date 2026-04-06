@@ -11,18 +11,19 @@ const CARD_TYPES = ['Monster','Spell','Trap','Special'];
 const ELEMENTS = [
   {id:'fire',    label:'🔥 Fire',    icon:'./elements/fire.png'},
   {id:'water',   label:'💧 Water',   icon:'./elements/water.png'},
-  {id:'ice',     label:'❄️ Ice',     icon:null},
+  {id:'ice',     label:'❄️ Ice',     icon:'./elements/ice.png'},
   {id:'plant',   label:'🌿 Plant',   icon:'./elements/plant.png'},
-  {id:'wind',    label:'🌪 Wind',    icon:null},
-  {id:'earth',   label:'⛰️ Earth',   icon:'./elements/earth.png'},
-  {id:'poison',  label:'☠️ Poison',  icon:null},
-  {id:'metal',   label:'⚙️ Metal',   icon:null},
-  {id:'thunder', label:'⚡ Thunder', icon:null},
-  {id:'sound',   label:'🔊 Sound',   icon:null},
-  {id:'light',   label:'✨ Light',   icon:null},
-  {id:'dark',    label:'🌑 Dark',    icon:null},
+  {id:'wind',    label:'🌬️ Wind',    icon:'./elements/wind.png'},
+  {id:'earth',   label:'🏔️ Earth',   icon:'./elements/earth.png'},
+  {id:'poison',  label:'☠️ Poison',  icon:'./elements/poison.png'},
+  {id:'metal',   label:'⚙️ Metal',   icon:'./elements/metal.png'},
+  {id:'thunder', label:'⚡ Thunder', icon:'./elements/thunder.png'},
+  {id:'sound',   label:'🔊 Sound',   icon:'./elements/sound.png'},
+  {id:'light',   label:'✨ Light',   icon:'./elements/light.png'},
+  {id:'dark',    label:'🔮 Dark',    icon:'./elements/dark.png'},
 ];
-const ELEM_MAP = Object.fromEntries(ELEMENTS.map(e=>[e.id, e]));
+
+const ELEM_MAP = Object.fromEntries(ELEMENTS.map(e => [e.id, e]));
 
 // Icon map cho buff icons
 const BUFF_ICONS = {
@@ -45,7 +46,7 @@ function buffIcon(type, val){
   const src = BUFF_ICONS[type];
   const emoji = type==='lotus'?'🪷':'💎';
   if(src){
-    return `<img src="${src}" alt="${type}" class="icon-img icon-buff" onerror="this.style.display='none'">${emoji}${val}`;
+    return `<img src="${src}" alt="${type}" class="icon-img icon-buff" onerror="this.outerHTML='${emoji}'">${val}`;
   }
   return `${emoji}${val}`;
 }
