@@ -81,7 +81,7 @@ body::before {
   50%    { filter:drop-shadow(0 0 14px var(--gold2)); }
 }
 .logo-text {
-  font-family:'Cinzel',serif; font-size:18px; font-weight:900;
+  font-family:'Philosopher',serif; font-size:18px; font-weight:900;
   background:linear-gradient(90deg,var(--gold-d),var(--gold2),var(--gold));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
   letter-spacing:3px;
@@ -211,7 +211,7 @@ body::before {
 
 .ci-head { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
 .ci-name {
-  font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+  font-family:'Philosopher',serif; font-size:13px; font-weight:700;
   color:var(--gold2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .ci-stars { font-size:11px; color:var(--gold); letter-spacing:1px; }
@@ -325,7 +325,7 @@ body::before {
   padding:18px 24px 14px; border-bottom:1px solid var(--border);
   position:sticky; top:0; background:var(--bg2); z-index:10;
 }
-.modal-header h2 { font-family:'Cinzel',serif; font-size:16px; color:var(--gold); letter-spacing:1px; }
+.modal-header h2 { font-family:'Philosopher',serif; font-size:16px; color:var(--gold); letter-spacing:1px; }
 .modal-close {
   width:30px; height:30px; border-radius:50%; border:1px solid var(--border);
   background:var(--surface); color:var(--text-dim); font-size:12px; cursor:pointer;
@@ -477,7 +477,7 @@ body::before {
 
 .detail-info { padding:22px 22px 18px; display:flex; flex-direction:column; gap:12px; }
 .detail-name {
-  font-family:'Cinzel',serif; font-size:20px; font-weight:900;
+  font-family:'Philosopher',serif; font-size:20px; font-weight:900;
   color:var(--gold2); line-height:1.25;
 }
 .detail-row   { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
@@ -560,7 +560,7 @@ body::before {
   padding:2px 7px; border-radius:4px; background:rgba(0,0,0,0.75);
 }
 .lp-bottom  { padding:7px 10px; }
-.lp-name    { font-family:'Cinzel',serif; font-size:10px; font-weight:700; color:var(--gold2); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lp-name    { font-family:'Philosopher',serif; font-size:10px; font-weight:700; color:var(--gold2); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .lp-stars   { font-size:10px; color:var(--gold); letter-spacing:1px; }
 .lp-stats   { display:flex; gap:8px; font-size:11px; font-weight:700; }
 .lp-atk     { color:var(--red); }

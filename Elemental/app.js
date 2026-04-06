@@ -45,7 +45,7 @@ function buffIcon(type, val){
   const src = BUFF_ICONS[type];
   const emoji = type==='lotus'?'🪷':'💎';
   if(src){
-    return `<img src="${src}" alt="${type}" class="icon-img icon-buff" onerror="this.outerHTML='${emoji}'">${val}`;
+    return `<img src="${src}" alt="${type}" class="icon-img icon-buff" onerror="this.style.display='none'">${emoji}${val}`;
   }
   return `${emoji}${val}`;
 }
@@ -426,7 +426,7 @@ function getSelectedElements(){
 }
 
 function clearForm(){
-  ['fName','fDescVN','fSpDescVN','fDescEN','fSpDescEN','fAtk','fDef','fLotus','fRuby','fStars','imgUrlInput']
+  ['fNameVN','fNameEN','fDescVN','fSpDescVN','fDescEN','fSpDescEN','fAtk','fDef','fLotus','fRuby','fStars','imgUrlInput']
     .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('fCardType').value='Monster';
   document.getElementById('fSpellSub').value='';
@@ -435,7 +435,8 @@ function clearForm(){
 }
 
 function fillForm(c){
-  document.getElementById('fName').value     = c.name    ||'';
+  document.getElementById('fNameVN').value   = c.nameVN  ||c.name  ||'';
+  document.getElementById('fNameEN').value   = c.nameEN  ||'';
   document.getElementById('fDescVN').value   = c.descVN  ||'';
   document.getElementById('fSpDescVN').value = c.spDescVN||'';
   document.getElementById('fDescEN').value   = c.descEN  ||'';
@@ -455,7 +456,9 @@ function readForm(){
   const ct=document.getElementById('fCardType').value;
   const isMonster=ct==='Monster';
   return {
-    name:    document.getElementById('fName').value.trim(),
+    name:    document.getElementById('fNameVN').value.trim()||document.getElementById('fNameEN').value.trim(),
+    nameVN:  document.getElementById('fNameVN').value.trim(),
+    nameEN:  document.getElementById('fNameEN').value.trim(),
     cardType:ct,
     spellSub:isMonster?'':(document.getElementById('fSpellSub').value||''),
     stars:   isMonster?(document.getElementById('fStars').value||''):'',
@@ -474,7 +477,7 @@ function readForm(){
 
 function saveCard(){
   const data=readForm();
-  if(!data.name){ showToast('⚠️ Vui lòng nhập tên thẻ bài!','#e03858'); return; }
+  if(!data.name&&!data.nameEN){ showToast('⚠️ Vui lòng nhập tên thẻ bài!','#e03858'); return; }
   if(editingId){
     const idx=cards.findIndex(c=>c.id===editingId);
     if(idx!==-1) cards[idx]={...cards[idx],...data,updatedAt:Date.now()};
@@ -507,7 +510,7 @@ function handleFile(file){
 // ── LIVE PREVIEW ───────────────────────────────────────────────
 function updateLivePreview(){
   const wrap=document.getElementById('livePreview'); if(!wrap) return;
-  const name=document.getElementById('fName')?.value||'';
+  const name=document.getElementById('fNameVN')?.value||document.getElementById('fNameEN')?.value||'';
   const ct  =document.getElementById('fCardType')?.value||'Monster';
   const stars=document.getElementById('fStars')?.value||'';
   const atk =document.getElementById('fAtk')?.value;
@@ -613,7 +616,7 @@ function setup(){
   });
 
   // live preview
-  ['fName','fCardType','fStars','fAtk','fDef'].forEach(id=>{
+  ['fNameVN','fNameEN','fCardType','fStars','fAtk','fDef'].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
     el.addEventListener('input',updateLivePreview);
     el.addEventListener('change',updateLivePreview);
