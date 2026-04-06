@@ -1561,3 +1561,63 @@ function closeQrScanner() {
   const video = document.getElementById('qr-video');
   if (video) { video.srcObject = null; }
 }
+
+// ─── ZALO WEBVIEW DETECTION ───
+async function checkZaloBridge() {
+  const debugEl = document.getElementById('zalo-bridge-debug');
+
+  if (typeof ZaloJSBridge === 'undefined') {
+    // Không phải Zalo browser → cảnh báo
+    showZaloWarning();
+    if (debugEl) debugEl.textContent = '⚠️ ZaloJSBridge: không phát hiện (browser thường)';
+    return;
+  }
+
+  // Trong Zalo browser → lấy ID
+  ZaloJSBridge.on('ZaloJSBridgeReady', function() {
+    ZaloJSBridge.getAccessToken(function(res) {
+      if (res.accessToken) {
+        fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
+          headers: { 'access_token': res.accessToken }
+        })
+        .then(r => r.json())
+        .then(user => {
+          STATE.zaloId   = user.id;
+          STATE.zaloName = user.name || null;
+          showZaloSuccess();
+          if (debugEl) debugEl.textContent = `✅ Zalo ID: ${user.id} | Tên: ${user.name}`;
+        })
+        .catch(e => {
+          if (debugEl) debugEl.textContent = `❌ Lỗi lấy user: ${e.message}`;
+        });
+      } else {
+        if (debugEl) debugEl.textContent = '❌ Không lấy được accessToken từ ZaloJSBridge';
+      }
+    });
+  });
+}
+
+function showZaloWarning() {
+  const box = document.getElementById('verify-zalo-box');
+  if (!box) return;
+  box.innerHTML = `
+    <div style="border:1px solid rgba(239,68,68,0.5);border-radius:12px;padding:14px;background:rgba(239,68,68,0.08);color:#fca5a5;font-size:0.9rem;text-align:center;">
+      ⚠️ Vui lòng mở trang này <strong>trong ứng dụng Zalo</strong> để xác thực.<br>
+      <span style="font-size:0.8rem;opacity:0.7;">Trình duyệt thường không được hỗ trợ.</span>
+    </div>
+    <div id="zalo-bridge-debug" style="margin-top:8px;font-size:0.75rem;color:#f87171;text-align:center;"></div>
+  `;
+}
+
+function showZaloSuccess() {
+  const box = document.getElementById('verify-zalo-box');
+  if (!box) return;
+  box.innerHTML = `
+    <div style="border:1px solid rgba(34,197,94,0.5);border-radius:12px;padding:14px;background:rgba(34,197,94,0.08);color:#86efac;font-size:0.9rem;text-align:center;">
+      ✅ Đã xác thực Zalo thành công
+    </div>
+    <div id="zalo-bridge-debug" style="margin-top:8px;font-size:0.75rem;color:#86efac;text-align:center;"></div>
+  `;
+}
+
+checkZaloBridge();

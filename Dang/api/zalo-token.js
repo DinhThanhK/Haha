@@ -1,6 +1,6 @@
 // api/zalo-token.js
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://diemdanh-chibo-huce.vercel.app');
+res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -28,7 +28,18 @@ module.exports = async function handler(req, res) {
       }),
     });
 
-    const tokenData = await tokenRes.json();
+    
+
+// Thêm đoạn này để debug
+    const rawText = await tokenRes.text();
+    console.log('Zalo raw response:', rawText);
+
+    let tokenData;
+    try {
+      tokenData = JSON.parse(rawText);
+    } catch(e) {
+      return res.status(500).json({ error: 'Zalo trả về không phải JSON', raw: rawText });
+    }
     if (!tokenData.access_token) {
       return res.status(400).json({ error: 'Không lấy được access_token', detail: tokenData });
     }
