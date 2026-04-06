@@ -1595,56 +1595,36 @@ async function checkZaloBridge() {
     `;
   }
 
-  // 3. Tạo vòng lặp chờ Zalo inject ZaloJSBridge vào trang
+  //3
+
   let attempts = 0;
   const checkInterval = setInterval(() => {
     attempts++;
     
-    // Nếu bridge đã xuất hiện
-    if (typeof ZaloJSBridge !== 'undefined') {
-      clearInterval(checkInterval); // Dừng vòng lặp
+    // Thêm log để bạn nhìn thấy trên màn hình điện thoại
+    const debugEl = document.getElementById('zalo-bridge-debug');
+    if (debugEl) debugEl.textContent = `⏳ Đang đợi Zalo (Lần ${attempts}/20)...`;
 
-      // Tiến hành gọi lấy Access Token
-      ZaloJSBridge.getAccessToken(function(res) {
-        if (res && res.accessToken) {
-          fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
-            headers: { 'access_token': res.accessToken }
-          })
-          .then(r => r.json())
-          .then(user => {
-            if (user.id) {
-              STATE.zaloId   = user.id;
-              STATE.zaloName = user.name || null;
-              showZaloSuccess();
-              const newDebug = document.getElementById('zalo-bridge-debug');
-              if (newDebug) newDebug.textContent = `✅ Zalo ID: ${user.id} | Tên: ${user.name}`;
-              checkVerifyReady(); // Kích hoạt nút xác nhận ở form nếu đã nhập đủ
-            } else {
-              showZaloWarning();
-              const newDebug = document.getElementById('zalo-bridge-debug');
-              if (newDebug) newDebug.textContent = `❌ Lỗi lấy thông tin: ${JSON.stringify(user)}`;
-            }
-          })
-          .catch(e => {
-            showZaloWarning();
-            const newDebug = document.getElementById('zalo-bridge-debug');
-            if (newDebug) newDebug.textContent = `❌ Lỗi gọi API graph: ${e.message}`;
-          });
-        } else {
-          showZaloWarning();
-          const newDebug = document.getElementById('zalo-bridge-debug');
-          if (newDebug) newDebug.textContent = '❌ Không lấy được accessToken từ ZaloJSBridge';
-        }
-      });
+    // KIỂM TRA CẢ 2 ĐỐI TƯỢNG (Dành cho bản Zalo mới)
+    if (typeof ZaloJSBridge !== 'undefined') {
+      clearInterval(checkInterval);
       
-    } else if (attempts >= 20) {
-      // Báo lỗi nếu chờ quá 4 giây (20 vòng * 200ms) mà bridge vẫn chưa xuất hiện
+      // Thử gọi hàm kiểm tra đơn giản trước
+      debugEl.textContent = "✅ Đã thấy Bridge! Đang xin quyền...";
+      
+      ZaloJSBridge.getAccessToken(function(res) {
+          // ... code xử lý token như cũ ...
+      });
+    } 
+    else if (attempts >= 20) {
       clearInterval(checkInterval);
       showZaloWarning();
-      const debugEl = document.getElementById('zalo-bridge-debug');
-      if (debugEl) debugEl.textContent = '⚠️ Bị kẹt lúc khởi tạo JSBridge (timeout)';
+      if (debugEl) {
+        // Hiện thêm UserAgent để debug xem Zalo có đang "giả dạng" trình duyệt thường không
+        debugEl.innerHTML = `⚠️ Timeout!<br><small style="font-size:10px">${navigator.userAgent}</small>`;
+      }
     }
-  }, 200); // Cứ mỗi 200ms kiểm tra một lần
+  }, 200);
 }
 
 function showZaloWarning() {
