@@ -1563,61 +1563,73 @@ function closeQrScanner() {
 }
 
 async function checkZaloBridge() {
-  const userAgent = navigator.userAgent;
-  const isZalo = /Zalo/i.test(userAgent) || typeof window.ZaloJSBridge !== 'undefined';
   const debugEl = document.getElementById('zalo-bridge-debug');
+  const box = document.getElementById('verify-zalo-box');
 
-  if (!isZalo) {
-    // Nếu cả UA và Bridge đều không có
-    showZaloWarning();
-    if (debugEl) debugEl.innerHTML = `⚠️ Trình duyệt ngoài Zalo<br><small>${userAgent}</small>`;
-    return;
+  // Hiển thị trạng thái đang kiểm tra ngay lập tức
+  if (box) {
+    box.innerHTML = `
+      <div style="border:1px solid #60a5fa; border-radius:12px; padding:15px; background:rgba(96,165,250,0.1); color:#60a5fa; text-align:center;">
+        <div class="spinner-small" style="display:inline-block; width:15px; height:15px; border:2px solid #60a5fa; border-top-color:transparent; border-radius:50%; animation:zalo-spin 1s linear infinite;"></div>
+        Đang kiểm tra kết nối Zalo...
+      </div>
+    `;
   }
 
-  // Nếu vào tới đây nghĩa là ĐÃ Ở TRONG ZALO
-  const box = document.getElementById('verify-zalo-box');
-  if (box) box.innerHTML = `<div class="loading-zalo">Đang xác thực với Zalo...</div>`;
-
   let attempts = 0;
+  const maxAttempts = 15; // Đợi khoảng 3-4 giây
+
   const checkInterval = setInterval(() => {
     attempts++;
     
-    if (typeof ZaloJSBridge !== 'undefined') {
+    // Kiểm tra xem Zalo đã "bơm" Bridge vào chưa
+    const hasBridge = (typeof window.ZaloJSBridge !== 'undefined');
+    
+    if (debugEl) debugEl.textContent = `⏳ Đang quét tín hiệu Zalo (Lần ${attempts}/${maxAttempts})...`;
+
+    if (hasBridge) {
       clearInterval(checkInterval);
+      if (debugEl) debugEl.textContent = "✅ Đã kết nối Zalo! Đang lấy thông tin...";
       
-      // GỌI LẤY TOKEN
-      ZaloJSBridge.getAccessToken((res) => {
+      // Tiến hành lấy Access Token
+      window.ZaloJSBridge.getAccessToken((res) => {
         if (res && res.accessToken && res.accessToken !== "undefined") {
-           // Có token -> Lấy thông tin user
-           fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
-              headers: { 'access_token': res.accessToken }
-           })
-           .then(r => r.json())
-           .then(user => {
-              if (user.id) {
-                STATE.zaloId = user.id;
-                STATE.zaloName = user.name;
-                showZaloSuccess();
-                if (debugEl) debugEl.textContent = `✅ Xin chào: ${user.name}`;
-                checkVerifyReady();
-              } else {
-                // LỖI DO CHƯA CẤU HÌNH APP ID HOẶC DOMAIN
-                showZaloWarning();
-                if (debugEl) debugEl.innerHTML = `❌ Zalo từ chối trả về thông tin (Lỗi: ${user.error || 'Chưa duyệt domain'})`;
-              }
-           });
+          fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
+            headers: { 'access_token': res.accessToken }
+          })
+          .then(r => r.json())
+          .then(user => {
+            if (user.id) {
+              STATE.zaloId = user.id;
+              STATE.zaloName = user.name;
+              showZaloSuccess(); // Hiện tích xanh
+              checkVerifyReady();
+            } else {
+              if (debugEl) debugEl.innerHTML = `❌ Lỗi xác thực: ${user.error || 'Domain chưa được duyệt'}`;
+              showZaloWarning();
+            }
+          });
         } else {
-          // LỖI DO THIẾU QUYỀN TRONG ZALO DEV
+          if (debugEl) debugEl.textContent = "❌ Không lấy được mã truy cập (Token)";
           showZaloWarning();
-          if (debugEl) debugEl.innerHTML = `❌ Bridge hoạt động nhưng không lấy được Token.<br>Kiểm tra App ID trong Zalo Dev!`;
         }
       });
-    } else if (attempts >= 15) {
+    } 
+    else if (attempts >= maxAttempts) {
+      // SAU KHI ĐỢI MÀ VẪN KHÔNG THẤY BRIDGE
       clearInterval(checkInterval);
+      
+      // Kiểm tra xem có dấu hiệu "Mobile" nhưng không có "Zalo" (như cái UserAgent bạn gửi)
+      const isMobileWebview = /iPhone|iPad|iPod/i.test(navigator.userAgent) && /Mobile/i.test(navigator.userAgent);
+      
+      if (isMobileWebview) {
+        if (debugEl) debugEl.innerHTML = `⚠️ Đang ở trong App nhưng Zalo chưa cấp quyền.<br>Hãy thử mở lại từ <b>Tin nhắn</b> hoặc <b>Truyền file</b>.`;
+      } else {
+        if (debugEl) debugEl.textContent = "⚠️ Bạn đang sử dụng trình duyệt thường.";
+      }
       showZaloWarning();
-      if (debugEl) debugEl.innerHTML = `⚠️ Không thể khởi tạo JSBridge.<br>Hãy thử mở lại từ mục "Truyền File" trong Zalo.`;
     }
-  }, 300);
+  }, 250);
 }
 
 function showZaloWarning() {
