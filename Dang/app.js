@@ -1562,69 +1562,62 @@ function closeQrScanner() {
   if (video) { video.srcObject = null; }
 }
 
-// ─── ZALO WEBVIEW DETECTION ───
 async function checkZaloBridge() {
-  // 1. Kiểm tra User Agent trước xem có đang chạy trong app Zalo không
-  const isZaloBrowser = /Zalo/i.test(navigator.userAgent);
+  const userAgent = navigator.userAgent;
+  const isZalo = /Zalo/i.test(userAgent) || typeof window.ZaloJSBridge !== 'undefined';
+  const debugEl = document.getElementById('zalo-bridge-debug');
 
-  if (!isZaloBrowser) {
-    // Trình duyệt thường -> cảnh báo ngay lập tức
+  if (!isZalo) {
+    // Nếu cả UA và Bridge đều không có
     showZaloWarning();
-    const debugEl = document.getElementById('zalo-bridge-debug');
-    if (debugEl) debugEl.textContent = '⚠️ Trình duyệt thường (UserAgent không chứa Zalo)';
+    if (debugEl) debugEl.innerHTML = `⚠️ Trình duyệt ngoài Zalo<br><small>${userAgent}</small>`;
     return;
   }
 
-  // Inject CSS cho spinner (nếu chưa có)
-  if (!document.getElementById('zalo-spin-style')) {
-    const s = document.createElement('style');
-    s.id = 'zalo-spin-style';
-    s.textContent = '@keyframes zalo-spin{to{transform:rotate(360deg)}}';
-    document.head.appendChild(s);
-  }
-
-  // 2. Đang ở trong Zalo -> Hiển thị trạng thái đang đợi Zalo khởi tạo
+  // Nếu vào tới đây nghĩa là ĐÃ Ở TRONG ZALO
   const box = document.getElementById('verify-zalo-box');
-  if (box) {
-    box.innerHTML = `
-      <div style="border:1px solid rgba(96,165,250,0.5);border-radius:12px;padding:14px;background:rgba(96,165,250,0.08);color:#60a5fa;font-size:0.9rem;text-align:center;">
-        <span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(96,165,250,0.4);border-top-color:#60a5fa;border-radius:50%;animation:zalo-spin .7s linear infinite; margin-right: 6px;"></span>
-        Đang kết nối với Zalo...
-      </div>
-      <div id="zalo-bridge-debug" style="margin-top:8px;font-size:0.75rem;color:#60a5fa;text-align:center;"></div>
-    `;
-  }
-
-  //3
+  if (box) box.innerHTML = `<div class="loading-zalo">Đang xác thực với Zalo...</div>`;
 
   let attempts = 0;
   const checkInterval = setInterval(() => {
     attempts++;
     
-    // Thêm log để bạn nhìn thấy trên màn hình điện thoại
-    const debugEl = document.getElementById('zalo-bridge-debug');
-    if (debugEl) debugEl.textContent = `⏳ Đang đợi Zalo (Lần ${attempts}/20)...`;
-
-    // KIỂM TRA CẢ 2 ĐỐI TƯỢNG (Dành cho bản Zalo mới)
     if (typeof ZaloJSBridge !== 'undefined') {
       clearInterval(checkInterval);
       
-      // Thử gọi hàm kiểm tra đơn giản trước
-      debugEl.textContent = "✅ Đã thấy Bridge! Đang xin quyền...";
-      
-      ZaloJSBridge.getAccessToken(function(res) {
-          // ... code xử lý token như cũ ...
+      // GỌI LẤY TOKEN
+      ZaloJSBridge.getAccessToken((res) => {
+        if (res && res.accessToken && res.accessToken !== "undefined") {
+           // Có token -> Lấy thông tin user
+           fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
+              headers: { 'access_token': res.accessToken }
+           })
+           .then(r => r.json())
+           .then(user => {
+              if (user.id) {
+                STATE.zaloId = user.id;
+                STATE.zaloName = user.name;
+                showZaloSuccess();
+                if (debugEl) debugEl.textContent = `✅ Xin chào: ${user.name}`;
+                checkVerifyReady();
+              } else {
+                // LỖI DO CHƯA CẤU HÌNH APP ID HOẶC DOMAIN
+                showZaloWarning();
+                if (debugEl) debugEl.innerHTML = `❌ Zalo từ chối trả về thông tin (Lỗi: ${user.error || 'Chưa duyệt domain'})`;
+              }
+           });
+        } else {
+          // LỖI DO THIẾU QUYỀN TRONG ZALO DEV
+          showZaloWarning();
+          if (debugEl) debugEl.innerHTML = `❌ Bridge hoạt động nhưng không lấy được Token.<br>Kiểm tra App ID trong Zalo Dev!`;
+        }
       });
-    } 
-    else if (attempts >= 20) {
+    } else if (attempts >= 15) {
       clearInterval(checkInterval);
       showZaloWarning();
-      if (debugEl) {
-        // Hiện thêm UserAgent để debug xem Zalo có đang "giả dạng" trình duyệt thường không
-        debugEl.innerHTML = `⚠️ Timeout!<br><small style="font-size:10px">${navigator.userAgent}</small>`;
-      }
+      if (debugEl) debugEl.innerHTML = `⚠️ Không thể khởi tạo JSBridge.<br>Hãy thử mở lại từ mục "Truyền File" trong Zalo.`;
     }
-  }, 200);
+  }, 300);
 }
 
 function showZaloWarning() {
