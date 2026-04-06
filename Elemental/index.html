@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Card Vault</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Barlow+Condensed:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- ══════ HEADER ══════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-gem">◆</span>
+      <span class="logo-text">CARD VAULT</span>
+    </div>
+    <div class="header-center">
+      <div class="search-wrap">
+        <span class="si">🔍</span>
+        <input id="searchInput" type="text" placeholder="Tìm tên thẻ..."/>
+      </div>
+      <select id="filterType" class="hselect">
+        <option value="">Tất cả loại</option>
+        <option value="Monster">⚔️ Monster</option>
+        <option value="Spell">✦ Spell</option>
+        <option value="Trap">🕸 Trap</option>
+        <option value="Special">★ Special</option>
+      </select>
+      <select id="filterElement" class="hselect">
+        <option value="">Tất cả nguyên tố</option>
+        <option value="fire">🔥 Fire</option>
+        <option value="water">💧 Water</option>
+        <option value="ice">❄️ Ice</option>
+        <option value="plant">🌿 Plant</option>
+        <option value="wind">🌪 Wind</option>
+        <option value="earth">⛰️ Earth</option>
+        <option value="poison">☠️ Poison</option>
+        <option value="metal">⚙️ Metal</option>
+        <option value="thunder">⚡ Thunder</option>
+        <option value="sound">🔊 Sound</option>
+        <option value="light">✨ Light</option>
+        <option value="dark">🌑 Dark</option>
+      </select>
+      <div id="subFilters" class="sub-filters"></div>
+    </div>
+    <div class="header-right">
+      <div class="view-toggle">
+        <button class="vbtn active" id="viewGrid">⊞</button>
+        <button class="vbtn" id="viewList">☰</button>
+      </div>
+      <button class="btn-settings" id="btnSettings" title="Cài đặt màu viền">⚙️</button>
+      <span class="card-count" id="cardCount">0 thẻ</span>
+      <button class="btn-add" id="btnOpenModal">＋ Thêm thẻ</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════ GRID ══════ -->
+<main class="main-content">
+  <div class="card-grid" id="cardGrid">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🃏</div>
+      <p>Chưa có thẻ bài nào.<br/>Nhấn <strong>＋ Thêm thẻ</strong> để bắt đầu!</p>
+    </div>
+  </div>
+</main>
+
+<!-- ══════ ADD/EDIT MODAL ══════ -->
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal" id="cardModal">
+  <div class="modal-header">
+    <h2 id="modalTitle">Thêm thẻ bài mới</h2>
+    <button class="modal-close" id="btnCloseModal">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-cols">
+
+      <!-- LEFT -->
+      <div class="modal-left">
+        <div class="mlabel">Xem trước</div>
+        <div id="livePreview" class="live-preview">
+          <div class="prev-empty">Điền thông tin<br/>để xem trước thẻ</div>
+        </div>
+        <div class="mlabel" style="margin-top:16px">Ảnh thẻ bài (Art)</div>
+        <div class="img-drop-zone" id="imgDropZone">
+          <img id="imgPreview" src="" alt="" style="display:none"/>
+          <div class="drop-ph" id="dropPlaceholder">
+            <span class="drop-icon-big">🖼️</span>
+            <p>Kéo thả ảnh vào đây<br/><small>hoặc click để chọn file</small></p>
+          </div>
+          <input type="file" id="imgFileInput" accept="image/*" style="display:none"/>
+        </div>
+        <div class="img-url-row">
+          <input id="imgUrlInput" type="text" placeholder="Hoặc dán URL ảnh..."/>
+          <button class="btn-sm" id="btnLoadUrl">Tải</button>
+        </div>
+        <div class="unity-hint">
+          💡 <strong>Unity:</strong> Dùng URL ảnh để load bằng <em>UnityWebRequest</em>.
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="modal-right">
+
+        <!-- Basic -->
+        <div class="fsec">
+          <div class="fsec-title">Thông tin cơ bản</div>
+
+          <!-- Tên VN + EN song song -->
+          <div class="frow">
+            <div class="fgrp">
+              <label>🇻🇳 Tên (VN) <span class="req">*</span></label>
+              <div class="input-copy-wrap">
+                <input id="fNameVN" type="text" placeholder="Tên tiếng Việt..."/>
+                <button class="copy-btn inline-copy" data-target="fNameVN" title="Copy">⎘</button>
+              </div>
+            </div>
+            <div class="fgrp">
+              <label>🇬🇧 Name (EN) <span class="req">*</span></label>
+              <div class="input-copy-wrap">
+                <input id="fNameEN" type="text" placeholder="English name..."/>
+                <button class="copy-btn inline-copy" data-target="fNameEN" title="Copy">⎘</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="frow">
+            <div class="fgrp">
+              <label>Loại thẻ <span class="req">*</span></label>
+              <select id="fCardType">
+                <option value="Monster">⚔️ Monster</option>
+                <option value="Spell">✦ Spell</option>
+                <option value="Trap">🕸 Trap</option>
+                <option value="Special">★ Special</option>
+              </select>
+            </div>
+            <div class="fgrp" id="spellSubField" style="display:none">
+              <label>Spell loại</label>
+              <select id="fSpellSub">
+                <option value="">Chung</option>
+                <option value="P">Normal Spell (P)</option>
+                <option value="P*">Continuous Spell (P★)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monster fields -->
+        <div id="monsterFields">
+          <div class="fsec">
+            <div class="fsec-title">Chỉ số Monster</div>
+            <div class="frow">
+              <div class="fgrp">
+                <label>Số sao ★</label>
+                <input id="fStars" type="number" min="1" max="10" placeholder="1-10"/>
+              </div>
+              <div class="fgrp">
+                <label>ATK</label>
+                <input id="fAtk" type="number" placeholder="1100"/>
+              </div>
+              <div class="fgrp">
+                <label>DEF</label>
+                <input id="fDef" type="number" placeholder="1200"/>
+              </div>
+            </div>
+            <div class="frow">
+              <div class="fgrp">
+                <label>🪷 Lotus Buff</label>
+                <input id="fLotus" type="number" placeholder="10"/>
+              </div>
+              <div class="fgrp">
+                <label>💎 Ruby Buff</label>
+                <input id="fRuby" type="number" placeholder="10"/>
+              </div>
+            </div>
+            <div class="fgrp" style="margin-top:8px">
+              <label>Nguyên tố (có thể chọn nhiều)</label>
+              <div id="elemCheckboxes" class="elem-checkboxes"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VN desc -->
+        <div class="fsec">
+          <div class="fsec-title flag-title"><span>🇻🇳</span> Mô tả Tiếng Việt</div>
+          <div class="fgrp">
+            <label>Mô tả chung (VN)</label>
+            <div class="textarea-wrap">
+              <textarea id="fDescVN" rows="3" placeholder="Nói chung là chức năng đặc biệt..."></textarea>
+              <button class="copy-btn ta-copy" data-target="fDescVN" title="Copy">⎘</button>
+            </div>
+          </div>
+          <div id="spDescSection">
+            <div class="fgrp" style="margin-top:8px">
+              <label>Kỹ năng đặc biệt (VN)</label>
+              <div class="textarea-wrap">
+                <textarea id="fSpDescVN" rows="3" placeholder="Tăng gì gì đó..."></textarea>
+                <button class="copy-btn ta-copy" data-target="fSpDescVN" title="Copy">⎘</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EN desc -->
+        <div class="fsec">
+          <div class="fsec-title flag-title"><span>🇬🇧</span> Description English</div>
+          <div class="fgrp">
+            <label>General Description (EN)</label>
+            <div class="textarea-wrap">
+              <textarea id="fDescEN" rows="3" placeholder="Generally this card..."></textarea>
+              <button class="copy-btn ta-copy" data-target="fDescEN" title="Copy">⎘</button>
+            </div>
+          </div>
+          <div id="spDescSectionEN">
+            <div class="fgrp" style="margin-top:8px">
+              <label>Special Ability (EN)</label>
+              <div class="textarea-wrap">
+                <textarea id="fSpDescEN" rows="3" placeholder="Increases..."></textarea>
+                <button class="copy-btn ta-copy" data-target="fSpDescEN" title="Copy">⎘</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn-cancel" id="btnCancel">Hủy</button>
+    <button class="btn-save" id="btnSaveCard">💾 Lưu thẻ bài</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════ DETAIL MODAL ══════ -->
+<div class="modal-overlay" id="detailOverlay">
+<div class="modal detail-modal" id="detailModal">
+  <button class="modal-close fixed-close" id="btnCloseDetail">✕</button>
+  <div id="detailBody"></div>
+</div>
+</div>
+
+<!-- ══════ SETTINGS MODAL ══════ -->
+<div class="modal-overlay" id="settingsOverlay">
+<div class="modal settings-modal">
+  <div class="modal-header">
+    <h2>⚙️ Cài đặt màu viền</h2>
+    <button class="modal-close" id="btnCloseSettings">✕</button>
+  </div>
+  <div class="modal-body" id="settingsBody"></div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="copy-toast" id="copyToast">✓ Đã sao chép!</div>
+
+<!-- ══════ FIREBASE (ESM module) ══════ -->
+<script type="module">
+  import { initializeApp }                          from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import { getFirestore, collection, doc,
+           addDoc, updateDoc, deleteDoc,
+           onSnapshot, orderBy, query,
+           serverTimestamp }                        from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyB4C3k3PLPUxKze067nn49Zf-QhSWm9ftc",
+    authDomain:        "elemental-578b2.firebaseapp.com",
+    projectId:         "elemental-578b2",
+    storageBucket:     "elemental-578b2.firebasestorage.app",
+    messagingSenderId: "415566784672",
+    appId:             "1:415566784672:web:d775042e928dbc929341c5",
+    measurementId:     "G-YVEEYPP8YE"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Expose to global scope so app.js (classic script) can access
+  window.DB = db;
+  window.FirestoreAPI = {
+    collection, doc, addDoc, updateDoc, deleteDoc,
+    onSnapshot, orderBy, query, serverTimestamp
+  };
+</script>
+
+<script src="app.js"></script>
+</body>
+</html>
