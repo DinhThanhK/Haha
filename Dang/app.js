@@ -224,7 +224,11 @@ async function _collectAudio() {
     const comp = ctx.createDynamicsCompressor();
     osc.connect(comp); comp.connect(ctx.destination);
     osc.start(0);
-    const buffer = await ctx.startRendering();
+    // Thêm timeout 3s để tránh treo mãi trên mobile/Safari
+    const buffer = await Promise.race([
+      ctx.startRendering(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('audio_timeout')), 3000)),
+    ]);
     const data = buffer.getChannelData(0);
     let sum = 0;
     for (let i = 0; i < 500; i++) sum += Math.abs(data[i + 4500] || 0);
@@ -338,13 +342,19 @@ async function initFingerprint() {
   try {
     _collectHardware();
     _collectFonts();
-    await Promise.all([_collectCanvas(), _collectWebGL(), _collectAudio()]);
+    // Timeout tổng thể 5s: nếu bất kỳ signal nào treo, vẫn tiếp tục với dữ liệu đã có
+    await Promise.race([
+      Promise.all([_collectCanvas(), _collectWebGL(), _collectAudio()]),
+      new Promise(resolve => setTimeout(resolve, 5000)),
+    ]);
     STATE.deviceFingerprint = await _buildHash();
     _renderFpDebug();
     console.log('[FP] Signals:', FP_SIGNALS);
     console.log('[FP] Hash:', STATE.deviceFingerprint);
   } catch(e) {
     console.warn('Fingerprint init failed:', e);
+    // Vẫn tạo hash từ những gì đã thu thập được
+    try { STATE.deviceFingerprint = await _buildHash(); } catch(_) {}
   }
 }
 
