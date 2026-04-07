@@ -257,36 +257,17 @@
           </div>
           <!-- Tiêu đề xác thực -->
           <div style="margin:16px 0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Yêu cầu xác thực</div>
-
-          <!-- Ô 1: Zalo -->
-          <div id="verify-zalo-box" class="verify-box">
-            <div class="verify-box-left">
-              <div class="verify-icon-wrap" id="zalo-icon-wrap">
-                <div class="verify-ring"></div>
-                <div class="verify-ring-fill"></div>
-                <span class="verify-icon-img">
-                  <img src="https://vutruso.com/wp-content/uploads/2024/05/zalo-2.png" alt="Zalo" style="width:28px;height:28px;border-radius:50%;">
-                </span>
-              </div>
-              <div class="verify-box-info">
-                <div class="verify-box-title">Xác thực Zalo</div>
-                <div class="verify-box-sub" id="zalo-box-sub">Bấm để đăng nhập Zalo</div>
-              </div>
+          <!-- Panel debug device fingerprint -->
+          <div id="fp-debug-panel" style="margin:0 0 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:12px 14px;font-size:11px;color:var(--text-muted);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-weight:700;color:var(--gold);letter-spacing:0.5px;text-transform:uppercase;font-size:10px;">🔍 Device Fingerprint</span>
+              <span id="fp-status-badge" style="font-size:10px;background:rgba(255,165,0,0.15);color:#fb923c;border:1px solid rgba(255,165,0,0.3);padding:2px 8px;border-radius:20px;">Đang tính...</span>
             </div>
-            <div class="verify-status" id="zalo-status-dot">
-              <!-- Trạng thái chưa xác thực: vòng trống -->
-              <svg id="zalo-icon-empty" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="9" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-              </svg>
-              <!-- Trạng thái đã xác thực: tick xanh -->
-              <svg id="zalo-icon-done" width="22" height="22" viewBox="0 0 22 22" fill="none" style="display:none;">
-                <circle cx="11" cy="11" r="10" fill="rgba(34,197,94,0.2)" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
-                <polyline points="6,11 9.5,14.5 16,8" stroke="#22C55E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              </svg>
-            </div>
+            <div style="font-family:monospace;font-size:10px;word-break:break-all;color:#a78bfa;margin-bottom:8px;background:rgba(0,0,0,0.2);padding:6px 8px;border-radius:6px;" id="fp-hash-display">--</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;" id="fp-signals-grid"></div>
           </div>
 
-          <!-- Ô 2: Mã QR -->
+                    <!-- Ô 2: Mã QR -->
           <div class="verify-box" id="verify-qr-box">
             <div class="verify-box-left" style="flex:1;flex-direction:column;align-items:stretch;gap:8px;">
               <div style="display:flex;align-items:center;gap:10px;">
@@ -544,11 +525,6 @@
                 <label style="display:flex; align-items:center; gap:7px; font-size:12px; cursor:pointer; background:rgba(255,255,255,0.03); padding:7px 9px; border-radius:6px; border:1px solid var(--border);">
                   <input type="checkbox" id="set-field-token" checked style="accent-color:var(--red); width:14px; height:14px;"> Mã xác thực
                 </label>
-                <label style="display:flex; align-items:center; gap:7px; font-size:12px; cursor:pointer; background:rgba(255,255,255,0.03); padding:7px 9px; border-radius:6px; border:1px solid rgba(0,122,255,0.35); grid-column:span 2;">
-                  <input type="checkbox" id="set-field-zalo" checked style="accent-color:#0a84ff; width:14px; height:14px;">
-                  <img src="https://vutruso.com/wp-content/uploads/2024/05/zalo-2.png" alt="Zalo" style="width:16px;height:16px;border-radius:50%;flex-shrink:0;">
-                  Bắt buộc xác thực Zalo
-                </label>
               </div>
 
               <!-- File xuất Excel – 4 thành phần cùng hàng -->
@@ -588,7 +564,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@4/dist/fp.min.js"></script>
+
 <script src="gifs.js"></script>
 <script type="module" src="app.js"></script>
 

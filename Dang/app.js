@@ -26,7 +26,6 @@ const CONFIG = {
   FIELD_ID:    true,
   FIELD_LOP:   true,
   FIELD_TOKEN: true,
-  FIELD_ZALO:  true,
   // Cài đặt file xuất
   XLSX_SHEET_NAME:  'Điểm danh',
   XLSX_FILE_PREFIX: 'diemdanh',
@@ -49,7 +48,6 @@ window.saveSettings = function() {
   const fieldId    = document.getElementById('set-field-id')?.checked ?? true;
   const fieldLop   = document.getElementById('set-field-lop')?.checked ?? true;
   const fieldToken = document.getElementById('set-field-token')?.checked ?? true;
-  const fieldZalo  = document.getElementById('set-field-zalo')?.checked ?? true;
   const sheetName  = document.getElementById('set-sheet-name')?.value?.trim() || 'Điểm danh';
   const filePrefix = document.getElementById('set-file-prefix')?.value?.trim() || 'diemdanh';
 
@@ -59,14 +57,13 @@ window.saveSettings = function() {
   CONFIG.FIELD_ID    = fieldId;
   CONFIG.FIELD_LOP   = fieldLop;
   CONFIG.FIELD_TOKEN = fieldToken;
-  CONFIG.FIELD_ZALO  = fieldZalo;
   CONFIG.XLSX_SHEET_NAME  = sheetName;
   CONFIG.XLSX_FILE_PREFIX = filePrefix;
 
   localStorage.setItem('dangbo_settings', JSON.stringify({
     QR_REFRESH_SECONDS: qr,
     TOTAL_MEMBERS: totalMembers,
-    FIELD_NAME: fieldName, FIELD_ID: fieldId, FIELD_LOP: fieldLop, FIELD_TOKEN: fieldToken, FIELD_ZALO: fieldZalo,
+    FIELD_NAME: fieldName, FIELD_ID: fieldId, FIELD_LOP: fieldLop, FIELD_TOKEN: fieldToken,
     XLSX_SHEET_NAME: sheetName, XLSX_FILE_PREFIX: filePrefix,
   }));
 
@@ -76,7 +73,6 @@ window.saveSettings = function() {
     FIELD_ID:   fieldId,
     FIELD_LOP:  fieldLop,
     FIELD_TOKEN: fieldToken,
-    FIELD_ZALO:  fieldZalo,
   }).catch(e => console.warn('Lưu settings Firebase thất bại:', e));
 
   // Cập nhật thống kê ngay với tổng số mới
@@ -110,11 +106,7 @@ window.saveSettings = function() {
     const el = document.getElementById(id);
     if (el) el.style.display = show ? '' : 'none';
   });
-  // Ẩn/hiện ô Zalo
-  const zaloBox = document.getElementById('verify-zalo-box');
-  if (zaloBox) zaloBox.style.display = fieldZalo ? '' : 'none';
-  // Nếu bỏ Zalo thì reset state để không bị kẹt
-  if (!fieldZalo) { STATE.zaloId = null; STATE.zaloName = null; }
+
   // Cập nhật lại trạng thái nút Kiểm tra mã
   checkVerifyReady();
 
@@ -150,7 +142,6 @@ window.toggleSettings = function() {
     if (setEl('set-field-id'))     setEl('set-field-id').checked    = CONFIG.FIELD_ID;
     if (setEl('set-field-lop'))    setEl('set-field-lop').checked   = CONFIG.FIELD_LOP;
     if (setEl('set-field-token'))  setEl('set-field-token').checked = CONFIG.FIELD_TOKEN;
-    if (setEl('set-field-zalo'))   setEl('set-field-zalo').checked  = CONFIG.FIELD_ZALO;
     if (setEl('set-sheet-name'))   setEl('set-sheet-name').value    = CONFIG.XLSX_SHEET_NAME;
     if (setEl('set-file-prefix'))  setEl('set-file-prefix').value   = CONFIG.XLSX_FILE_PREFIX;
   }
@@ -159,194 +150,199 @@ window.toggleSettings = function() {
 const STATE = {
   step: 1, name: '', memberId: '', lop: '', geoOk: false, geoLat: null, geoLng: null,
   attendanceList: [], qrInterval: null, qrCountdown: CONFIG.QR_REFRESH_SECONDS,
-  isAdmin: false, leafletMap: null, deviceFingerprint: null, zaloId: null, zaloName: null,
+  isAdmin: false, leafletMap: null, deviceFingerprint: null,
   SESSION: { name: 'Họp chi bộ', lat: 21.0036, lng: 105.8412, radius: 300 }
 };
 
-// ─── ZALO LOGIN ───
-const ZALO_APP_ID = '563672230994960830';
-const ZALO_REDIRECT_URI = 'https://diemdanh-chibo-huce.vercel.app';
+// ─── DEVICE FINGERPRINT (tự tính, gắn phần cứng, không phụ thuộc trình duyệt) ───
+const FP_SIGNALS = {};
 
-function generateCodeVerifier() {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+async function _hashStr(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(str)));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0, 16);
 }
 
-async function generateCodeChallenge(verifier) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(verifier);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-}
-
-async function startZaloLogin() {
-  const verifier = generateCodeVerifier();
-  const challenge = await generateCodeChallenge(verifier);
-  sessionStorage.setItem('zalo_code_verifier', verifier);
-
-  const params = new URLSearchParams({
-    app_id:                ZALO_APP_ID,
-    redirect_uri:          ZALO_REDIRECT_URI,
-    code_challenge:        challenge,
-    code_challenge_method: 'S256',
-    state:                 'diemdanh',
-    scope:                 'openid,profile',
-  });
-
-  const webUrl = `https://oauth.zaloapp.com/v4/permission?${params}`;
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  if (isMobile) {
-    // Thử deep link vào app Zalo trước
-    const appUrl = `zalosdk://app/open?url=${encodeURIComponent(webUrl)}`;
-    const start = Date.now();
-    window.location.href = appUrl;
-    // Nếu 1.5s vẫn còn ở trang → không có app → fallback web
-    setTimeout(() => {
-      if (Date.now() - start < 2500) {
-        window.location.href = webUrl;
-      }
-    }, 1500);
-  } else {
-    window.location.href = webUrl;
-  }
-}
-
-async function handleZaloCallback(code) {
-  const verifier = sessionStorage.getItem('zalo_code_verifier') || '';
+async function _collectCanvas() {
   try {
-    // Bước 1: Server đổi code → access_token
-    const res = await fetch('/api/zalo-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, code_verifier: verifier }),
-    });
-    const data = await res.json();
-    if (!data.access_token) throw new Error(data.error || 'Không lấy được access_token');
+    const c = document.createElement('canvas');
+    c.width = 280; c.height = 60;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(0, 0, 280, 60);
+    ctx.fillStyle = '#069';
+    ctx.font = '14px Arial';
+    ctx.fillText('Cwm fjordbank glyphs vext quiz', 2, 22);
+    ctx.fillStyle = 'rgba(102,204,0,0.7)';
+    ctx.fillRect(40, 5, 50, 50);
+    ctx.beginPath();
+    ctx.arc(80, 30, 25, 0, Math.PI * 2);
+    ctx.strokeStyle = '#C8102E';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    FP_SIGNALS.canvas = await _hashStr(c.toDataURL());
+  } catch(e) { FP_SIGNALS.canvas = 'canvas_err'; }
+}
 
-    // Bước 2: Client tự gọi graph.zalo.me (IP Việt Nam)
-    const userRes = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name,picture', {
-      headers: { 'access_token': data.access_token },
-    });
-    const userData = await userRes.json();
-    if (!userData.id) throw new Error('Zalo không trả về ID: ' + JSON.stringify(userData));
+async function _collectWebGL() {
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+    if (!gl) { FP_SIGNALS.webglRenderer = 'unsupported'; FP_SIGNALS.webglVendor = 'unsupported'; return; }
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    FP_SIGNALS.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    FP_SIGNALS.webglVendor   = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)   : gl.getParameter(gl.VENDOR);
+    // Shader render test → khác nhau giữa GPU
+    const prog = gl.createProgram();
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vs, 'attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}');
+    gl.compileShader(vs);
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, 'precision mediump float;void main(){gl_FragColor=vec4(0.5+0.1*sin(1.0),0.3,0.7,1);}');
+    gl.compileShader(fs);
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog); gl.useProgram(prog);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    c.width = 16; c.height = 16;
+    gl.viewport(0, 0, 16, 16);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    const px = new Uint8Array(16 * 16 * 4);
+    gl.readPixels(0, 0, 16, 16, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    FP_SIGNALS.webglShader = await _hashStr(px.join(','));
+  } catch(e) { FP_SIGNALS.webglRenderer = 'webgl_err'; }
+}
 
-    STATE.zaloId   = userData.id;
-    STATE.zaloName = userData.name || null;
-    sessionStorage.setItem('zalo_id',   userData.id);
-    sessionStorage.setItem('zalo_name', userData.name || '');
-    sessionStorage.removeItem('zalo_code_verifier');
+async function _collectAudio() {
+  try {
+    const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!Ctx) { FP_SIGNALS.audio = 'unsupported'; return; }
+    const ctx = new Ctx(1, 4096, 44100);
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = 10000;
+    const comp = ctx.createDynamicsCompressor();
+    osc.connect(comp); comp.connect(ctx.destination);
+    osc.start(0);
+    const buffer = await ctx.startRendering();
+    const data = buffer.getChannelData(0);
+    let sum = 0;
+    for (let i = 0; i < 500; i++) sum += Math.abs(data[i + 4500] || 0);
+    FP_SIGNALS.audio = sum.toFixed(8);
+  } catch(e) { FP_SIGNALS.audio = 'audio_err'; }
+}
 
-    // Tự điền tên nếu chưa có
-    const nameInput = document.getElementById('inp-name');
-    if (nameInput && !nameInput.value.trim()) nameInput.value = STATE.zaloName || '';
+function _collectFonts() {
+  const bases = ['monospace', 'sans-serif', 'serif'];
+  const tests = [
+    'Arial','Courier New','Georgia','Times New Roman','Verdana',
+    'Calibri','Cambria','Segoe UI','Tahoma','Trebuchet MS',
+    'Palatino','Garamond','Comic Sans MS','Impact',
+    'Yu Gothic','Noto Sans','Roboto','Helvetica Neue',
+  ];
+  const s = document.createElement('span');
+  s.style.cssText = 'position:absolute;visibility:hidden;font-size:72px;';
+  s.textContent = 'mmmmmmmmmmlli';
+  document.body.appendChild(s);
+  const bw = {};
+  bases.forEach(f => { s.style.fontFamily = f; bw[f] = s.offsetWidth; });
+  const installed = tests.filter(font =>
+    bases.some(base => { s.style.fontFamily = '"' + font + '",' + base; return s.offsetWidth !== bw[base]; })
+  );
+  document.body.removeChild(s);
+  FP_SIGNALS.fonts = installed.join(',');
+}
 
-    // Bước 3: Kiểm tra ngay hôm nay đã điểm danh chưa
-    const now = new Date();
-    const dd  = String(now.getDate()).padStart(2,'0');
-    const mm  = String(now.getMonth()+1).padStart(2,'0');
-    const todayKey = `${dd}-${mm}-${now.getFullYear()}`;
-    const alreadyDone = await checkZaloAttended(STATE.zaloId, todayKey);
+function _collectHardware() {
+  FP_SIGNALS.cpuCores    = navigator.hardwareConcurrency || 'unknown';
+  FP_SIGNALS.ram         = navigator.deviceMemory || 'unknown';
+  FP_SIGNALS.screenW     = screen.width;
+  FP_SIGNALS.screenH     = screen.height;
+  FP_SIGNALS.colorDepth  = screen.colorDepth;
+  FP_SIGNALS.pixelRatio  = Math.round(window.devicePixelRatio * 100);
+  FP_SIGNALS.timezone    = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  FP_SIGNALS.platform    = navigator.platform;
+  FP_SIGNALS.touchPoints = navigator.maxTouchPoints;
+}
 
-    if (alreadyDone) {
-      updateZaloUI(true, true);
-      toast('⚠️ Tài khoản Zalo này đã điểm danh hôm nay rồi!', 'error');
-      const btnVerify = document.getElementById('btn-verify');
-      if (btnVerify) {
-        btnVerify.disabled = true;
-        btnVerify.textContent = '✓ Đã điểm danh hôm nay';
-        btnVerify.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
-      }
+async function _buildHash() {
+  const key = [
+    FP_SIGNALS.canvas,
+    FP_SIGNALS.webglRenderer,
+    FP_SIGNALS.webglVendor,
+    FP_SIGNALS.webglShader,
+    FP_SIGNALS.audio,
+    FP_SIGNALS.fonts,
+    FP_SIGNALS.cpuCores,
+    FP_SIGNALS.ram,
+    FP_SIGNALS.screenW,
+    FP_SIGNALS.screenH,
+    FP_SIGNALS.colorDepth,
+    FP_SIGNALS.pixelRatio,
+    FP_SIGNALS.timezone,
+    FP_SIGNALS.platform,
+    FP_SIGNALS.touchPoints,
+  ].join('|');
+  return await _hashStr(key);
+}
+
+function _renderFpDebug() {
+  const grid  = document.getElementById('fp-signals-grid');
+  const hashEl = document.getElementById('fp-hash-display');
+  const badge  = document.getElementById('fp-status-badge');
+  if (!grid) return;
+
+  const labels = {
+    canvas:      'Canvas (GPU render)',
+    webglRenderer:'GPU Renderer',
+    webglVendor: 'GPU Vendor',
+    webglShader: 'WebGL Shader hash',
+    audio:       'Audio chip sum',
+    fonts:       'Fonts đã cài',
+    cpuCores:    'CPU cores',
+    ram:         'RAM (GB)',
+    screenW:     'Screen W (px)',
+    screenH:     'Screen H (px)',
+    colorDepth:  'Color depth (bit)',
+    pixelRatio:  'Pixel ratio ×100',
+    timezone:    'Timezone',
+    platform:    'Platform (OS)',
+    touchPoints: 'Touch points',
+  };
+
+  grid.innerHTML = Object.entries(labels).map(([k, label]) => {
+    const val = FP_SIGNALS[k] !== undefined ? String(FP_SIGNALS[k]) : '—';
+    const isHash = val.length === 16 && /^[0-9a-f]+$/.test(val);
+    const display = isHash ? val.slice(0,8) + '…' : (val.length > 22 ? val.slice(0,22) + '…' : val);
+    const stable = !['audio','canvas','webglShader','webglRenderer','webglVendor'].includes(k);
+    const dot = stable ? '🟢' : '🔵';
+    return '<div style="display:flex;flex-direction:column;gap:1px;padding:4px 6px;background:rgba(0,0,0,0.15);border-radius:5px;border:1px solid rgba(255,255,255,0.05);">'
+      + '<span style="color:var(--text-muted);font-size:9px;text-transform:uppercase;letter-spacing:0.3px;">' + dot + ' ' + label + '</span>'
+      + '<span style="color:#e2e8f0;font-family:monospace;font-size:10px;word-break:break-all;" title="' + val + '">' + display + '</span>'
+      + '</div>';
+  }).join('');
+
+  if (hashEl) hashEl.textContent = STATE.deviceFingerprint || '--';
+  if (badge) {
+    if (STATE.deviceFingerprint) {
+      badge.textContent = '✓ Sẵn sàng';
+      badge.style.cssText = 'font-size:10px;background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.3);padding:2px 8px;border-radius:20px;';
     } else {
-      updateZaloUI(true, false);
-      checkVerifyReady();
-      toast('Xác thực Zalo thành công!');
-    }
-  } catch(e) {
-    toast('Lỗi xác thực, vui lòng thử lại!', 'error');
-    updateZaloUI(false, false);
-  }
-}
-
-function updateZaloUI(loggedIn, alreadyAttended = false, checking = false) {
-  const box     = document.getElementById('verify-zalo-box');
-  const subText = document.getElementById('zalo-box-sub');
-  const iconEmpty = document.getElementById('zalo-icon-empty');
-  const iconDone  = document.getElementById('zalo-icon-done');
-
-  if (!box) return;
-
-  // Trạng thái đang kiểm tra
-  if (checking) {
-    box.classList.remove('done');
-    if (iconEmpty) iconEmpty.style.display = 'block';
-    if (iconDone)  iconDone.style.display  = 'none';
-    if (subText) {
-      subText.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">'
-        + '<span style="display:inline-block;width:10px;height:10px;border:2px solid rgba(10,132,255,0.4);border-top-color:#0a84ff;border-radius:50%;animation:zalo-spin .7s linear infinite;"></span>'
-        + 'Đang kiểm tra Zalo...</span>';
-      subText.style.color = '#60a5fa';
-    }
-    // Inject spinner keyframes nếu chưa có
-    if (!document.getElementById('zalo-spin-style')) {
-      const s = document.createElement('style');
-      s.id = 'zalo-spin-style';
-      s.textContent = '@keyframes zalo-spin{to{transform:rotate(360deg)}}';
-      document.head.appendChild(s);
-    }
-    return;
-  }
-
-  if (loggedIn) {
-    box.classList.add('done');
-    if (iconEmpty) iconEmpty.style.display = 'none';
-    if (iconDone)  iconDone.style.display  = 'block';
-    if (subText) {
-      if (alreadyAttended) {
-        subText.textContent = '⚠️ ' + (STATE.zaloName || 'Đã xác thực') + ' · Đã điểm danh hôm nay';
-        subText.style.color = '#fca5a5';
-      } else {
-        subText.textContent = '✓ ' + (STATE.zaloName || 'Đã xác thực');
-        subText.style.color = '#86efac';
-      }
-    }
-  } else {
-    box.classList.remove('done');
-    if (iconEmpty) iconEmpty.style.display = 'block';
-    if (iconDone)  iconDone.style.display  = 'none';
-    if (subText) {
-      subText.textContent = 'Bấm để đăng nhập Zalo';
-      subText.style.color = '';
+      badge.textContent = 'Lỗi';
+      badge.style.cssText = 'font-size:10px;background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);padding:2px 8px;border-radius:20px;';
     }
   }
 }
 
-async function checkZaloAttended(zaloId, todayKey) {
-  if (!zaloId) return false;
-  // todayKey format: dd-mm-yyyy
-  const key = todayKey.includes('/') ? todayKey.replace(/\//g, '-') : todayKey;
-  try {
-    const snap = await get(ref(db, `zalo_attendance/${zaloId}/${key}`));
-    return snap.exists();
-  } catch(e) { return false; }
-}
-
-async function markZaloAttended(zaloId, todayKey) {
-  if (!zaloId) return;
-  const key = todayKey.includes('/') ? todayKey.replace(/\//g, '-') : todayKey;
-  try {
-    await set(ref(db, `zalo_attendance/${zaloId}/${key}`), true);
-  } catch(e) { console.warn('markZaloAttended error:', e); }
-}
-
-// ─── DEVICE FINGERPRINT ───
 async function initFingerprint() {
   try {
-    if (typeof FingerprintJS === 'undefined') return;
-    const fp = await FingerprintJS.load();
-    const result = await fp.get();
-    STATE.deviceFingerprint = result.visitorId;
+    _collectHardware();
+    _collectFonts();
+    await Promise.all([_collectCanvas(), _collectWebGL(), _collectAudio()]);
+    STATE.deviceFingerprint = await _buildHash();
+    _renderFpDebug();
+    console.log('[FP] Signals:', FP_SIGNALS);
+    console.log('[FP] Hash:', STATE.deviceFingerprint);
   } catch(e) {
     console.warn('Fingerprint init failed:', e);
   }
@@ -408,7 +404,6 @@ function watchAdminSessions() {
 }
 
 window.switchTab = switchTab; window.goStep2 = goStep2; window.completeAttendance = completeAttendance;
-window.startZaloLogin = startZaloLogin;
 window.bypassGeo = bypassGeo; window.adminLogin = adminLogin; window.regenerateQR = regenerateQR;
 window.saveSession = saveSession; window.exportData = exportData; window.resetForm = resetForm;
 window.saveNewLocationToDB = saveNewLocationToDB; window.applySavedLocation = applySavedLocation;
@@ -429,8 +424,7 @@ function checkVerifyReady() {
 
   const hasToken = token.length >= 4;
   // Nếu setting bắt buộc Zalo thì phải xác thực, nếu không thì bỏ qua
-  const hasZalo  = !CONFIG.FIELD_ZALO || !!STATE.zaloId;
-  const ready    = hasToken && hasZalo;
+  const ready    = hasToken;
 
   btn.disabled          = !ready;
   btn.style.opacity     = ready ? '1'       : '0.45';
@@ -506,98 +500,7 @@ function updateAdminStats() {
   document.getElementById('stat-pct').textContent = Math.min(100, Math.round(t / CONFIG.TOTAL_MEMBERS * 100)) + '%';
 }
 
-// ─── KIỂM TRA TÊN HỢP LỆ VỚI ZALO ───
-// Hợp lệ khi: ít nhất 1 từ của họ và tên (bỏ dấu) khớp với tên Zalo (bỏ dấu)
-function removeAccents(str) {
-  if (!str) return '';
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-}
 
-function isNameValid(recordName, zaloName) {
-  if (!zaloName) return null; // Không có Zalo → không xác định
-  const normZalo = removeAccents(zaloName);
-  const normName = removeAccents(recordName || '');
-  // Lấy từng từ của họ tên đăng ký
-  const nameWords = normName.split(/\s+/).filter(w => w.length > 0);
-  // Lấy từng từ của tên Zalo
-  const zaloWords = normZalo.split(/\s+/).filter(w => w.length > 0);
-  // Hợp lệ nếu có ít nhất 1 từ bất kỳ trùng nhau
-  return nameWords.some(nw => zaloWords.includes(nw));
-}
-
-function renderAttList() {
-  const el = document.getElementById('att-list');
-  if (!el) return;
-  const list = getFilteredList();
-  if (!list.length) return el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Chưa có dữ liệu cho ngày này</p>';
-  el.innerHTML = list.map(r => {
-    const valid = isNameValid(r.name, r.zaloName);
-    // valid===null: không có Zalo → hiện badge "Hợp lệ" bình thường
-    // valid===true: tên khớp → Hợp lệ (xanh)
-    // valid===false: tên không khớp → Không chính chủ (vàng)
-    const badge = (valid === false)
-      ? `<span style="color:#FCD34D;font-size:11px;font-weight:700;">⚠ Không chính chủ</span>`
-      : `<span class="badge-ok">✓ Hợp lệ</span>`;
-    return `
-    <div class="attendance-item">
-      <div class="att-avatar">${(r.name||'?').split(' ').pop()[0]}</div>
-      <div class="att-info"><div class="att-name">${r.name}</div><div class="att-detail">${r.id} · ${r.unit || '—'}</div></div>
-      <div style="text-align:right;"><div class="att-time">${r.time}</div>${badge}</div>
-    </div>`;
-  }).join('');
-}
-
-function exportData() {
-  if (typeof XLSX === 'undefined') { toast('Đang tải thư viện XLSX, vui lòng thử lại...', 'error'); return; }
-  const list = getFilteredList();
-  if (!list.length) return toast('Không có dữ liệu để xuất', 'error');
-
-  const rows = list.map((r, i) => {
-    const valid = isNameValid(r.name, r.zaloName);
-    const trangThai = (valid === false) ? 'Không chính chủ' : 'Hợp lệ';
-    return {
-      'STT': i + 1, 'Họ tên': r.name, 'MSSV': r.id, 'Lớp': r.unit || '',
-      'Ngày': r.date || '', 'Thời gian': r.time || '',
-      'Mã xác nhận': r.code, 'Vĩ độ': r.lat, 'Kinh độ': r.lng,
-      'Trạng thái': trangThai,
-    };
-  });
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch:5},{wch:25},{wch:15},{wch:15},{wch:14},{wch:12},{wch:16},{wch:14},{wch:14},{wch:14}];
-  const wb = XLSX.utils.book_new();
-  const sheetName = CONFIG.XLSX_SHEET_NAME || 'Điểm danh';
-  const filePrefix = CONFIG.XLSX_FILE_PREFIX || 'diemdanh';
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  const filterDate = document.getElementById('export-date-filter')?.value;
-  const suffix = filterDate || new Date().toLocaleDateString('vi-VN').replace(/\//g,'-');
-  XLSX.writeFile(wb, `${filePrefix}_${suffix}.xlsx`);
-  toast(`Đã xuất ${list.length} bản ghi!`);
-}
-
-function setSliderPct(v) {
-  const slider = document.getElementById('session-radius-slider');
-  if (!slider) return;
-  const min = parseInt(slider.min) || 50;
-  const max = parseInt(slider.max) || 500;
-  const clamped = Math.min(max, Math.max(min, v));
-  slider.value = clamped;
-  const pct = ((clamped - min) / (max - min) * 100).toFixed(2) + '%';
-  slider.style.setProperty('--range-pct', pct);
-}
-
-function syncRadiusFromSlider(val, el) {
-  const v = parseInt(val) || 300;
-  document.getElementById('session-radius').value = v;
-  document.getElementById('session-radius-display').textContent = v + 'm';
-  if (adminRadiusCircle) adminRadiusCircle.setRadius(v);
-  if (el) {
-    const min = parseInt(el.min) || 50;
-    const max = parseInt(el.max) || 500;
-    const pct = ((v - min) / (max - min) * 100).toFixed(2) + '%';
-    el.style.setProperty('--range-pct', pct);
-  }
-}
 
 function syncRadiusFromInput(val) {
   const v = parseInt(val) || 300;
@@ -662,9 +565,6 @@ function applyFieldSettings() {
     const el = document.getElementById(id);
     if (el) el.style.display = show ? '' : 'none';
   });
-  const zaloBoxEl = document.getElementById('verify-zalo-box');
-  if (zaloBoxEl) zaloBoxEl.style.display = CONFIG.FIELD_ZALO ? '' : 'none';
-  if (!CONFIG.FIELD_ZALO) { STATE.zaloId = null; STATE.zaloName = null; }
   checkVerifyReady();
 }
 
@@ -681,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!snap.exists()) return;
     const remote = snap.val();
     let changed = false;
-    ['FIELD_NAME','FIELD_ID','FIELD_LOP','FIELD_TOKEN','FIELD_ZALO'].forEach(key => {
+    ['FIELD_NAME','FIELD_ID','FIELD_LOP','FIELD_TOKEN'].forEach(key => {
       if (typeof remote[key] === 'boolean' && CONFIG[key] !== remote[key]) {
         CONFIG[key] = remote[key];
         changed = true;
@@ -690,30 +590,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (changed) applyFieldSettings();
   }).catch(e => console.warn('Đọc settings Firebase thất bại:', e));
 
-  // Gắn onclick cho Zalo box sau khi module load xong (tránh STATE not defined)
-  const zaloBox = document.getElementById('verify-zalo-box');
-  if (zaloBox) zaloBox.addEventListener('click', () => {
-    // Reset session cũ, luôn cho xác thực lại
-    sessionStorage.removeItem('zalo_id');
-    sessionStorage.removeItem('zalo_name');
-    STATE.zaloId = null;
-    STATE.zaloName = null;
-    updateZaloUI(false);
-    startZaloLogin();
-  });
 
-  // Xử lý Zalo OAuth callback
-  const urlParams = new URLSearchParams(window.location.search);
-  const zaloCode  = urlParams.get('code');
-  const zaloState = urlParams.get('state');
-  if (zaloCode && zaloState === 'diemdanh') {
-    window.history.replaceState({}, '', window.location.pathname);
-    // Hiển thị trạng thái đang kiểm tra ngay khi redirect về
-    updateZaloUI(false, false, true);
-    handleZaloCallback(zaloCode);
-  }
-
-  // Khởi tạo fill cho range inputs
+// Khởi tạo fill cho range inputs
   document.querySelectorAll('input[type="range"].styled-range').forEach(el => {
     const pct = (((el.value - el.min) / (el.max - el.min)) * 100) + '%';
     el.style.setProperty('--range-pct', pct);
@@ -740,31 +618,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const todayVN = new Date(Date.now() + 7 * 3600 * 1000).toISOString().split('T')[0];
   const dateFilterEl = document.getElementById('export-date-filter');
   if (dateFilterEl) dateFilterEl.value = todayVN;
-
-  // Khôi phục Zalo session khi reload trang (trong cùng phiên trình duyệt)
-  const savedZaloId = sessionStorage.getItem('zalo_id');
-  if (savedZaloId) {
-    STATE.zaloId   = savedZaloId;
-    STATE.zaloName = sessionStorage.getItem('zalo_name') || null;
-    // Hiển thị spinner trong khi kiểm tra Firebase
-    updateZaloUI(false, false, true);
-    // Kiểm tra đã điểm danh hôm nay chưa
-    const _now2 = new Date();
-    const _dd2  = String(_now2.getDate()).padStart(2,'0');
-    const _mm2  = String(_now2.getMonth()+1).padStart(2,'0');
-    const _key2 = `${_dd2}-${_mm2}-${_now2.getFullYear()}`;
-    checkZaloAttended(savedZaloId, _key2).then(done => {
-      updateZaloUI(true, done);
-      if (done) {
-        const btnVerify = document.getElementById('btn-verify');
-        if (btnVerify) {
-          btnVerify.disabled = true;
-          btnVerify.textContent = '✓ Đã điểm danh hôm nay';
-          btnVerify.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#86efac;cursor:default;';
-        }
-      }
-    });
-  }
 
   loadSavedMemberInfo();
 
@@ -913,9 +766,8 @@ async function goStep2() {
       Promise.all([
         checkAlreadyAttended(id, todayVi2),
         checkDeviceAttended(todayVi2),
-        checkZaloAttended(STATE.zaloId, todayVi2),
-      ]).then(([byId, byDevice, byZalo]) => {
-        if (byId || byDevice || byZalo || localStorage.getItem(_tk2)) {
+      ]).then(([byId, byDevice]) => {
+        if (byId || byDevice || localStorage.getItem(_tk2)) {
           const btn2 = document.getElementById('geo-next-btn');
           if (btn2) {
             btn2.disabled = true;
@@ -1085,13 +937,12 @@ async function completeAttendance() {
   const todayKey = `attended_${STATE.memberId}_${dd}-${mm}-${yyyy}`;
 
   // Kiểm tra 3 lớp: localStorage + Firebase theo MSSV + Firebase theo device fingerprint
-  const [byId, byDevice, byZalo] = await Promise.all([
+  const [byId, byDevice] = await Promise.all([
     checkAlreadyAttended(STATE.memberId, todayVi),
     checkDeviceAttended(todayVi),
-    checkZaloAttended(STATE.zaloId, todayVi),
   ]);
 
-  if (localStorage.getItem(todayKey) || byId || byDevice || byZalo) {
+  if (localStorage.getItem(todayKey) || byId || byDevice) {
     localStorage.setItem(todayKey, '1');
     btn.disabled = true;
     btn.textContent = '✓ Bạn đã điểm danh hôm nay rồi';
@@ -1111,149 +962,20 @@ async function completeAttendance() {
     time: now.toLocaleTimeString('vi-VN'),
     date: todayVi,
     lat: STATE.geoLat, lng: STATE.geoLng, code, timestamp: Date.now(),
-    zaloId: STATE.zaloId || null,
-    zaloName: STATE.zaloName || null,
   };
 
   push(ref(db, 'attendance_list'), record)
     .then(async () => {
       localStorage.setItem(todayKey, '1');
-      await markDeviceAttended(todayVi); // Ghi fingerprint lên Firebase
-      await markZaloAttended(STATE.zaloId, todayVi); // Ghi Zalo ID lên Firebase
+      await markDeviceAttended(todayVi); // Ghi fingerprint lên Firebase // Ghi Zalo ID lên Firebase
       document.getElementById('success-name').textContent = STATE.name;
       document.getElementById('suc-time').textContent = record.time;
       document.getElementById('suc-code').textContent = code;
       document.getElementById('suc-unit').textContent = STATE.lop;
-      // Hien thi trang thai hop le / chua hop le o buoc 3
-      const sucStatusEl = document.getElementById('suc-status');
-      if (sucStatusEl) {
-        const valid = isNameValid(STATE.name, STATE.zaloName);
-        if (valid === false) {
-          sucStatusEl.innerHTML = '<span style="color:#FCD34D;font-size:12px;font-weight:700;">⚠ Không chính chủ</span>';
-        } else {
-          sucStatusEl.innerHTML = '<span class="badge-ok">✓ Hợp lệ</span>';
-        }
-      }
       setStep(3);
     }).catch(e => {
       toast('Lỗi lưu dữ liệu!', 'error'); btn.disabled = false; btn.textContent = 'Vị trí hợp lệ – Xác nhận điểm danh';
     });
-}
-
-function resetForm() {
-  STATE.step = 1; STATE.name = ''; STATE.memberId = ''; STATE.lop = ''; STATE.geoOk = false;
-  document.getElementById('inp-token').value = '';
-  document.getElementById('geo-next-btn').disabled = true;
-  if (!document.getElementById('inp-remember').checked) {
-    document.getElementById('inp-name').value = '';
-    document.getElementById('inp-id').value   = '';
-    document.getElementById('inp-lop').value  = '';
-  }
-  setStep(1);
-}
-
-// ─── ADMIN PANEL ───
-async function adminLogin() {
-  const pwInput = document.getElementById('admin-pw');
-  const enteredPw = pwInput.value;
-  if (!enteredPw) { toast('Vui lòng nhập mật khẩu!', 'error'); return; }
-
-  const loginBtn = document.querySelector('#admin-login .btn-primary');
-  if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Đang kiểm tra...'; }
-
-  try {
-    // Bước 1: Lấy mật khẩu từ Firebase (config/admin_password)
-    const pwSnap = await get(ref(db, 'config/admin_password'));
-    if (!pwSnap.exists()) {
-      toast('Chưa cấu hình mật khẩu admin trong hệ thống!', 'error');
-      return;
-    }
-    const correctPw = pwSnap.val();
-
-    // Bước 2: So sánh mật khẩu
-    if (enteredPw !== correctPw) {
-      toast('Sai mật khẩu!', 'error');
-      return;
-    }
-
-    // Bước 3: Kiểm tra admin_sessions có tồn tại không (node phải tồn tại)
-    const sessSnap = await get(ref(db, 'admin_sessions'));
-    // sessSnap.exists() sẽ true nếu có ít nhất 1 session — chỉ dùng để watchAdminSessions cảnh báo đa đăng nhập
-
-    // Đăng nhập thành công
-    STATE.isAdmin = true;
-    sessionStorage.setItem('dangbo_admin_logged_in', '1');
-    document.getElementById('admin-login').classList.add('hidden');
-    document.getElementById('admin-panel').classList.remove('hidden');
-    registerAdminSession();
-    watchAdminSessions();
-    initQR();
-    renderAttList();
-    updateAdminStats();
-    updateExportCount();
-    setTimeout(() => {
-      initAdminMap();
-      loadSavedLocationsDB();
-      const r = parseInt(document.getElementById('session-radius').value) || STATE.SESSION.radius;
-      setSliderPct(r);
-    }, 200);
-  } catch(e) {
-    toast('Lỗi kết nối máy chủ: ' + e.message, 'error');
-  } finally {
-    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Đăng nhập'; }
-  }
-}
-
-function initAdminMap() {
-  const container = document.getElementById('admin-map');
-  if (adminLeafletMap) { adminLeafletMap.invalidateSize(); return; }
-
-  adminLeafletMap = L.map(container).setView([STATE.SESSION.lat, STATE.SESSION.lng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminLeafletMap);
-
-  adminMarker = L.marker([STATE.SESSION.lat, STATE.SESSION.lng], {
-    draggable: true,
-    icon: L.divIcon({ html: `<div style="width:30px; height:30px; border-radius:50%; background:#FFD700; border:3px solid #C8102E; display:flex; align-items:center; justify-content:center; font-size:16px; transform:translate(-50%,-50%); box-shadow: 0 0 10px rgba(0,0,0,0.5);">📍</div>`, iconSize: [0,0] })
-  }).addTo(adminLeafletMap);
-
-  const initRadius = parseInt(document.getElementById('session-radius').value) || STATE.SESSION.radius;
-  adminRadiusCircle = L.circle([STATE.SESSION.lat, STATE.SESSION.lng], {
-    radius: initRadius, color: '#C8102E', weight: 2,
-    fillColor: '#C8102E', fillOpacity: 0.12, dashArray: '6, 4'
-  }).addTo(adminLeafletMap);
-  // Khởi tạo --pct đúng ngay lần đầu load
-  setSliderPct(initRadius);
-
-  function updateAdminCircle() {
-    const pos = adminMarker.getLatLng();
-    const r = parseInt(document.getElementById('session-radius').value) || 300;
-    adminRadiusCircle.setLatLng(pos);
-    adminRadiusCircle.setRadius(r);
-    document.getElementById('session-loc').value = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
-  }
-
-  adminMarker.on('dragend', updateAdminCircle);
-
-  adminLeafletMap.on('click', function(e) {
-    adminMarker.setLatLng(e.latlng);
-    updateAdminCircle();
-  });
-}
-
-function loadSavedLocationsDB() {
-  onValue(ref(db, 'saved_locations'), (snapshot) => {
-    const select = document.getElementById('saved-loc-select');
-    select.innerHTML = '<option value="">-- Chọn điểm đã lưu --</option>';
-    if (snapshot.exists()) {
-      snapshot.forEach(childSnap => {
-        const loc = childSnap.val();
-        const opt = document.createElement('option');
-        opt.value = childSnap.key; opt.text = loc.name;
-        opt.dataset.lat = loc.lat; opt.dataset.lng = loc.lng; opt.dataset.radius = loc.radius;
-        select.appendChild(opt);
-      });
-    }
-  });
 }
 
 function applySavedLocation() {
@@ -1561,98 +1283,3 @@ function closeQrScanner() {
   const video = document.getElementById('qr-video');
   if (video) { video.srcObject = null; }
 }
-
-async function checkZaloBridge() {
-  const debugEl = document.getElementById('zalo-bridge-debug');
-  const box = document.getElementById('verify-zalo-box');
-
-  // Hiển thị trạng thái đang kiểm tra ngay lập tức
-  if (box) {
-    box.innerHTML = `
-      <div style="border:1px solid #60a5fa; border-radius:12px; padding:15px; background:rgba(96,165,250,0.1); color:#60a5fa; text-align:center;">
-        <div class="spinner-small" style="display:inline-block; width:15px; height:15px; border:2px solid #60a5fa; border-top-color:transparent; border-radius:50%; animation:zalo-spin 1s linear infinite;"></div>
-        Đang kiểm tra kết nối Zalo...
-      </div>
-    `;
-  }
-
-  let attempts = 0;
-  const maxAttempts = 15; // Đợi khoảng 3-4 giây
-
-  const checkInterval = setInterval(() => {
-    attempts++;
-    
-    // Kiểm tra xem Zalo đã "bơm" Bridge vào chưa
-    const hasBridge = (typeof window.ZaloJSBridge !== 'undefined');
-    
-    if (debugEl) debugEl.textContent = `⏳ Đang quét tín hiệu Zalo (Lần ${attempts}/${maxAttempts})...`;
-
-    if (hasBridge) {
-      clearInterval(checkInterval);
-      if (debugEl) debugEl.textContent = "✅ Đã kết nối Zalo! Đang lấy thông tin...";
-      
-      // Tiến hành lấy Access Token
-      window.ZaloJSBridge.getAccessToken((res) => {
-        if (res && res.accessToken && res.accessToken !== "undefined") {
-          fetch('https://graph.zalo.me/v2.0/me?fields=id,name', {
-            headers: { 'access_token': res.accessToken }
-          })
-          .then(r => r.json())
-          .then(user => {
-            if (user.id) {
-              STATE.zaloId = user.id;
-              STATE.zaloName = user.name;
-              showZaloSuccess(); // Hiện tích xanh
-              checkVerifyReady();
-            } else {
-              if (debugEl) debugEl.innerHTML = `❌ Lỗi xác thực: ${user.error || 'Domain chưa được duyệt'}`;
-              showZaloWarning();
-            }
-          });
-        } else {
-          if (debugEl) debugEl.textContent = "❌ Không lấy được mã truy cập (Token)";
-          showZaloWarning();
-        }
-      });
-    } 
-    else if (attempts >= maxAttempts) {
-      // SAU KHI ĐỢI MÀ VẪN KHÔNG THẤY BRIDGE
-      clearInterval(checkInterval);
-      
-      // Kiểm tra xem có dấu hiệu "Mobile" nhưng không có "Zalo" (như cái UserAgent bạn gửi)
-      const isMobileWebview = /iPhone|iPad|iPod/i.test(navigator.userAgent) && /Mobile/i.test(navigator.userAgent);
-      
-      if (isMobileWebview) {
-        if (debugEl) debugEl.innerHTML = `⚠️ Đang ở trong App nhưng Zalo chưa cấp quyền.<br>Hãy thử mở lại từ <b>Tin nhắn</b> hoặc <b>Truyền file</b>.`;
-      } else {
-        if (debugEl) debugEl.textContent = "⚠️ Bạn đang sử dụng trình duyệt thường.";
-      }
-      showZaloWarning();
-    }
-  }, 250);
-}
-
-function showZaloWarning() {
-  const box = document.getElementById('verify-zalo-box');
-  if (!box) return;
-  box.innerHTML = `
-    <div style="border:1px solid rgba(239,68,68,0.5);border-radius:12px;padding:14px;background:rgba(239,68,68,0.08);color:#fca5a5;font-size:0.9rem;text-align:center;">
-      ⚠️ Vui lòng mở trang này <strong>trong ứng dụng Zalo</strong> để xác thực.<br>
-      <span style="font-size:0.8rem;opacity:0.7;">Trình duyệt thường không được hỗ trợ.</span>
-    </div>
-    <div id="zalo-bridge-debug" style="margin-top:8px;font-size:0.75rem;color:#f87171;text-align:center;"></div>
-  `;
-}
-
-function showZaloSuccess() {
-  const box = document.getElementById('verify-zalo-box');
-  if (!box) return;
-  box.innerHTML = `
-    <div style="border:1px solid rgba(34,197,94,0.5);border-radius:12px;padding:14px;background:rgba(34,197,94,0.08);color:#86efac;font-size:0.9rem;text-align:center;">
-      ✅ Đã xác thực Zalo thành công
-    </div>
-    <div id="zalo-bridge-debug" style="margin-top:8px;font-size:0.75rem;color:#86efac;text-align:center;"></div>
-  `;
-}
-
-checkZaloBridge();
