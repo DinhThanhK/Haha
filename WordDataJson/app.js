@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDocs, doc,
-  updateDoc, deleteDoc, query, getCountFromServer
+  updateDoc, deleteDoc, query, getCountFromServer, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const fbApp = initializeApp({
@@ -275,7 +275,7 @@ function rMain(){
       </button>
     </div>
   </div>
-  <div class="toolbar">
+  <div class="toolbar" id="mainToolbar">
     <select class="sort-sel" onchange="handleSort(this.value)">
       <option value="newest" ${S.sortBy==='newest'?'selected':''}>Mới nhất</option>
       <option value="oldest" ${S.sortBy==='oldest'?'selected':''}>Cũ nhất</option>
@@ -287,7 +287,13 @@ function rMain(){
   if(!existingHeader){
     main.innerHTML = headerHTML + '<div class="vc" id="vocabC"></div>';
   } else {
-    main.querySelector('.header').outerHTML = headerHTML;
+    // Thay thế cả header lẫn toolbar (tránh duplicate toolbar)
+    const existingToolbar = document.getElementById('mainToolbar');
+    existingHeader.outerHTML = headerHTML;
+    // Xóa toolbar cũ nếu chưa được replace (trường hợp id chưa tồn tại)
+    if(existingToolbar && document.getElementById('mainToolbar') !== existingToolbar){
+      existingToolbar.remove();
+    }
   }
 
   // Sync mobile search value
@@ -380,12 +386,10 @@ function rCard(w, depth=0){
   const mngHl    = q ? hlText(mng,q) : esc(mng);
   const phonetic = w.phonetic ? `<span class="phonetic">${esc(w.phonetic)}</span>` : '';
 
-  // ✅ FIX: Dùng data-audio để tránh esc() làm hỏng URL (& → &amp; v.v.)
-  const spkBtn = w.audioUrl
-    ? `<button class="spk-btn" title="Phát âm" data-audio="${esc(w.audioUrl)}" onclick="playAudio(event,this.dataset.audio)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-      </button>`
-    : '';
+  // Mọi từ đều có nút phát âm TTS
+  const spkBtn = `<button class="spk-btn" title="Phát âm" data-word="${esc(wd)}" onclick="playAudio(event,this.dataset.word)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+    </button>`;
 
   const depthClass = depth > 0 ? ` depth-${Math.min(depth,3)}` : '';
   let hasChildren = false;
@@ -504,22 +508,20 @@ const dbSearch = debounce((v, srcId) => {
   if(_autoPlayTimer) clearTimeout(_autoPlayTimer);
   if(_historyTimer)  clearTimeout(_historyTimer);
 
-  // Tự phát audio của từ đầu tiên sau 1.2s
+  // Tự phát TTS của từ đầu tiên sau 1.2s
   _autoPlayTimer = setTimeout(() => {
     const first = S.shown[0];
-    if(first && first.audioUrl){
-      if(_audioEl){ _audioEl.pause(); _audioEl = null; document.querySelectorAll('.spk-btn.playing').forEach(b=>b.classList.remove('playing')); }
-      _audioEl = new Audio(first.audioUrl);
-      // ✅ FIX: Hiện lỗi rõ ràng thay vì nuốt im lặng
-      _audioEl.play().catch(err => {
-        console.warn('Auto-play failed:', err.message);
-        _audioEl = null;
-      });
-      _audioEl.onended = () => { _audioEl = null; };
-      _audioEl.onerror = () => { _audioEl = null; };
+    if(first && first.content){
+      window.speechSynthesis.cancel();
+      const word = (first.content||'').split(':')[0].trim();
+      const utt = new SpeechSynthesisUtterance(word);
+      utt.lang = 'en-US'; utt.rate = 0.85;
+      const voices = window.speechSynthesis.getVoices();
+      const enVoice = voices.find(v => v.lang.startsWith('en') && v.localService) || voices.find(v => v.lang.startsWith('en'));
+      if(enVoice) utt.voice = enVoice;
+      window.speechSynthesis.speak(utt);
     }
   }, 1200);
-
   // Lưu lịch sử tìm kiếm
   _historyTimer = setTimeout(() => {
     const q = S.searchQ.trim();
@@ -545,27 +547,49 @@ window.clearSearch = function(keepFocus, focusId){
   });
 };
 
-/* ═══════════════ AUDIO ═══════════════ */
-let _audioEl = null;
+/* ═══════════════ AUDIO (TTS) ═══════════════ */
+let _currentUtt = null;
 
-// ✅ FIX: url được truyền qua this.dataset.audio (không bị esc() làm hỏng)
-// ✅ FIX: .catch() hiển thị toast lỗi rõ ràng
-window.playAudio = function(e, url){
+function htmlDecode(str){ const ta=document.createElement('textarea'); ta.innerHTML=str; return ta.value; }
+
+window.playAudio = function(e, word){
   e.stopPropagation();
   const btn = e.currentTarget;
-  if(_audioEl){ _audioEl.pause(); _audioEl = null; document.querySelectorAll('.spk-btn.playing').forEach(b=>b.classList.remove('playing')); }
-  if(!url){ toast('Từ này chưa có file âm thanh', 'err'); return; }
-  _audioEl = new Audio(url);
-  btn.classList.add('playing');
-  _audioEl.play().catch(err => {
+  if(!word){ return; }
+
+  // Nếu đang phát từ này rồi thì dừng lại
+  if(btn.classList.contains('playing')){
+    window.speechSynthesis.cancel();
     btn.classList.remove('playing');
-    _audioEl = null;
-    toast('Không thể phát âm thanh: ' + (err.message || 'lỗi không xác định'), 'err');
-  });
-  _audioEl.onended = () => { btn.classList.remove('playing'); _audioEl = null; };
-  _audioEl.onerror = () => { btn.classList.remove('playing'); _audioEl = null; toast('Lỗi tải file âm thanh', 'err'); };
+    _currentUtt = null;
+    return;
+  }
+
+  // Dừng bất kỳ TTS nào đang chạy
+  window.speechSynthesis.cancel();
+  document.querySelectorAll('.spk-btn.playing').forEach(b => b.classList.remove('playing'));
+
+  const utt = new SpeechSynthesisUtterance(htmlDecode(word));
+  utt.lang = 'en-US';
+  utt.rate = 0.85;
+  utt.pitch = 1;
+
+  // Chọn giọng tiếng Anh nếu có
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang.startsWith('en') && v.localService) || voices.find(v => v.lang.startsWith('en'));
+  if(enVoice) utt.voice = enVoice;
+
+  btn.classList.add('playing');
+  _currentUtt = utt;
+  utt.onend = () => { btn.classList.remove('playing'); _currentUtt = null; };
+  utt.onerror = () => { btn.classList.remove('playing'); _currentUtt = null; };
+  window.speechSynthesis.speak(utt);
 };
 
+// Đảm bảo voices đã load (Chrome cần event này)
+if(window.speechSynthesis.onvoiceschanged !== undefined){
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
 /* ═══════════════ ADD / EDIT MODAL ═══════════════ */
 let mWT = [], mTags = [], mColor = '';
 
@@ -598,10 +622,6 @@ function showWordModal(w){
       <div class="fg">
         <label class="flabel">Phiên âm</label>
         <input class="finput" id="mPhonetic" placeholder="/ˈwɜːd/" value="${esc(w.phonetic||'')}" style="font-family:'DM Mono',monospace;font-style:italic"/>
-      </div>
-      <div class="fg">
-        <label class="flabel">Link âm thanh (URL)</label>
-        <input class="finput" id="mAudio" placeholder="https://..." value="${esc(w.audioUrl||'')}"/>
       </div>
     </div>
     <div class="frow">
@@ -974,7 +994,7 @@ window.delLevel = function(id){
   if(S.activeLevel===id){ S.activeLevel=S.levels[0]?.id||null; S.shown=[]; }
   openSettings();
 };
-window.saveSet = function(){
+window.saveSet = async function(){
   document.querySelectorAll('#leList .le-item').forEach(item => {
     const id=item.dataset.id, l=S.levels.find(x=>x.id===id);
     if(l){
@@ -985,6 +1005,11 @@ window.saveSet = function(){
     }
   });
   localStorage.setItem('vv_levels',JSON.stringify(S.levels));
+  localStorage.setItem('vv_levels_updatedAt', String(Date.now()));
+  // Lưu lên Firestore để đồng bộ màu giữa các thiết bị
+  try {
+    await setDoc(doc(db,'_settings','levels'), {levels: S.levels, updatedAt: Date.now()});
+  } catch(e){ console.warn('Không thể lưu cài đặt lên cloud:', e); }
   closeSet(); rMain(); rSidebar(); toast('Đã lưu cài đặt ✓','ok');
 };
 window.closeSet = function(){ document.getElementById('setModal').classList.remove('open'); };
@@ -1032,5 +1057,23 @@ async function init(){
   rSidebar();
   if(S.levels.length) selLevel(S.levels[0].id);
   for(const l of S.levels) syncLevel(l.id);
+  // Đồng bộ cài đặt cấp độ (màu sắc) từ Firestore
+  try {
+    const snap = await getDoc(doc(db,'_settings','levels'));
+    if(snap.exists()){
+      const data = snap.data();
+      if(data.levels && Array.isArray(data.levels)){
+        // Chỉ cập nhật nếu Firestore mới hơn localStorage
+        const fbUpdated = data.updatedAt||0;
+        const lsUpdated = parseInt(localStorage.getItem('vv_levels_updatedAt')||'0');
+        if(fbUpdated > lsUpdated){
+          S.levels = data.levels;
+          localStorage.setItem('vv_levels', JSON.stringify(S.levels));
+          localStorage.setItem('vv_levels_updatedAt', String(fbUpdated));
+          rSidebar(); rMain();
+        }
+      }
+    }
+  } catch(e){ console.warn('Không thể tải cài đặt từ cloud:', e); }
 }
 init();
