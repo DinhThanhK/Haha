@@ -183,7 +183,8 @@ async function _collectCanvas() {
   } catch(e) { FP_SIGNALS.canvas = 'canvas_err'; }
 }
 
-async function _collectWebGL() {
+// WebGL: chỉ lấy tên GPU, bỏ shader render (hay block)
+function _collectWebGL() {
   try {
     const c = document.createElement('canvas');
     const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
@@ -191,71 +192,12 @@ async function _collectWebGL() {
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     FP_SIGNALS.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
     FP_SIGNALS.webglVendor   = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)   : gl.getParameter(gl.VENDOR);
-    // Shader render test → khác nhau giữa GPU
-    const prog = gl.createProgram();
-    const vs = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vs, 'attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}');
-    gl.compileShader(vs);
-    const fs = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fs, 'precision mediump float;void main(){gl_FragColor=vec4(0.5+0.1*sin(1.0),0.3,0.7,1);}');
-    gl.compileShader(fs);
-    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog); gl.useProgram(prog);
-    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    c.width = 16; c.height = 16;
-    gl.viewport(0, 0, 16, 16);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    const px = new Uint8Array(16 * 16 * 4);
-    gl.readPixels(0, 0, 16, 16, gl.RGBA, gl.UNSIGNED_BYTE, px);
-    FP_SIGNALS.webglShader = await _hashStr(px.join(','));
-  } catch(e) { FP_SIGNALS.webglRenderer = 'webgl_err'; }
+  } catch(e) { FP_SIGNALS.webglRenderer = 'webgl_err'; FP_SIGNALS.webglVendor = 'webgl_err'; }
 }
 
-async function _collectAudio() {
-  try {
-    const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!Ctx) { FP_SIGNALS.audio = 'unsupported'; return; }
-    const ctx = new Ctx(1, 4096, 44100);
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.value = 10000;
-    const comp = ctx.createDynamicsCompressor();
-    osc.connect(comp); comp.connect(ctx.destination);
-    osc.start(0);
-    // Thêm timeout 3s để tránh treo mãi trên mobile/Safari
-    const buffer = await Promise.race([
-      ctx.startRendering(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('audio_timeout')), 3000)),
-    ]);
-    const data = buffer.getChannelData(0);
-    let sum = 0;
-    for (let i = 0; i < 500; i++) sum += Math.abs(data[i + 4500] || 0);
-    FP_SIGNALS.audio = sum.toFixed(8);
-  } catch(e) { FP_SIGNALS.audio = 'audio_err'; }
-}
+// Audio fingerprint đã bị xóa — hay treo trên mobile/Safari
 
-function _collectFonts() {
-  const bases = ['monospace', 'sans-serif', 'serif'];
-  const tests = [
-    'Arial','Courier New','Georgia','Times New Roman','Verdana',
-    'Calibri','Cambria','Segoe UI','Tahoma','Trebuchet MS',
-    'Palatino','Garamond','Comic Sans MS','Impact',
-    'Yu Gothic','Noto Sans','Roboto','Helvetica Neue',
-  ];
-  const s = document.createElement('span');
-  s.style.cssText = 'position:absolute;visibility:hidden;font-size:72px;';
-  s.textContent = 'mmmmmmmmmmlli';
-  document.body.appendChild(s);
-  const bw = {};
-  bases.forEach(f => { s.style.fontFamily = f; bw[f] = s.offsetWidth; });
-  const installed = tests.filter(font =>
-    bases.some(base => { s.style.fontFamily = '"' + font + '",' + base; return s.offsetWidth !== bw[base]; })
-  );
-  document.body.removeChild(s);
-  FP_SIGNALS.fonts = installed.join(',');
-}
+// Font detection đã bị xóa — chậm và không cần thiết
 
 function _collectHardware() {
   FP_SIGNALS.cpuCores    = navigator.hardwareConcurrency || 'unknown';
@@ -267,6 +209,8 @@ function _collectHardware() {
   FP_SIGNALS.timezone    = Intl.DateTimeFormat().resolvedOptions().timeZone;
   FP_SIGNALS.platform    = navigator.platform;
   FP_SIGNALS.touchPoints = navigator.maxTouchPoints;
+  FP_SIGNALS.languages   = (navigator.languages || [navigator.language]).join(',');
+  FP_SIGNALS.userAgent   = navigator.userAgent.slice(0, 80);
 }
 
 async function _buildHash() {
@@ -274,9 +218,6 @@ async function _buildHash() {
     FP_SIGNALS.canvas,
     FP_SIGNALS.webglRenderer,
     FP_SIGNALS.webglVendor,
-    FP_SIGNALS.webglShader,
-    FP_SIGNALS.audio,
-    FP_SIGNALS.fonts,
     FP_SIGNALS.cpuCores,
     FP_SIGNALS.ram,
     FP_SIGNALS.screenW,
@@ -286,42 +227,40 @@ async function _buildHash() {
     FP_SIGNALS.timezone,
     FP_SIGNALS.platform,
     FP_SIGNALS.touchPoints,
+    FP_SIGNALS.languages,
   ].join('|');
   return await _hashStr(key);
 }
 
 function _renderFpDebug() {
-  const grid  = document.getElementById('fp-signals-grid');
+  const grid   = document.getElementById('fp-signals-grid');
   const hashEl = document.getElementById('fp-hash-display');
   const badge  = document.getElementById('fp-status-badge');
   if (!grid) return;
 
   const labels = {
-    canvas:      'Canvas (GPU render)',
+    canvas:       'Canvas (GPU render)',
     webglRenderer:'GPU Renderer',
-    webglVendor: 'GPU Vendor',
-    webglShader: 'WebGL Shader hash',
-    audio:       'Audio chip sum',
-    fonts:       'Fonts đã cài',
-    cpuCores:    'CPU cores',
-    ram:         'RAM (GB)',
-    screenW:     'Screen W (px)',
-    screenH:     'Screen H (px)',
-    colorDepth:  'Color depth (bit)',
-    pixelRatio:  'Pixel ratio ×100',
-    timezone:    'Timezone',
-    platform:    'Platform (OS)',
-    touchPoints: 'Touch points',
+    webglVendor:  'GPU Vendor',
+    cpuCores:     'CPU cores',
+    ram:          'RAM (GB)',
+    screenW:      'Screen W (px)',
+    screenH:      'Screen H (px)',
+    colorDepth:   'Color depth (bit)',
+    pixelRatio:   'Pixel ratio ×100',
+    timezone:     'Timezone',
+    platform:     'Platform (OS)',
+    touchPoints:  'Touch points',
+    languages:    'Languages',
+    userAgent:    'User Agent',
   };
 
   grid.innerHTML = Object.entries(labels).map(([k, label]) => {
     const val = FP_SIGNALS[k] !== undefined ? String(FP_SIGNALS[k]) : '—';
     const isHash = val.length === 16 && /^[0-9a-f]+$/.test(val);
-    const display = isHash ? val.slice(0,8) + '…' : (val.length > 22 ? val.slice(0,22) + '…' : val);
-    const stable = !['audio','canvas','webglShader','webglRenderer','webglVendor'].includes(k);
-    const dot = stable ? '🟢' : '🔵';
+    const display = isHash ? val.slice(0,8) + '…' : (val.length > 30 ? val.slice(0,30) + '…' : val);
     return '<div style="display:flex;flex-direction:column;gap:1px;padding:4px 6px;background:rgba(0,0,0,0.15);border-radius:5px;border:1px solid rgba(255,255,255,0.05);">'
-      + '<span style="color:var(--text-muted);font-size:9px;text-transform:uppercase;letter-spacing:0.3px;">' + dot + ' ' + label + '</span>'
+      + '<span style="color:var(--text-muted);font-size:9px;text-transform:uppercase;letter-spacing:0.3px;">🟢 ' + label + '</span>'
       + '<span style="color:#e2e8f0;font-family:monospace;font-size:10px;word-break:break-all;" title="' + val + '">' + display + '</span>'
       + '</div>';
   }).join('');
@@ -338,33 +277,28 @@ function _renderFpDebug() {
   }
 }
 
-async function initFingerprint() {
-  try {
-    _collectHardware();
-    _collectFonts();
-    // Timeout tổng thể 5s: nếu bất kỳ signal nào treo, vẫn tiếp tục với dữ liệu đã có
-    await Promise.race([
-      Promise.all([_collectCanvas(), _collectWebGL(), _collectAudio()]),
-      new Promise(resolve => setTimeout(resolve, 5000)),
-    ]);
-    STATE.deviceFingerprint = await _buildHash();
-    _renderFpDebug();
-    console.log('[FP] Signals:', FP_SIGNALS);
-    console.log('[FP] Hash:', STATE.deviceFingerprint);
-  } catch(e) {
-    console.warn('Fingerprint init failed:', e);
-    // Vẫn tạo hash từ những gì đã thu thập được
-    try { STATE.deviceFingerprint = await _buildHash(); } catch(_) {}
-  }
-}
+// async function initFingerprint() {
+//   try {
+//     // _collectHardware(); // đồng bộ, tức thì
+//     // _collectWebGL();    // đồng bộ, tức thì
+//     // await _collectCanvas(); // async chỉ vì crypto.subtle, < 50ms
+//     // STATE.deviceFingerprint = await _buildHash();
+//     // _renderFpDebug();
+//     // console.log('[FP] Signals:', FP_SIGNALS);
+//     // console.log('[FP] Hash:', STATE.deviceFingerprint);
+//   } catch(e) {
+//     console.warn('Fingerprint init failed:', e);
+//     try { STATE.deviceFingerprint = await _buildHash(); _renderFpDebug(); } catch(_) {}
+//   }
+// }
 
-async function checkDeviceAttended(todayVi) {
-  if (!STATE.deviceFingerprint) return false;
-  try {
-    const snap = await get(ref(db, `device_attendance/${STATE.deviceFingerprint}/${todayVi.replace(/\//g, '-')}`));
-    return snap.exists();
-  } catch(e) { return false; }
-}
+// async function checkDeviceAttended(todayVi) {
+//   if (!STATE.deviceFingerprint) return false;
+//   try {
+//     const snap = await get(ref(db, `device_attendance/${STATE.deviceFingerprint}/${todayVi.replace(/\//g, '-')}`));
+//     return snap.exists();
+//   } catch(e) { return false; }
+// }
 
 async function markDeviceAttended(todayVi) {
   if (!STATE.deviceFingerprint) return;
