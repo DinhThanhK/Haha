@@ -1,10 +1,11 @@
 /* ============================================================
-   Card Vault — app.js  v3
-   LocalStorage key: "card_vault_v3"
+   Card Vault — app.js  v4  (Firestore)
+   Settings vẫn dùng localStorage (preference cục bộ).
+   Card data → Firestore collection "cards"
    ============================================================ */
 
-const STORAGE_KEY  = 'card_vault_v3';
-const SETTINGS_KEY = 'card_vault_settings';
+const SETTINGS_KEY  = 'card_vault_settings';
+const FS_COLLECTION = 'cards';
 
 const CARD_TYPES = ['Monster','Spell','Trap','Special'];
 
@@ -25,13 +26,11 @@ const ELEMENTS = [
 
 const ELEM_MAP = Object.fromEntries(ELEMENTS.map(e => [e.id, e]));
 
-// Icon map cho buff icons
 const BUFF_ICONS = {
   lotus: './icons/lotus.png',
   ruby:  './icons/ruby.png',
 };
 
-// Render icon: ưu tiên file ảnh, fallback về emoji text
 function elemIcon(id, short=false){
   const e = ELEM_MAP[id];
   if(!e) return id;
@@ -76,12 +75,7 @@ let filterSpellSub  = '';
 let filterElement   = '';
 let searchQuery     = '';
 
-// ── STORAGE ────────────────────────────────────────────────────
-function save() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cards)); }
-  catch(e) { if(e.name==='QuotaExceededError') showToast('⚠️ Dung lượng đầy!','#e03858',4000); }
-}
-function load() { try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch{return[];} }
+// ── SETTINGS (localStorage) ────────────────────────────────────
 function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
 function loadSettings() {
   try {
@@ -91,9 +85,57 @@ function loadSettings() {
   } catch { settings={typeColors:{...DEFAULT_TYPE_COLORS}}; }
 }
 
-// ── HELPERS ────────────────────────────────────────────────────
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+// ── FIRESTORE HELPERS ──────────────────────────────────────────
+function getFS(){
+  // Chờ Firebase module khởi tạo xong (từ index.html)
+  if(!window.DB || !window.FirestoreAPI){
+    console.warn('Firestore chưa sẵn sàng');
+    return null;
+  }
+  return window.FirestoreAPI;
+}
 
+async function fsAddCard(data){
+  const fs = getFS(); if(!fs) return null;
+  const { collection, addDoc, serverTimestamp } = fs;
+  // Xóa field image dạng base64 lớn nếu muốn tiết kiệm quota Firestore
+  // (Giữ nguyên ở đây — nếu dùng URL thì nhỏ, base64 thì to)
+  const ref = await addDoc(collection(window.DB, FS_COLLECTION), {
+    ...data,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+async function fsUpdateCard(id, data){
+  const fs = getFS(); if(!fs) return;
+  const { doc, updateDoc, serverTimestamp } = fs;
+  const ref = doc(window.DB, FS_COLLECTION, id);
+  // Loại bỏ field id khỏi data trước khi update
+  const { id: _omit, ...rest } = data;
+  await updateDoc(ref, { ...rest, updatedAt: serverTimestamp() });
+}
+
+async function fsDeleteCard(id){
+  const fs = getFS(); if(!fs) return;
+  const { doc, deleteDoc } = fs;
+  await deleteDoc(doc(window.DB, FS_COLLECTION, id));
+}
+
+function fsListen(){
+  const fs = getFS(); if(!fs) return;
+  const { collection, query, orderBy, onSnapshot } = fs;
+  const q = query(collection(window.DB, FS_COLLECTION), orderBy('createdAt', 'desc'));
+  onSnapshot(q, snapshot => {
+    cards = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCards();
+  }, err => {
+    console.error('Firestore onSnapshot lỗi:', err);
+    showToast('⚠️ Không thể kết nối Firestore!', '#e03858', 4000);
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
 function cardTypeGroup(card){
   const t = card.cardType||'Monster';
   if(t==='Spell')   return 'spell';
@@ -103,7 +145,6 @@ function cardTypeGroup(card){
 }
 
 function starCount(card){ const s=parseInt(card.stars||0); return isNaN(s)?0:s; }
-
 function starsDisplay(n){ return n?'★'.repeat(Math.min(n,10)):''; }
 
 function spellSubLabel(sub){
@@ -130,7 +171,6 @@ function buildSubFilters(){
   c.innerHTML = '';
 
   if(filterType==='Monster'){
-    // exact star
     const s1 = document.createElement('select');
     s1.className='hselect';
     s1.innerHTML=`<option value="">Tất cả sao</option>`+
@@ -138,7 +178,6 @@ function buildSubFilters(){
     s1.addEventListener('change',()=>{ filterStars=s1.value; filterStarRange=''; renderCards(); });
     c.appendChild(s1);
 
-    // range
     const s2 = document.createElement('select');
     s2.className='hselect';
     s2.innerHTML=`<option value="">Tất cả nhóm</option>
@@ -148,7 +187,6 @@ function buildSubFilters(){
     s2.addEventListener('change',()=>{ filterStarRange=s2.value; filterStars=''; renderCards(); });
     c.appendChild(s2);
 
-    // sort
     const s3 = document.createElement('select');
     s3.className='hselect';
     s3.innerHTML=`<option value="">Sắp xếp sao</option>
@@ -476,22 +514,46 @@ function readForm(){
   };
 }
 
-function saveCard(){
-  const data=readForm();
-  if(!data.name&&!data.nameEN){ showToast('⚠️ Vui lòng nhập tên thẻ bài!','#e03858'); return; }
-  if(editingId){
-    const idx=cards.findIndex(c=>c.id===editingId);
-    if(idx!==-1) cards[idx]={...cards[idx],...data,updatedAt:Date.now()};
-  } else {
-    cards.unshift({id:uid(),...data,createdAt:Date.now()});
+// ── SAVE / DELETE CARD (Firestore) ─────────────────────────────
+async function saveCard(){
+  const data = readForm();
+  if(!data.name && !data.nameEN){
+    showToast('⚠️ Vui lòng nhập tên thẻ bài!','#e03858');
+    return;
   }
-  save(); renderCards(); closeModal(); showToast('✓ Đã lưu thẻ bài!');
+
+  // Disable nút tránh bấm 2 lần
+  const btnSave = document.getElementById('btnSaveCard');
+  btnSave.disabled = true;
+  btnSave.textContent = '⏳ Đang lưu...';
+
+  try {
+    if(editingId){
+      await fsUpdateCard(editingId, data);
+    } else {
+      await fsAddCard(data);
+    }
+    closeModal();
+    showToast('✓ Đã lưu thẻ bài!');
+  } catch(err){
+    console.error('Lưu Firestore thất bại:', err);
+    showToast('⚠️ Lưu thất bại: ' + err.message, '#e03858', 4000);
+  } finally {
+    btnSave.disabled = false;
+    btnSave.textContent = '💾 Lưu thẻ bài';
+  }
 }
 
-function deleteCard(id){
-  const c=cards.find(x=>x.id===id);
+async function deleteCard(id){
+  const c = cards.find(x=>x.id===id);
   if(!confirm(`Xóa "${c?.name||'thẻ này'}"?`)) return;
-  cards=cards.filter(x=>x.id!==id); save(); renderCards();
+  try {
+    await fsDeleteCard(id);
+    showToast('🗑️ Đã xóa thẻ bài!', '#e03858');
+  } catch(err){
+    console.error('Xóa Firestore thất bại:', err);
+    showToast('⚠️ Xóa thất bại: ' + err.message, '#e03858', 4000);
+  }
 }
 
 // ── IMAGE ──────────────────────────────────────────────────────
@@ -585,7 +647,6 @@ function setup(){
   });
   document.getElementById('fCardType').addEventListener('change',()=>{ syncFormType(); updateLivePreview(); });
 
-  // view toggle
   document.getElementById('viewGrid').addEventListener('click',()=>{
     viewMode='grid';
     document.getElementById('cardGrid').classList.remove('list-view');
@@ -599,7 +660,6 @@ function setup(){
     document.getElementById('viewGrid').classList.remove('active');
   });
 
-  // image
   const dropZone=document.getElementById('imgDropZone'), fileInput=document.getElementById('imgFileInput');
   dropZone.addEventListener('click',()=>fileInput.click());
   fileInput.addEventListener('change',e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
@@ -616,14 +676,12 @@ function setup(){
     if(e.key==='Enter'){ const url=e.target.value.trim(); if(url) setImgPreview(url); }
   });
 
-  // live preview
   ['fNameVN','fNameEN','fCardType','fStars','fAtk','fDef'].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
     el.addEventListener('input',updateLivePreview);
     el.addEventListener('change',updateLivePreview);
   });
 
-  // copy buttons
   document.querySelectorAll('.copy-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const target=document.getElementById(btn.dataset.target);
@@ -631,7 +689,6 @@ function setup(){
     });
   });
 
-  // ESC
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape') return;
     ['modalOverlay','detailOverlay','settingsOverlay'].forEach(id=>
@@ -639,5 +696,24 @@ function setup(){
   });
 }
 
-function init(){ loadSettings(); cards=load(); renderCards(); setup(); buildSubFilters(); }
+// ── INIT ───────────────────────────────────────────────────────
+function init(){
+  loadSettings();
+  setup();
+  buildSubFilters();
+
+  // Chờ Firebase module khởi tạo (module script chạy trước app.js nên thường đã sẵn sàng)
+  // Dùng setTimeout nhỏ để chắc chắn window.DB đã được gán
+  const tryListen = (attempt=0) => {
+    if(window.DB && window.FirestoreAPI){
+      fsListen(); // lắng nghe real-time Firestore
+    } else if(attempt < 10){
+      setTimeout(()=>tryListen(attempt+1), 200);
+    } else {
+      showToast('⚠️ Không thể kết nối Firebase!', '#e03858', 5000);
+    }
+  };
+  tryListen();
+}
+
 init();
