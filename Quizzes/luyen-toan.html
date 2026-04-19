@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luyện Toán – QuizMaster</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'%3E%3Cpath d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="quizzes.css">
+<link rel="stylesheet" href="luyen-toan.css">
+<!-- MathJax for proper fraction rendering -->
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+  startup: { typeset: false }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async id="MathJax-script"></script>
+</head>
+<body>
+
+<!-- TOP NAV (same as quizzes) -->
+<nav id="top-nav">
+  <div class="nav-logo" onclick="window.location.href='quizzes.html'">
+    <i class="fas fa-brain"></i><span class="nav-logo-text">Quiz<span style="color:var(--accent2)">Master 1.2</span></span>
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn" onclick="window.location.href='quizzes.html'"><i class="fas fa-home"></i><span class="nav-label"> Trắc nghiệm</span></button>
+    <button class="nav-btn" onclick="window.location.href='tu-luan.html'"><i class="fas fa-pen-nib"></i><span class="nav-label"> Tự luận</span></button>
+    <button class="nav-btn" onclick="window.location.href='cac-de-thi.html'"><i class="fas fa-link"></i><span class="nav-label"> Các đề thi</span></button>
+    <button class="nav-btn active" id="nav-luyen-toan"><i class="fas fa-square-root-alt"></i><span class="nav-label"> Luyện Toán</span></button>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="lt-wrap">
+
+  <!-- HEADER -->
+  <div class="lt-hero">
+    <h1><i class="fas fa-square-root-alt" style="color:var(--accent2)"></i> Luyện <span>Toán</span> lớp 9</h1>
+    <p>Bài tập tương tác · AI sinh đề ngẫu nhiên · 6 đáp án mỗi câu</p>
+    <div class="lt-score-row">
+      <div class="lt-score-chip" id="score-chip"><i class="fas fa-star"></i> <span id="score-text">0 / 0</span></div>
+      <div class="lt-dots" id="dots"></div>
+    </div>
+  </div>
+
+  <!-- TOPIC TABS -->
+  <div class="lt-tabs" id="lt-tabs"></div>
+
+  <!-- AI SUBTYPE PICKER (only for tinh-toan) -->
+  <div class="lt-subtype-row" id="lt-subtype-row" style="display:none"></div>
+
+  <!-- EXERCISE AREA -->
+  <div id="lt-area"></div>
+
+</div>
+
+<div id="toast"></div>
+
+<script type="module" src="luyen-toan.js"></script>
+</body>
+</html>
