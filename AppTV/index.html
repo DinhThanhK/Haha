@@ -357,6 +357,145 @@
         .hidden {
             display: none !important;
         }
+
+        /* ===== TAB XEM PHIM ===== */
+        .watch-section {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .watch-search-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .watch-search-bar input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            background: #2a2a2a;
+            color: white;
+            font-size: 15px;
+        }
+
+        .watch-search-bar input:focus {
+            outline: none;
+            border-color: #E50914;
+        }
+
+        .watch-movie-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            max-height: 340px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .watch-movie-list::-webkit-scrollbar { width: 6px; }
+        .watch-movie-list::-webkit-scrollbar-track { background: #111; border-radius: 3px; }
+        .watch-movie-list::-webkit-scrollbar-thumb { background: #E50914; border-radius: 3px; }
+
+        .watch-movie-item {
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.25s;
+            background: #252525;
+        }
+
+        .watch-movie-item:hover { border-color: #E50914; transform: scale(1.04); }
+        .watch-movie-item.selected { border-color: #E50914; box-shadow: 0 0 12px rgba(229,9,20,0.5); }
+
+        .watch-movie-item img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .watch-movie-item-title {
+            padding: 8px;
+            font-size: 12px;
+            text-align: center;
+            color: #ddd;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .watch-player-area {
+            display: none;
+        }
+
+        .watch-player-area.visible {
+            display: block;
+        }
+
+        .watch-player-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .watch-player-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #E50914;
+        }
+
+        .watch-ep-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .watch-ep-btn {
+            padding: 8px 16px;
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 6px;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .watch-ep-btn:hover { background: #3a3a3a; border-color: #E50914; }
+        .watch-ep-btn.active { background: #E50914; border-color: #E50914; color: white; }
+
+        .watch-video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .watch-video-wrapper video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+
+        .watch-no-movies {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1em;
+        }
     </style>
 </head>
 <body>
@@ -366,6 +505,7 @@
         <div class="tabs">
             <button class="tab active" data-tab="add">➕ Thêm Phim Mới</button>
             <button class="tab" data-tab="list">📋 Danh Sách Phim</button>
+            <button class="tab" data-tab="watch">📺 Xem Phim</button>
         </div>
 
         <!-- Tab Thêm Phim -->
@@ -468,6 +608,32 @@
         </div>
     </div>
 
+    <!-- Tab Xem Phim -->
+    <div id="watch-tab" class="tab-content">
+        <div class="watch-section">
+            <h2 style="color:#E50914;margin-bottom:20px;font-size:1.6em;">📺 Xem Phim Trực Tiếp</h2>
+
+            <div class="watch-search-bar">
+                <input type="text" id="watch-search" placeholder="🔍 Tìm phim...">
+            </div>
+
+            <div id="watch-movie-grid" class="watch-movie-list">
+                <div class="watch-no-movies">Đang tải danh sách phim...</div>
+            </div>
+
+            <div id="watch-player-area" class="watch-player-area">
+                <div class="watch-player-header">
+                    <div class="watch-player-title" id="watch-player-title"></div>
+                    <button class="btn-secondary" id="btn-close-player" style="padding:8px 16px;font-size:13px;">✖ Đóng</button>
+                </div>
+                <div class="watch-ep-list" id="watch-ep-list"></div>
+                <div class="watch-video-wrapper">
+                    <video id="watch-video" controls autoplay></video>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Xác Nhận Xóa -->
     <div id="delete-modal" class="modal">
         <div class="modal-content">
@@ -516,9 +682,8 @@
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             document.getElementById(`${tabName}-tab`).classList.add('active');
             
-            if(tabName === 'list') {
-                loadMovies();
-            }
+            if(tabName === 'list') loadMovies();
+            if(tabName === 'watch') loadWatchMovies();
         }
 
         // ============= ADD MOVIE =============
@@ -834,6 +999,146 @@
                 element.innerHTML = '';
             }, 3000);
         }
+
+        // ============= WATCH TAB =============
+        let watchMovies = {};
+        let currentWatchMovieId = null;
+        let hlsInstance = null;
+
+        // Load HLS.js dynamically
+        function loadHlsJs(callback) {
+            if (window.Hls) { callback(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js';
+            s.onload = callback;
+            document.head.appendChild(s);
+        }
+
+        function renderWatchMovieGrid(movies) {
+            const grid = document.getElementById('watch-movie-grid');
+            const keys = Object.keys(movies);
+            if (keys.length === 0) {
+                grid.innerHTML = '<div class="watch-no-movies">📽️ Chưa có phim nào.</div>';
+                return;
+            }
+            grid.innerHTML = keys.map(id => {
+                const m = movies[id];
+                return `
+                    <div class="watch-movie-item" data-watch-id="${id}">
+                        <img src="${m.imageUrl || 'https://via.placeholder.com/140x180?text=No+Image'}"
+                             onerror="this.src='https://via.placeholder.com/140x180?text=No+Image'">
+                        <div class="watch-movie-item-title">${m.title}</div>
+                    </div>`;
+            }).join('');
+
+            grid.querySelectorAll('.watch-movie-item').forEach(el => {
+                el.addEventListener('click', function() {
+                    const id = this.getAttribute('data-watch-id');
+                    selectWatchMovie(id);
+                });
+            });
+        }
+
+        function loadWatchMovies() {
+            const moviesRef = ref(db, 'movies');
+            onValue(moviesRef, (snapshot) => {
+                watchMovies = {};
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => {
+                        watchMovies[child.key] = child.val();
+                    });
+                }
+                renderWatchMovieGrid(watchMovies);
+                // Re-render if a movie is currently selected
+                if (currentWatchMovieId && watchMovies[currentWatchMovieId]) {
+                    selectWatchMovie(currentWatchMovieId, false);
+                }
+            });
+        }
+
+        function selectWatchMovie(movieId, autoPlayFirst = true) {
+            currentWatchMovieId = movieId;
+            const movie = watchMovies[movieId];
+            if (!movie) return;
+
+            // Highlight selected card
+            document.querySelectorAll('.watch-movie-item').forEach(el => {
+                el.classList.toggle('selected', el.getAttribute('data-watch-id') === movieId);
+            });
+
+            document.getElementById('watch-player-title').textContent = movie.title;
+            const epList = document.getElementById('watch-ep-list');
+            epList.innerHTML = '';
+
+            if (!movie.episodes || movie.episodes.length === 0) {
+                epList.innerHTML = '<span style="color:#666">Không có tập nào.</span>';
+                document.getElementById('watch-player-area').classList.add('visible');
+                return;
+            }
+
+            movie.episodes.forEach((ep, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'watch-ep-btn';
+                btn.textContent = ep.name || `Tập ${i+1}`;
+                btn.addEventListener('click', () => playEpisode(ep.url, btn));
+                epList.appendChild(btn);
+            });
+
+            document.getElementById('watch-player-area').classList.add('visible');
+            document.getElementById('watch-player-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            if (autoPlayFirst) {
+                const firstBtn = epList.querySelector('.watch-ep-btn');
+                if (firstBtn) firstBtn.click();
+            }
+        }
+
+        function playEpisode(url, btnEl) {
+            document.querySelectorAll('.watch-ep-btn').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+
+            const video = document.getElementById('watch-video');
+
+            // Destroy previous HLS instance
+            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+
+            if (url.includes('.m3u8')) {
+                loadHlsJs(() => {
+                    if (Hls.isSupported()) {
+                        hlsInstance = new Hls();
+                        hlsInstance.loadSource(url);
+                        hlsInstance.attachMedia(video);
+                        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        video.src = url;
+                        video.play().catch(()=>{});
+                    }
+                });
+            } else {
+                video.src = url;
+                video.play().catch(()=>{});
+            }
+        }
+
+        document.getElementById('btn-close-player').addEventListener('click', () => {
+            document.getElementById('watch-player-area').classList.remove('visible');
+            const video = document.getElementById('watch-video');
+            video.pause();
+            video.src = '';
+            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+            currentWatchMovieId = null;
+            document.querySelectorAll('.watch-movie-item').forEach(el => el.classList.remove('selected'));
+        });
+
+        document.getElementById('watch-search').addEventListener('input', function() {
+            const q = this.value.toLowerCase().trim();
+            if (!q) { renderWatchMovieGrid(watchMovies); return; }
+            const filtered = {};
+            Object.keys(watchMovies).forEach(id => {
+                if (watchMovies[id].title.toLowerCase().includes(q)) filtered[id] = watchMovies[id];
+            });
+            renderWatchMovieGrid(filtered);
+        });
 
         // Load movies on startup
         loadMovies();
