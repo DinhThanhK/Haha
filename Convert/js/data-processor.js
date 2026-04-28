@@ -68,7 +68,7 @@ function processData(data) {
 
   $('dropZone').style.display = 'none';
   $('zipLoadRow').style.display = 'flex';
-  $('animSection').style.display = 'flex';
+  $('animSectionRow').style.display = 'flex';
   $('layerSection').style.display = 'flex';
 
   setStatus(`✓ ${S.animNames.length} anims · ${S.layers.length} layers · ${S.bitmapSizesFromJSON ? 'center-mode' : 'topleft-mode'}`, 'ok');
@@ -132,7 +132,11 @@ function buildLayerList() {
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;min-width:0">${name}</span>
       <span class="layer-tags" id="tpills-${CSS.escape(name)}" data-layer="${name}">${tagsHtml}</span>
       <button class="tag-edit-btn" id="tebtn-${CSS.escape(name)}" title="Gán tag cho layer">🏷</button>
-      <span class="layer-z">${layer.zDepth}</span>`;
+      <span class="layer-z-controls">
+        <button class="layer-z-btn" title="Z-order lên" data-zup="${name}">▲</button>
+        <span class="layer-z">${layer.zDepth}</span>
+        <button class="layer-z-btn" title="Z-order xuống" data-zdown="${name}">▼</button>
+      </span>`;
 
     item.querySelector('.layer-vis').addEventListener('click', e => {
       e.stopPropagation();
@@ -173,6 +177,14 @@ function buildLayerList() {
       e.stopPropagation();
       toggleTagEditor(name);
     });
+    item.querySelector('[data-zup]').addEventListener('click', e => {
+      e.stopPropagation();
+      moveLayerZOrder(name, +1);
+    });
+    item.querySelector('[data-zdown]').addEventListener('click', e => {
+      e.stopPropagation();
+      moveLayerZOrder(name, -1);
+    });
     item.addEventListener('click', (e) => {
       highlightLayer(name, e.ctrlKey || e.metaKey);
       if (S.editMode && !e.ctrlKey && !e.metaKey) selectEditLayer(name);
@@ -188,6 +200,12 @@ function buildLayerList() {
     editorRow.addEventListener('click', e => e.stopPropagation());
     scroll.appendChild(editorRow);
   }
+  // Ghost item cuối danh sách: tạo khoảng trống để hover item thực cuối cùng không bị cắt
+  const ghost = document.createElement('div');
+  ghost.className = 'layer-item layer-item--ghost';
+  ghost.setAttribute('aria-hidden', 'true');
+  scroll.appendChild(ghost);
+
   // Áp lại tag filter sau khi rebuild list
   if (typeof applyTagFilter === 'function') applyTagFilter();
 }

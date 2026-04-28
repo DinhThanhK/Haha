@@ -25,7 +25,8 @@
 .drop-area strong{color:var(--acc2);display:block;font-size:12px;margin-bottom:2px}
 .drop-area small{font-size:9px;opacity:.5}
 
-#animSection{display:none;flex-direction:column;flex:1;min-height:0;max-height:55%}
+#animSectionRow{display:none;flex-direction:row;flex:1;min-height:0;max-height:55%;border-bottom:1px solid var(--bdr)}
+#animSection{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;border-right:1px solid var(--bdr)}
 .anim-list{overflow-y:auto;flex:1;padding:6px}
 .anim-btn{
   display:flex;align-items:center;gap:8px;
@@ -41,7 +42,7 @@
 .anim-meta{margin-left:auto;font-size:9px;color:var(--mut2);white-space:nowrap}
 
 #layerSection{display:none;flex-direction:column;border-top:1px solid var(--bdr);max-height:45%;min-height:100px}
-#animationsPanel{display:none;flex-direction:column;flex-shrink:0;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)}
+#animationsPanel{display:none;flex-direction:column;flex:0 0 44%;min-width:80px;overflow:hidden}
 .layer-scroll{overflow-y:auto;flex:1;padding:4px 0}
 .layer-item{
   display:flex;align-items:center;gap:6px;
@@ -257,4 +258,37 @@
 .layer-lock-move-btn.active {
   opacity: 1;
   filter: drop-shadow(0 0 4px var(--acc2));
+}
+/* Ghost layer item - tạo khoảng trống để hover item cuối không bị cắt */
+.layer-item--ghost {
+  pointer-events: none;
+  visibility: hidden;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+/* Z-order controls trong layer item */
+.layer-z-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.layer-z-btn {
+  background: none;
+  border: 1px solid var(--bdr);
+  color: var(--mut);
+  border-radius: 3px;
+  font-size: 8px;
+  line-height: 1;
+  padding: 1px 3px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background .1s, color .1s;
+}
+.layer-z-btn:hover {
+  background: var(--sur2);
+  color: var(--txt);
+  border-color: var(--acc);
 }

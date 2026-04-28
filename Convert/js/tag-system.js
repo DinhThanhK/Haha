@@ -12,8 +12,8 @@ const TAG_PRESETS = [
   { id:'screen',  label:'screen',  cls:'pre-screen',  group:'🎩 Phụ kiện' },
   { id:'butter',  label:'butter',  cls:'pre-butter',  group:'✨ Hiệu ứng' },
   { id:'poison',  label:'poison',  cls:'pre-poison',  group:'✨ Hiệu ứng' },
-  { id:'frozen',  label:'frozen',  cls:'pre-frozen',  group:'✨ Hiệu ứng' },
-  { id:'fire',    label:'fire',    cls:'pre-fire',    group:'✨ Hiệu ứng' },
+  // { id:'frozen',  label:'frozen',  cls:'pre-frozen',  group:'✨ Hiệu ứng' },
+  // { id:'fire',    label:'fire',    cls:'pre-fire',    group:'✨ Hiệu ứng' },
   { id:'vfx',     label:'vfx',     cls:'pre-vfx',     group:'🔧 Khác' },
   { id:'debris',  label:'debris',  cls:'pre-debris',  group:'🔧 Khác' },
   { id:'shadow',  label:'shadow',  cls:'pre-shadow',  group:'🔧 Khác' },
@@ -22,7 +22,7 @@ const TAG_PRESETS = [
 const TAG_COLOR_MAP = {
   always:'t-always', body:'t-body', head:'t-body', arm:'t-body', leg:'t-body',
   hat:'t-hat', bucket:'t-hat', screen:'t-hat',
-  butter:'t-effect', poison:'t-effect', frozen:'t-effect', fire:'t-effect',
+  butter:'t-butter', poison:'t-poison', frozen:'t-effect', fire:'t-effect',
   vfx:'t-custom', debris:'t-custom', shadow:'t-custom',
 };
 

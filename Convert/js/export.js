@@ -5,7 +5,7 @@ function updateExpFileNamePreview() {
   const preview = $('expFileNamePreview');
   if (!preview) return;
   const prefix = getExportPrefix();
-  preview.textContent = prefix ? `→ ${prefix}_spine.json / ${prefix}_export.zip` : '';
+  preview.textContent = prefix ? `→ ${prefix}_spine.json / ${prefix}.zip` : '';
 }
 
 function getExportPrefix() {
@@ -443,7 +443,7 @@ async function exportSpine3File(anims, opts) {
     outZip.file(atlasFileName, atlasText);
 
     const zipBlob = await outZip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    const zipName = prefix + '_export.zip';
+    const zipName = prefix + '.zip';
     downloadBlob(zipBlob, 'application/zip', zipName);
 
     $('expStatus').textContent =

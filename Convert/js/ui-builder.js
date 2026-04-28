@@ -278,10 +278,15 @@ function _drawBitmapPreview(bitmapPath) {
   }
 }
 
-function _drawLayerPreview(layerName) {
-  if (_hoverCurrentLayer === layerName) return;
+// Retry timer cho layer preview khi anh chua load
+let _layerPreviewRetryTimer = null;
+
+function _drawLayerPreview(layerName, _forceRedraw) {
+  // Chi dung cache neu khong phai force redraw (vi du sau khi anh load xong)
+  if (!_forceRedraw && _hoverCurrentLayer === layerName) return;
   _hoverCurrentLayer = layerName;
   _hoverCurrentBitmap = null;
+  if (_layerPreviewRetryTimer) { clearTimeout(_layerPreviewRetryTimer); _layerPreviewRetryTimer = null; }
 
   const bhpCanvas = _hoverBhpCanvas;
   const ctx = _hoverBhpCtx;
@@ -292,7 +297,7 @@ function _drawLayerPreview(layerName) {
   const animTL = S.timeline[S.currentAnim] || {};
   const kfs = animTL[layerName];
   const kf = kfs && typeof getActiveKF === 'function' ? getActiveKF(kfs, S.currentTime) : null;
-  const parts = kf?.parts || [];
+  const parts = (kf?.parts || []).filter(p => p.alpha > 0.005);
 
   if (parts.length === 0) {
     const size = 80;
@@ -305,14 +310,36 @@ function _drawLayerPreview(layerName) {
     return;
   }
 
+  // Kiem tra tat ca anh co san chua — neu chua thi schedule retry (hieu nang: max 1 timer)
+  const missingImgs = parts.filter(p => {
+    const img = S.imgCache[p.bitmap];
+    return !img || (!S.imgMissing[p.bitmap] && !img.complete);
+  });
+  if (missingImgs.length > 0) {
+    // Hien thi spinner chu trong luc cho
+    const size = 80;
+    bhpCanvas.width = size; bhpCanvas.height = size;
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = '#888'; ctx.font = '9px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('...', size/2, size/2);
+    // Retry sau 200ms, reset cache key de force redraw
+    _layerPreviewRetryTimer = setTimeout(() => {
+      if (_hoverCurrentLayer === layerName && _hoverPreviewDiv && _hoverPreviewDiv.style.display !== 'none') {
+        _hoverCurrentLayer = null; // reset de force redraw
+        _drawLayerPreview(layerName, true);
+      }
+    }, 200);
+    return;
+  }
+
   const mainCanvas = document.getElementById('mainCanvas');
   const W = mainCanvas ? (mainCanvas.width || 390) : 390;
   const H = mainCanvas ? (mainCanvas.height || 390) : 390;
 
-  // Tính bounding box thực tế của các part trên canvas
+  // Tinh bounding box thuc te cua cac part tren canvas
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const part of parts) {
-    if (part.alpha <= 0.005) continue;
     const img = S.imgCache[part.bitmap];
     const szW = (img && img.naturalWidth > 0) ? img.naturalWidth  : (S.bitmaps[part.bitmap]?.w || 1);
     const szH = (img && img.naturalHeight > 0) ? img.naturalHeight : (S.bitmaps[part.bitmap]?.h || 1);
@@ -331,20 +358,19 @@ function _drawLayerPreview(layerName) {
   }
 
   const bbW = maxX - minX, bbH = maxY - minY;
-  const { canvW, canvH } = _calcPreviewSize(bbW || W, bbH || H);
+  if (bbW <= 0 || bbH <= 0) { _applyHoverBg(0.5); return; }
+  const { canvW, canvH } = _calcPreviewSize(bbW, bbH);
 
   bhpCanvas.width  = canvW;
   bhpCanvas.height = canvH;
   ctx.clearRect(0, 0, canvW, canvH);
 
-  // Scale để bounding box ngập canvas preview (với padding 4px)
   const PAD = 4;
-  const scX = (canvW - PAD*2) / (bbW || W);
-  const scY = (canvH - PAD*2) / (bbH || H);
+  const scX = (canvW - PAD*2) / bbW;
+  const scY = (canvH - PAD*2) / bbH;
   const sc  = Math.min(scX, scY);
 
   ctx.save();
-  // Dịch gốc tọa độ để bounding box nằm giữa canvas preview
   ctx.translate(canvW/2 - (minX + bbW/2)*sc, canvH/2 - (minY + bbH/2)*sc);
   ctx.scale(sc, sc);
   for (const part of parts) {
@@ -352,8 +378,8 @@ function _drawLayerPreview(layerName) {
   }
   ctx.restore();
 
-  // Smart background: render vào offscreen rồi sample
-  const SZ = 32;
+  // Smart background: sample tu canvas da ve, dung offscreen nho (hieu nang)
+  const SZ = 24;
   const tmp = document.createElement('canvas'); tmp.width = SZ; tmp.height = SZ;
   const tc = tmp.getContext('2d');
   tc.drawImage(bhpCanvas, 0, 0, SZ, SZ);
@@ -410,6 +436,8 @@ function setupPartRowHover() {
       _hoverPreviewDiv.style.display = 'none';
       _hoverCurrentBitmap = null;
       _hoverCurrentLayer  = null;
+      // Huy retry timer neu dang cho anh load
+      if (_layerPreviewRetryTimer) { clearTimeout(_layerPreviewRetryTimer); _layerPreviewRetryTimer = null; }
     }
   }, { passive: true });
 }

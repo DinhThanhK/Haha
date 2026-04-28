@@ -11,7 +11,9 @@
 }
 .tag-pill.t-always   { color:#22d17a; border-color:#22d17a44; background:#22d17a18; }
 .tag-pill.t-hat      { color:#ffb020; border-color:#ffb02044; background:#ffb02018; }
-.tag-pill.t-effect   { color:#a78bfa; border-color:#a78bfa44; background:#a78bfa18; }
+.tag-pill.t-effect   { color:#79b57e; border-color:#a78bfa44; background:#a78bfa18; }
+.tag-pill.t-butter   { color:#e6e657; border-color:#b7aa3144; background:#a78bfa18; }
+.tag-pill.t-poison   { color:#a78bfa; border-color:#a78bfa44; background:#a78bfa18; }
 .tag-pill.t-body     { color:#00c8ff; border-color:#00c8ff44; background:#00c8ff18; }
 .tag-pill.t-custom   { color:#f472b6; border-color:#f472b644; background:#f472b618; }
 .tag-pill.t-none     { color:#3a3a52; border-color:#3a3a52; background:transparent; font-weight:400; }
@@ -50,7 +52,7 @@
 .pre-bucket.active  { background:#ffb02022; }
 .pre-screen { color:#ffb020; border-color:#ffb02055; }
 .pre-screen.active  { background:#ffb02022; }
-.pre-butter { color:#a78bfa; border-color:#a78bfa55; }
+.pre-butter { color:#ebe35b; border-color:#958a2755; }
 .pre-butter.active  { background:#a78bfa22; }
 .pre-poison { color:#a78bfa; border-color:#a78bfa55; }
 .pre-poison.active  { background:#a78bfa22; }

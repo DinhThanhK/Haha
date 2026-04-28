@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>XFL Deep Viewer v20 – Modular</title>
+  <title>XFL Deep Viewer v23 – Modular</title>
   <!-- CSS theo thứ tự -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
@@ -26,7 +26,7 @@
 
 <header>
   <span class="logo">⬡ XFL Deep Viewer</span>
-  <span class="hv">v22</span>
+  <span class="hv">v23</span>
   <div id="statusBadge">⏳ Chưa tải file</div>
   <button id="btnUpdate" title="Áp dụng thay đổi trước khi xuất file">Update</button>
   <!-- Nút Save Session sẽ được thêm bằng JS -->
@@ -55,15 +55,17 @@
       <div id="zipStatus" style="font-size:9px;color:var(--mut2);text-align:center"></div>
     </div>
 
-    <div id="animSection">
-      <div class="ptitle" style="background:none">🎬 Animations</div>
-      <div class="anim-list" id="animList"></div>
-      <div id="animLabel" style="padding:5px 12px;font-size:9px;color:var(--mut2);border-top:1px solid var(--bdr)">—</div>
-    </div>
+    <div id="animSectionRow">
+      <div id="animSection">
+        <div class="ptitle" style="background:none">🎬 Animations</div>
+        <div class="anim-list" id="animList"></div>
+        <div id="animLabel" style="padding:5px 12px;font-size:9px;color:var(--mut2);border-top:1px solid var(--bdr)">—</div>
+      </div>
 
-    <div id="animationsPanel" style="display:none">
-      <div class="ptitle">🔗 Similar Layers</div>
-      <div id="similarLayerList" class="sim-list"></div>
+      <div id="animationsPanel" style="display:none">
+        <div class="ptitle">🔗 Similar Layers</div>
+        <div id="similarLayerList" class="sim-list"></div>
+      </div>
     </div>
 
     <div id="layerSection">

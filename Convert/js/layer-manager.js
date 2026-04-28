@@ -289,6 +289,9 @@ function buildSimilarLayersPanel(clickedLayer) {
   }
 
   panel.style.display = 'flex';
+  // Đảm bảo row container hiển thị đúng dạng flex-row
+  const row = document.getElementById('animSectionRow');
+  if (row) row.style.flexDirection = 'row';
   const titleEl = panel.querySelector('.ptitle');
   if (titleEl) titleEl.textContent = `🔗 Similar Layers (${similar.length})`;
 
@@ -325,6 +328,8 @@ function buildSimilarLayersPanel(clickedLayer) {
 function hideSimilarLayersPanel() {
   const panel = document.getElementById('animationsPanel');
   if (panel) panel.style.display = 'none';
+  const row = document.getElementById('animSectionRow');
+  if (row) row.style.flexDirection = 'column';
   S._similarLayers = [];
   S._similarSourceLayer = null;
   S.similarLayerSelected = 'all';
@@ -353,7 +358,8 @@ function splitBitmapToNewLayer(sourceLayer, bitmapPath) {
   for (const layerName of allTargets) {
     const newLayerName = _findFreeName(layerName);
     const srcLayerObj = S.layers.find(l => l.name === layerName);
-    const newZDepth = (srcLayerObj?.zDepth ?? 0) - 0.5;
+    // Layer tách SAU phải có zDepth CAO HƠN → vẽ đè lên layer gốc
+    const newZDepth = (srcLayerObj?.zDepth ?? 0) + 0.5;
     S.layers.push({ name: newLayerName, zDepth: newZDepth });
     S.layerTags[newLayerName] = [...(S.layerTags[layerName] || [])];
 
@@ -400,6 +406,74 @@ function _findFreeName(baseName) {
     candidate = baseName + '_x' + i++;
   }
   return candidate;
+}
+
+// Chỉnh z-order thu cong: doi zDepth cua layer voi layer ke no trong sorted
+function moveLayerZOrder(layerName, direction) {
+  // direction: +1 = len tren (zDepth cao hon), -1 = xuong duoi
+  // Ap dung dong loat cho ca similar layers (group dich chuyen cung nhau)
+  pushUndo('Doi z-order "' + layerName + '"');
+
+  const similar = getSimilarLayers(layerName);
+  const allTargets = new Set([layerName, ...similar]);
+
+  // Lay danh sach sorted theo zDepth tang dan
+  const sorted = S.layers.slice().sort((a, b) => a.zDepth - b.zDepth);
+
+  // Tim vi tri cua layer chinh trong sorted
+  const mainIdx = sorted.findIndex(l => l.name === layerName);
+  if (mainIdx < 0) return;
+
+  // Khi direction = +1 (len tren): can tim layer non-target o phia TREN group
+  // Khi direction = -1 (xuong duoi): can tim layer non-target o phia DUOI group
+  let swapCandidate = null;
+  if (direction === +1) {
+    // Tim layer non-target dau tien co zDepth > max(target zDepth)
+    const maxZ = Math.max(...S.layers.filter(l => allTargets.has(l.name)).map(l => l.zDepth));
+    for (let i = 0; i < sorted.length; i++) {
+      if (!allTargets.has(sorted[i].name) && sorted[i].zDepth > maxZ) {
+        swapCandidate = sorted[i];
+        break;
+      }
+    }
+  } else {
+    // Tim layer non-target cuoi cung co zDepth < min(target zDepth)
+    const minZ = Math.min(...S.layers.filter(l => allTargets.has(l.name)).map(l => l.zDepth));
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (!allTargets.has(sorted[i].name) && sorted[i].zDepth < minZ) {
+        swapCandidate = sorted[i];
+        break;
+      }
+    }
+  }
+  if (!swapCandidate) return; // da o dau/cuoi danh sach
+
+  // Lay zDepth cua swapCandidate truoc khi doi
+  const swapZ = swapCandidate.zDepth;
+  // Tim zDepth cua layer target gan swapCandidate nhat (dung lam anchor)
+  const targetObjs = S.layers.filter(l => allTargets.has(l.name));
+  const anchorZ = direction === +1
+    ? Math.max(...targetObjs.map(l => l.zDepth))
+    : Math.min(...targetObjs.map(l => l.zDepth));
+
+  // Tinh delta: khoang cach can vuot qua
+  const delta = swapZ - anchorZ; // direction quyet dinh dau/cuoi
+
+  // Dich toan bo target group
+  targetObjs.forEach(l => { l.zDepth += delta; });
+  // Dich swapCandidate nguoc lai (hoan vi vi tri voi anchor)
+  swapCandidate.zDepth = anchorZ;
+
+  buildLayerList();
+  if (S.currentAnim) renderFrame(S.currentAnim, S.currentTime);
+  markDirty();
+  if (typeof markSessionDirty === 'function') markSessionDirty();
+
+  // Refresh highlight UI ma KHONG toggle selection (khong goi highlightLayer)
+  const allHighlighted = new Set([...(S.selectedLayers || new Set()), ...(S.lockedMoveLayers || new Set())]);
+  document.querySelectorAll('.layer-item').forEach(item => {
+    item.classList.toggle('active', allHighlighted.has(item.dataset.name));
+  });
 }
 
 function showSplitToast(btn, layerName, bitmapPath) {
