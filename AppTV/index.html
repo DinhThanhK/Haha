@@ -496,6 +496,110 @@
             color: #666;
             font-size: 1.1em;
         }
+
+        .btn-seek-UNUSED { display:none; } /* removed */
+
+        /* Seek overlay buttons trên video */
+        .seek-overlay {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.45);
+            border: none;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 18px 22px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            z-index: 10;
+            transition: background 0.2s, transform 0.15s;
+            line-height: 1;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .seek-overlay span {
+            font-size: 11px;
+            font-weight: normal;
+            letter-spacing: 0.5px;
+        }
+        .watch-video-wrapper:hover .seek-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .seek-overlay:hover {
+            background: rgba(229,9,20,0.65);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .seek-overlay:active {
+            transform: translateY(-50%) scale(0.92);
+        }
+        .seek-left  { left: 10px; }
+        .seek-right { right: 10px; }
+
+        .btn-fix-audio {
+            padding: 8px 14px;
+            background: #7b3f00;
+            border: 2px solid #c06000;
+            border-radius: 6px;
+            color: #ffcc88;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s;
+            animation: pulse-orange 1.5s infinite;
+        }
+        .btn-fix-audio:hover { background: #a05000; }
+
+        @keyframes pulse-orange {
+            0%,100% { box-shadow: 0 0 0 0 rgba(192,96,0,0.5); }
+            50% { box-shadow: 0 0 8px 4px rgba(192,96,0,0.3); }
+        }
+
+        .watch-history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .watch-history-list::-webkit-scrollbar { width: 5px; }
+        .watch-history-list::-webkit-scrollbar-thumb { background: #E50914; border-radius: 3px; }
+
+        .hist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #252525;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .hist-item:hover { border-color: #E50914; background: #2e2e2e; }
+        .hist-item img { width: 44px; height: 60px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
+        .hist-info { flex: 1; overflow: hidden; }
+        .hist-title { font-weight: bold; font-size: 14px; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hist-ep { font-size: 12px; color: #E50914; margin-top: 2px; }
+        .hist-time { font-size: 11px; color: #666; margin-top: 3px; }
+        .hist-del {
+            padding: 5px 9px;
+            background: transparent;
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #666;
+            cursor: pointer;
+            font-size: 11px;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+        .hist-del:hover { background: #c82333; border-color: #c82333; color: white; }
     </style>
 </head>
 <body>
@@ -624,11 +728,24 @@
             <div id="watch-player-area" class="watch-player-area">
                 <div class="watch-player-header">
                     <div class="watch-player-title" id="watch-player-title"></div>
-                    <button class="btn-secondary" id="btn-close-player" style="padding:8px 16px;font-size:13px;">✖ Đóng</button>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <button id="btn-fix-audio" class="btn-fix-audio" style="display:none;">🔧 Sửa tiếng</button>
+                        <button class="btn-secondary" id="btn-close-player" style="padding:8px 16px;font-size:13px;">✖ Đóng</button>
+                    </div>
                 </div>
                 <div class="watch-ep-list" id="watch-ep-list"></div>
                 <div class="watch-video-wrapper">
                     <video id="watch-video" controls autoplay></video>
+                    <button id="btn-seek-back" class="seek-overlay seek-left">◀◀<span>5s</span></button>
+                    <button id="btn-seek-fwd"  class="seek-overlay seek-right"><span>5s</span>▶▶</button>
+                </div>
+            </div>
+
+            <!-- Lịch sử xem -->
+            <div style="margin-top:30px;">
+                <h3 style="color:#E50914;margin-bottom:12px;font-size:1.1em;">🕐 Lịch Sử Xem</h3>
+                <div id="watch-history-list" class="watch-history-list">
+                    <span style="color:#555;font-size:13px">Chưa có lịch sử xem.</span>
                 </div>
             </div>
         </div>
@@ -818,10 +935,10 @@
 
                     html += `
                         <div class="movie-card">
-                            <img src="${movie.imageUrl || 'https://via.placeholder.com/300x450?text=No+Image'}" 
+                            <img src="${movie.imageUrl || 'https://placehold.co/300x450/1a1a1a/666?text=No+Image'}" 
                                  alt="${movie.title}" 
                                  class="movie-poster"
-                                 onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                                 onerror="this.src='https://placehold.co/300x450/1a1a1a/666?text=No+Image'">
                             <div class="movie-info">
                                 <div class="movie-title">${movie.title}</div>
                                 <div class="movie-country">🌍 ${movie.country || 'Chưa rõ'}</div>
@@ -1003,9 +1120,16 @@
         // ============= WATCH TAB =============
         let watchMovies = {};
         let currentWatchMovieId = null;
+        let currentEpUrl = null;
         let hlsInstance = null;
+        let audioCtx = null;
+        let audioSrc = null;
+        let audioGain = null;
+        let lastPTS = -1;
+        let ptsStalledCount = 0;
+        const HISTORY_KEY = 'watch_history_v1';
 
-        // Load HLS.js dynamically
+        // ---- Load HLS.js dynamically ----
         function loadHlsJs(callback) {
             if (window.Hls) { callback(); return; }
             const s = document.createElement('script');
@@ -1014,6 +1138,118 @@
             document.head.appendChild(s);
         }
 
+        // ---- AudioContext: dùng để detect và heal audio glitch ----
+        function initAudioContext(video) {
+            try {
+                if (!audioCtx || audioCtx.state === 'closed') {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioSrc) { try { audioSrc.disconnect(); } catch(e){} }
+                audioSrc = audioCtx.createMediaElementSource(video);
+                audioGain = audioCtx.createGain();
+                audioGain.gain.value = 1;
+                audioSrc.connect(audioGain);
+                audioGain.connect(audioCtx.destination);
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            } catch(e) {
+                // fallback: browser không cho createMediaElementSource (e.g. cross-origin)
+                audioCtx = null;
+            }
+        }
+
+        // Khi detect discontinuity: reset audio pipeline để xóa buffer bẩn
+        function healAudio(video) {
+            if (!audioCtx || audioCtx.state === 'closed') return;
+            try {
+                const currentTime = video.currentTime;
+                const wasPaused = video.paused;
+                // Disconnect → reconnect gain node để flush audio graph
+                audioGain.disconnect();
+                audioGain = audioCtx.createGain();
+                audioGain.gain.value = 0; // mute brief
+                audioSrc.connect(audioGain);
+                audioGain.connect(audioCtx.destination);
+                // Fade in lại sau 120ms để tránh pop
+                setTimeout(() => {
+                    if (!audioGain) return;
+                    audioGain.gain.setValueAtTime(0, audioCtx.currentTime);
+                    audioGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.15);
+                }, 80);
+            } catch(e) {}
+        }
+
+        // ---- Lịch sử xem ----
+        function getHistory() {
+            try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+            catch(e) { return []; }
+        }
+
+        function saveHistory(movieId, epIndex, epName, movieTitle, imageUrl) {
+            let hist = getHistory();
+            // Xóa entry cũ nếu cùng phim+tập
+            hist = hist.filter(h => !(h.movieId === movieId && h.epIndex === epIndex));
+            hist.unshift({ movieId, epIndex, epName, movieTitle, imageUrl, ts: Date.now() });
+            if (hist.length > 20) hist = hist.slice(0, 20);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const hist = getHistory();
+            const box = document.getElementById('watch-history-list');
+            if (!box) return;
+            if (hist.length === 0) {
+                box.innerHTML = '<span style="color:#555;font-size:13px">Chưa có lịch sử xem.</span>';
+                return;
+            }
+            box.innerHTML = hist.map((h, i) => `
+                <div class="hist-item" data-idx="${i}">
+                    <img src="${h.imageUrl || 'https://placehold.co/48x64/1a1a1a/666?text=?'}"
+                         onerror="this.src='https://placehold.co/48x64/1a1a1a/666?text=?'">
+                    <div class="hist-info">
+                        <div class="hist-title">${h.movieTitle}</div>
+                        <div class="hist-ep">${h.epName}</div>
+                        <div class="hist-time">${formatTimeAgo(h.ts)}</div>
+                    </div>
+                    <button class="hist-del" data-idx="${i}" title="Xóa">✖</button>
+                </div>
+            `).join('');
+
+            box.querySelectorAll('.hist-item').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('hist-del')) return;
+                    const idx = +this.getAttribute('data-idx');
+                    const h = getHistory()[idx];
+                    if (!h || !watchMovies[h.movieId]) return;
+                    selectWatchMovie(h.movieId, false);
+                    setTimeout(() => {
+                        const btns = document.querySelectorAll('.watch-ep-btn');
+                        if (btns[h.epIndex]) btns[h.epIndex].click();
+                    }, 100);
+                });
+            });
+
+            box.querySelectorAll('.hist-del').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const idx = +this.getAttribute('data-idx');
+                    let hist = getHistory();
+                    hist.splice(idx, 1);
+                    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+                    renderHistory();
+                });
+            });
+        }
+
+        function formatTimeAgo(ts) {
+            const diff = Date.now() - ts;
+            if (diff < 60000) return 'Vừa xem';
+            if (diff < 3600000) return Math.floor(diff/60000) + ' phút trước';
+            if (diff < 86400000) return Math.floor(diff/3600000) + ' giờ trước';
+            return Math.floor(diff/86400000) + ' ngày trước';
+        }
+
+        // ---- Render danh sách phim ----
         function renderWatchMovieGrid(movies) {
             const grid = document.getElementById('watch-movie-grid');
             const keys = Object.keys(movies);
@@ -1025,16 +1261,15 @@
                 const m = movies[id];
                 return `
                     <div class="watch-movie-item" data-watch-id="${id}">
-                        <img src="${m.imageUrl || 'https://via.placeholder.com/140x180?text=No+Image'}"
-                             onerror="this.src='https://via.placeholder.com/140x180?text=No+Image'">
+                        <img src="${m.imageUrl || 'https://placehold.co/140x180/1a1a1a/666?text=No+Image'}"
+                             onerror="this.src='https://placehold.co/140x180/1a1a1a/666?text=No+Image'">
                         <div class="watch-movie-item-title">${m.title}</div>
                     </div>`;
             }).join('');
 
             grid.querySelectorAll('.watch-movie-item').forEach(el => {
                 el.addEventListener('click', function() {
-                    const id = this.getAttribute('data-watch-id');
-                    selectWatchMovie(id);
+                    selectWatchMovie(this.getAttribute('data-watch-id'));
                 });
             });
         }
@@ -1044,12 +1279,10 @@
             onValue(moviesRef, (snapshot) => {
                 watchMovies = {};
                 if (snapshot.exists()) {
-                    snapshot.forEach(child => {
-                        watchMovies[child.key] = child.val();
-                    });
+                    snapshot.forEach(child => { watchMovies[child.key] = child.val(); });
                 }
                 renderWatchMovieGrid(watchMovies);
-                // Re-render if a movie is currently selected
+                renderHistory();
                 if (currentWatchMovieId && watchMovies[currentWatchMovieId]) {
                     selectWatchMovie(currentWatchMovieId, false);
                 }
@@ -1061,7 +1294,6 @@
             const movie = watchMovies[movieId];
             if (!movie) return;
 
-            // Highlight selected card
             document.querySelectorAll('.watch-movie-item').forEach(el => {
                 el.classList.toggle('selected', el.getAttribute('data-watch-id') === movieId);
             });
@@ -1080,7 +1312,10 @@
                 const btn = document.createElement('button');
                 btn.className = 'watch-ep-btn';
                 btn.textContent = ep.name || `Tập ${i+1}`;
-                btn.addEventListener('click', () => playEpisode(ep.url, btn));
+                btn.addEventListener('click', () => {
+                    playEpisode(ep.url, btn);
+                    saveHistory(movieId, i, ep.name || `Tập ${i+1}`, movie.title, movie.imageUrl);
+                });
                 epList.appendChild(btn);
             });
 
@@ -1097,39 +1332,138 @@
             document.querySelectorAll('.watch-ep-btn').forEach(b => b.classList.remove('active'));
             if (btnEl) btnEl.classList.add('active');
 
-            const video = document.getElementById('watch-video');
+            currentEpUrl = url;
+            lastPTS = -1;
+            ptsStalledCount = 0;
 
-            // Destroy previous HLS instance
+            const video = document.getElementById('watch-video');
             if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+            video.pause();
+            video.src = '';
+            video.load();
 
             if (url.includes('.m3u8')) {
                 loadHlsJs(() => {
                     if (Hls.isSupported()) {
-                        hlsInstance = new Hls();
+                        hlsInstance = new Hls({
+                            enableWorker: true,
+                            lowLatencyMode: false,
+                            // Buffer lớn hơn để giảm glitch
+                            maxBufferLength: 60,
+                            maxMaxBufferLength: 120,
+                            // Bỏ qua lỗi nhỏ thay vì crash
+                            fragLoadingMaxRetry: 6,
+                            manifestLoadingMaxRetry: 4,
+                        });
+
+                        // *** FIX AUDIO: detect discontinuity → heal ***
+                        hlsInstance.on(Hls.Events.FRAG_CHANGED, (event, data) => {
+                            const pts = data.frag && data.frag.start;
+                            if (lastPTS >= 0 && pts !== undefined) {
+                                const jump = Math.abs(pts - lastPTS - (data.frag.duration || 0));
+                                // Nếu timestamp nhảy > 1s so với duration bình thường → discontinuity
+                                if (jump > 1.5) {
+                                    console.log('[AudioFix] PTS jump detected:', jump.toFixed(2), 's → healing audio');
+                                    healAudio(video);
+                                }
+                            }
+                            if (pts !== undefined) lastPTS = pts;
+                        });
+
+                        // Cũng heal khi có tag DISCONTINUITY trong playlist
+                        hlsInstance.on(Hls.Events.LEVEL_UPDATED, () => {
+                            // force re-check audio on level switch
+                        });
+
+                        // Nếu audio bị stall (timeupdate không chạy mà video chạy)
+                        let lastVideoTime = -1;
+                        const stalledCheck = setInterval(() => {
+                            if (!hlsInstance || video.paused) return;
+                            if (video.currentTime === lastVideoTime && !video.paused) {
+                                ptsStalledCount++;
+                                if (ptsStalledCount >= 3) {
+                                    console.log('[AudioFix] Video stalled, healing...');
+                                    healAudio(video);
+                                    ptsStalledCount = 0;
+                                }
+                            } else {
+                                ptsStalledCount = 0;
+                            }
+                            lastVideoTime = video.currentTime;
+                        }, 1500);
+
+                        hlsInstance._stalledInterval = stalledCheck;
+
                         hlsInstance.loadSource(url);
                         hlsInstance.attachMedia(video);
-                        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+                        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                            initAudioContext(video);
+                            video.play().catch(()=>{});
+                        });
+
+                        // Khi audio bị mute/ù sau quảng cáo: người dùng có thể bấm nút heal thủ công
+                        document.getElementById('btn-fix-audio').style.display = 'inline-block';
+
                     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                         video.src = url;
                         video.play().catch(()=>{});
                     }
                 });
             } else {
+                // MP4
                 video.src = url;
+                video.addEventListener('canplay', function onCanPlay() {
+                    initAudioContext(video);
+                    video.removeEventListener('canplay', onCanPlay);
+                }, { once: true });
                 video.play().catch(()=>{});
+                document.getElementById('btn-fix-audio').style.display = 'none';
             }
         }
 
+        // Nút Fix Audio thủ công
+        document.getElementById('btn-fix-audio').addEventListener('click', () => {
+            const video = document.getElementById('watch-video');
+            healAudio(video);
+            // Nếu vẫn ù nặng: reload segment hiện tại
+            if (hlsInstance) {
+                const currentTime = video.currentTime;
+                hlsInstance.stopLoad();
+                setTimeout(() => {
+                    hlsInstance.startLoad(currentTime);
+                    video.play().catch(()=>{});
+                }, 200);
+            }
+        });
+
+        // Nút tua -5s / +5s
+        document.getElementById('btn-seek-back').addEventListener('click', () => {
+            const v = document.getElementById('watch-video');
+            v.currentTime = Math.max(0, v.currentTime - 5);
+        });
+        document.getElementById('btn-seek-fwd').addEventListener('click', () => {
+            const v = document.getElementById('watch-video');
+            v.currentTime = Math.min(v.duration || v.currentTime, v.currentTime + 5);
+        });
+
+        // Nút đóng player
         document.getElementById('btn-close-player').addEventListener('click', () => {
             document.getElementById('watch-player-area').classList.remove('visible');
             const video = document.getElementById('watch-video');
             video.pause();
             video.src = '';
-            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+            if (hlsInstance) {
+                clearInterval(hlsInstance._stalledInterval);
+                hlsInstance.destroy();
+                hlsInstance = null;
+            }
+            if (audioSrc) { try { audioSrc.disconnect(); } catch(e){} audioSrc = null; }
             currentWatchMovieId = null;
             document.querySelectorAll('.watch-movie-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById('btn-fix-audio').style.display = 'none';
         });
 
+        // Tìm kiếm
         document.getElementById('watch-search').addEventListener('input', function() {
             const q = this.value.toLowerCase().trim();
             if (!q) { renderWatchMovieGrid(watchMovies); return; }
