@@ -489,7 +489,66 @@
   .q-action-btn#tts-speak-btn { color:var(--accent2); border-color:var(--accent2); }
   .q-action-btn#tts-speak-btn.speaking { color:#fff; background:var(--accent2); border-color:var(--accent2); animation:tts-pulse 1s ease-in-out infinite; }
   @keyframes tts-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.4)} 50%{box-shadow:0 0 0 6px rgba(0,212,170,0)} }
-  .question-text { font-size:1rem; font-weight:500; line-height:1.6; margin-bottom:12px; }
+  .question-text { font-size:1rem; font-weight:500; line-height:1.6; margin-bottom:6px; }
+
+  /* ===== IPA PHONETIC DISPLAY ===== */
+  .ipa-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    align-items: flex-end;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    background: rgba(0,212,170,0.05);
+    border: 1px solid rgba(0,212,170,0.15);
+    border-radius: var(--radius-sm);
+    line-height: 1;
+  }
+  .ipa-token {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 3px 4px;
+    border-radius: 4px;
+    transition: background .15s;
+  }
+  .ipa-token:hover { background: rgba(0,212,170,0.12); }
+  .ipa-token:hover .ipa-word { color: var(--accent2); }
+  .ipa-word {
+    font-size: .92rem;
+    font-weight: 600;
+    color: var(--text1);
+    line-height: 1.2;
+  }
+  .ipa-phonetic {
+    font-size: .68rem;
+    color: var(--accent2);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    opacity: 0.85;
+    min-height: 11px;
+  }
+  .ipa-sep {
+    font-size: .9rem;
+    color: var(--text3);
+    align-self: flex-start;
+    padding-top: 3px;
+  }
+  /* Loading spinner cho IPA chưa tải */
+  .ipa-loading {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid rgba(0,212,170,0.3);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: ipa-spin .6s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes ipa-spin { to { transform: rotate(360deg); } }
   .question-media { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
   .question-img { max-width:100%; max-height:200px; object-fit:contain; border-radius:var(--radius-sm); }
   .question-audio { width:100%; }

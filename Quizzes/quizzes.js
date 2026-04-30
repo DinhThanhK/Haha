@@ -256,6 +256,105 @@ window.saveSoundSettings = function() {
 };
 window.previewSound = function(type) { playTone(type); };
 
+// ===== IPA PHONETIC ENGINE =====
+// Cache: word (lowercase) → IPA string hoặc '—'
+const _ipaCache = {};
+const _ipaFetching = {}; // tránh fetch trùng
+
+/** Tách text thô thành mảng token: [{type:'word'|'punct', val}] */
+function _tokenizeText(raw) {
+  // Xóa HTML tags, decode entities
+  const clean = raw
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&quot;/g,'"').replace(/&#039;/g,"'")
+    .replace(/\/\?/g,'')
+    .replace(/\^\{[^}]*\}/g,'').replace(/\^[A-Za-z0-9]/g,'')
+    .replace(/_\{[^}]*\}/g,'').replace(/_[A-Za-z0-9]/g,'');
+
+  // Tách thành token từ (chỉ latin a-z) và ký tự khác
+  const tokens = [];
+  const re = /([A-Za-z]+(?:'[A-Za-z]+)*)|([^A-Za-z]+)/g;
+  let m;
+  while((m = re.exec(clean)) !== null) {
+    if(m[1]) tokens.push({type:'word', val:m[1]});
+    else if(m[2] && m[2].trim()) tokens.push({type:'punct', val:m[2]});
+  }
+  return tokens;
+}
+
+/** Fetch IPA cho 1 từ từ Free Dictionary API */
+async function _fetchIpa(word) {
+  const key = word.toLowerCase();
+  if(_ipaCache[key] !== undefined) return _ipaCache[key];
+  if(_ipaFetching[key]) {
+    // Đợi fetch đang chạy
+    return new Promise(res => {
+      const check = setInterval(() => {
+        if(_ipaCache[key] !== undefined) { clearInterval(check); res(_ipaCache[key]); }
+      }, 80);
+    });
+  }
+  _ipaFetching[key] = true;
+  try {
+    const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`, {signal: AbortSignal.timeout(4000)});
+    if(!r.ok) throw new Error('not found');
+    const data = await r.json();
+    // Lấy phonetic text đầu tiên có giá trị
+    let ipa = null;
+    for(const entry of data) {
+      if(entry.phonetic) { ipa = entry.phonetic; break; }
+      if(entry.phonetics) {
+        const ph = entry.phonetics.find(p => p.text);
+        if(ph) { ipa = ph.text; break; }
+      }
+    }
+    _ipaCache[key] = ipa || '—';
+  } catch(e) {
+    _ipaCache[key] = '—';
+  }
+  return _ipaCache[key];
+}
+
+/** Render IPA display cho câu hỏi idx */
+async function renderIpaDisplay(idx, rawText) {
+  const container = document.getElementById('ipa-display-' + idx);
+  if(!container) return;
+
+  const tokens = _tokenizeText(rawText);
+  const words = tokens.filter(t => t.type === 'word');
+  if(words.length === 0) { container.style.display = 'none'; return; }
+
+  // Build skeleton ngay lập tức (hiện từ + spinner IPA)
+  container.innerHTML = tokens.map((t, ti) => {
+    if(t.type === 'word') {
+      const key = t.val.toLowerCase();
+      const ipa = _ipaCache[key] !== undefined ? _ipaCache[key] : null;
+      return `<span class="ipa-token" id="ipatoken-${idx}-${ti}" data-word="${escHtml(t.val)}" onclick="ttsSpeak('${escHtml(t.val)}','${currentQuizMeta?.settings?.ttsAccent||'en-GB'}')">
+        <span class="ipa-word">${escHtml(t.val)}</span>
+        <span class="ipa-phonetic" id="ipaph-${idx}-${ti}">${ipa !== null ? escHtml(ipa) : '<span class="ipa-loading"></span>'}</span>
+      </span>`;
+    } else {
+      return `<span class="ipa-sep">${escHtml(t.val.replace(/\n/g,' '))}</span>`;
+    }
+  }).join('');
+  container.style.display = 'flex';
+
+  // Fetch IPA song song cho các từ chưa có cache
+  const missing = tokens
+    .map((t, ti) => ({t, ti}))
+    .filter(({t}) => t.type === 'word' && _ipaCache[t.val.toLowerCase()] === undefined);
+
+  if(missing.length === 0) return;
+
+  await Promise.all(missing.map(async ({t, ti}) => {
+    const ipa = await _fetchIpa(t.val);
+    // Chỉ update nếu container vẫn đang hiển thị câu này
+    const phEl = document.getElementById(`ipaph-${idx}-${ti}`);
+    if(phEl) phEl.textContent = ipa;
+  }));
+}
+
 // ===== TTS ENGINE (Web Speech API - offline, browser voices) =====
 let _ttsSpeaking = false;
 
@@ -1754,6 +1853,7 @@ function showQuestion(idx) {
       </div>
       <div class="question-type-badge">${typeLabel}</div>
       <div class="question-text" id="qtext-display-${idx}"></div>
+      <div class="ipa-display" id="ipa-display-${idx}"></div>
       ${mediaHtml}
       ${q.hint ? `<div id="hint-area-${idx}"><button class="hint-btn" onclick="toggleHint(${idx})"><i class="fas fa-lightbulb"></i> Gợi ý</button><div class="hint-box" id="hint-box-${idx}" style="display:none"><i class="fas fa-lightbulb"></i><span data-hint="${encodeURIComponent(q.hint||'')}"></span></div></div>` : ''}
       <div class="answers-list">${answersHtml}</div>
@@ -1774,6 +1874,10 @@ function showQuestion(idx) {
     // For multifill: hide the plain text (display is inside the answers section)
     if(q.type==='multifill') qtd.style.display='none';
     else applyMath(qtd, q.text || '');
+  }
+  // IPA phiên âm: hiện cho toàn bộ câu hỏi (không áp dụng multifill)
+  if(q.type !== 'multifill') {
+    renderIpaDisplay(idx, q.text || '');
   }
   if(q.type==='multifill') {
     const mfDisp = document.getElementById('mf-qdisplay-'+idx);
