@@ -486,6 +486,9 @@
   .question-actions { display:flex; gap:6px; }
   .q-action-btn { width:30px; height:30px; border-radius:50%; background:var(--bg3); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text2); font-size:.75rem; transition:all .2s; }
   .q-action-btn:hover { color:var(--accent); border-color:var(--accent); }
+  .q-action-btn#tts-speak-btn { color:var(--accent2); border-color:var(--accent2); }
+  .q-action-btn#tts-speak-btn.speaking { color:#fff; background:var(--accent2); border-color:var(--accent2); animation:tts-pulse 1s ease-in-out infinite; }
+  @keyframes tts-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.4)} 50%{box-shadow:0 0 0 6px rgba(0,212,170,0)} }
   .question-text { font-size:1rem; font-weight:500; line-height:1.6; margin-bottom:12px; }
   .question-media { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
   .question-img { max-width:100%; max-height:200px; object-fit:contain; border-radius:var(--radius-sm); }

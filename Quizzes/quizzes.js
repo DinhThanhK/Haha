@@ -255,6 +255,76 @@ window.saveSoundSettings = function() {
   localStorage.setItem('qm_sound', JSON.stringify(s));
 };
 window.previewSound = function(type) { playTone(type); };
+
+// ===== TTS ENGINE (Web Speech API - offline, browser voices) =====
+let _ttsSpeaking = false;
+
+function ttsSpeak(text, lang) {
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  _ttsSpeaking = false;
+  if(!text || !text.trim()) return;
+  // Strip HTML tags and special math/format tokens
+  const clean = text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&quot;/g,'"').replace(/&#039;/g,"'")
+    .replace(/\/\?/g, 'blank')
+    .replace(/\^\{([^}]+)\}/g,' to the power of $1')
+    .replace(/\^([A-Za-z0-9])/g,' to the power of $1')
+    .replace(/_\{([^}]+)\}/g,' sub $1')
+    .replace(/_([A-Za-z0-9])/g,' sub $1')
+    .replace(/\s+/g,' ').trim();
+  if(!clean) return;
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = lang || 'en-GB';
+  utt.rate = 0.92;
+  utt.pitch = 1;
+  const trySpeak = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find(v => v.lang === utt.lang)
+      || voices.find(v => v.lang.startsWith((utt.lang||'en').split('-')[0]));
+    if(match) utt.voice = match;
+    utt.onstart = () => { _ttsSpeaking = true; _updateTtsBtn(true); };
+    utt.onend = () => { _ttsSpeaking = false; _updateTtsBtn(false); };
+    utt.onerror = () => { _ttsSpeaking = false; _updateTtsBtn(false); };
+    window.speechSynthesis.speak(utt);
+  };
+  const voices = window.speechSynthesis.getVoices();
+  if(voices.length > 0) trySpeak();
+  else { window.speechSynthesis.addEventListener('voiceschanged', trySpeak, {once:true}); }
+}
+
+function ttsStop() {
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  _ttsSpeaking = false;
+  _updateTtsBtn(false);
+}
+
+function _updateTtsBtn(speaking) {
+  const btn = document.getElementById('tts-speak-btn');
+  if(!btn) return;
+  if(speaking) {
+    btn.classList.add('speaking');
+    btn.title = 'Dừng phát âm';
+    btn.innerHTML = '<i class="fas fa-stop-circle"></i>';
+  } else {
+    btn.classList.remove('speaking');
+    btn.title = 'Phát âm câu hỏi (TTS)';
+    btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+  }
+}
+
+window.toggleTts = function() {
+  if(_ttsSpeaking) { ttsStop(); return; }
+  const q = quizQuestions[currentQIndex];
+  if(!q) return;
+  ttsSpeak(q.text || '', currentQuizMeta?.settings?.ttsAccent || 'en-GB');
+};
+
+// Pre-load voices on page load (Chrome loads async)
+if(window.speechSynthesis) window.speechSynthesis.getVoices();
+
 function loadSoundSettings() {
   const s = getSoundSettings();
   const ce = document.getElementById('sound-correct-enabled');
@@ -535,6 +605,10 @@ function resetForm() {
   if(dtSel) dtSel.value = 'single';
   const nbToggle = document.getElementById('quiz-show-new-badge');
   if(nbToggle) nbToggle.checked = false;
+  const ttsAuto = document.getElementById('quiz-tts-auto');
+  if(ttsAuto) ttsAuto.checked = true;
+  const ttsAccent = document.getElementById('quiz-tts-accent');
+  if(ttsAccent) ttsAccent.value = 'en-GB';
   selectedSampleImg = null;
   document.querySelectorAll('.sample-img-btn').forEach(b => b.classList.remove('selected'));
   // Always reset save button state in case it was left spinning
@@ -592,6 +666,11 @@ window.editQuiz = function(id, e) {
   // New badge toggle
   const nbToggle = document.getElementById('quiz-show-new-badge');
   if(nbToggle) nbToggle.checked = q.settings?.showNewBadge||false;
+  // TTS settings
+  const ttsAuto = document.getElementById('quiz-tts-auto');
+  if(ttsAuto) ttsAuto.checked = q.settings?.ttsAuto !== false;
+  const ttsAccent = document.getElementById('quiz-tts-accent');
+  if(ttsAccent) ttsAccent.value = q.settings?.ttsAccent || 'en-GB';
   // Sessions done
   const doneCount = getSessionCount(id);
   document.getElementById('sessions-done-val').textContent = doneCount;
@@ -1461,6 +1540,8 @@ window.saveQuiz = async function() {
       allowedUsers: getSelectedUserAssign(),
       defaultType: document.getElementById('quiz-default-type')?.value||'single',
       showNewBadge: document.getElementById('quiz-show-new-badge')?.checked||false,
+      ttsAuto: document.getElementById('quiz-tts-auto')?.checked !== false,
+      ttsAccent: document.getElementById('quiz-tts-accent')?.value || 'en-GB',
     },
     questions: editQuestions,
     updatedAt: Date.now()
@@ -1666,6 +1747,7 @@ function showQuestion(idx) {
         <span class="question-num-badge">Câu ${idx+1}/${quizQuestions.length}</span>
         <div style="flex:1"></div>
         <div class="question-actions">
+          <button class="q-action-btn" id="tts-speak-btn" onclick="toggleTts()" title="Phát âm câu hỏi (TTS)"><i class="fas fa-volume-up"></i></button>
           <button class="q-action-btn" onclick="openInlineEdit(${idx})" title="Chỉnh sửa câu hỏi"><i class="fas fa-edit"></i></button>
           <button class="q-action-btn" onclick="undoAnswer(${idx})" title="Làm lại câu này" ${!done?'disabled style="opacity:.4;cursor:not-allowed"':''}><i class="fas fa-undo"></i></button>
         </div>
@@ -1741,6 +1823,17 @@ function showQuestion(idx) {
     // Preserve newlines: split by \n, render each line, join with <br>
     const renderedExpl = explText.split('\n').map(line => renderMath(line)).join('<br>');
     explEl.innerHTML = prefix + renderedExpl + imgSuffix;
+  }
+
+  // Auto TTS: đọc câu hỏi nếu bật và chưa trả lời
+  if(currentQuizMeta?.settings?.ttsAuto !== false && !done) {
+    ttsStop();
+    setTimeout(() => {
+      const q2 = quizQuestions[idx];
+      if(q2) ttsSpeak(q2.text || '', currentQuizMeta?.settings?.ttsAccent || 'en-GB');
+    }, 200);
+  } else {
+    ttsStop();
   }
 }
 
@@ -2747,6 +2840,7 @@ window.reviewQuiz = function() {
 };
 window.exitQuiz = function() {
   clearInterval(timerInterval);
+  ttsStop();
   document.getElementById('result-overlay').classList.remove('visible');
   document.getElementById('rating-panel').classList.add('hidden');
   document.getElementById('quiz-sidebar').classList.remove('mobile-visible');

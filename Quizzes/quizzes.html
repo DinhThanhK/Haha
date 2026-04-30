@@ -131,6 +131,19 @@
         <div><div class="toggle-label">Hiển thị badge <span style="background:linear-gradient(135deg,#ff6b6b,#ffd93d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;font-weight:800">Mới</span></div><div class="toggle-desc">Bật để đánh dấu bộ đề này là mới/vừa cập nhật</div></div>
         <label class="toggle"><input type="checkbox" id="quiz-show-new-badge"><span class="toggle-slider"></span></label>
       </div>
+      <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:12px;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div class="toggle-label"><i class="fas fa-volume-up" style="color:var(--accent2);margin-right:5px"></i>Tự động phát âm đề</div>
+          <div class="toggle-desc">Đọc câu hỏi tiếng Anh khi chuyển sang câu mới</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
+          <label class="toggle"><input type="checkbox" id="quiz-tts-auto" checked><span class="toggle-slider"></span></label>
+          <select class="form-select" id="quiz-tts-accent" style="width:auto;padding:6px 10px;font-size:.82rem">
+            <option value="en-GB">🇬🇧 UK</option>
+            <option value="en-US">🇺🇸 US</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="form-section">
