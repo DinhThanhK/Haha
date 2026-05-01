@@ -284,8 +284,22 @@ function rMain(){
     <span class="cb">${cnt2}</span>
   </div>`;
 
+  // Check if mobile search input is focused — if so, skip header re-render to preserve keyboard/focus
+  const _activeMobInp = document.getElementById('gSearchMob');
+  const _mobHasFocus  = _activeMobInp && document.activeElement === _activeMobInp;
+
   if(!existingHeader){
     main.innerHTML = headerHTML + '<div class="vc" id="vocabC"></div>';
+  } else if(_mobHasFocus){
+    // Mobile input is focused: only patch title & toolbar to avoid destroying the input
+    const titleEl = existingHeader.querySelector('.h-title');
+    if(titleEl) titleEl.textContent = title;
+    const existingToolbar = document.getElementById('mainToolbar');
+    if(existingToolbar){
+      existingToolbar.querySelector('.cb').innerHTML = cnt2;
+      const sel = existingToolbar.querySelector('.sort-sel');
+      if(sel) sel.value = S.sortBy;
+    }
   } else {
     // Thay thế cả header lẫn toolbar (tránh duplicate toolbar)
     const existingToolbar = document.getElementById('mainToolbar');
@@ -296,10 +310,10 @@ function rMain(){
     }
   }
 
-  // Sync mobile search value
+  // Sync mobile search value (only when not focused to avoid cursor jump)
   const mobInp = document.getElementById('gSearchMob');
   const desInp = document.getElementById('gSearch');
-  if(mobInp && desInp && mobInp.value !== desInp.value) mobInp.value = desInp.value;
+  if(mobInp && desInp && !_mobHasFocus && mobInp.value !== desInp.value) mobInp.value = desInp.value;
 
   const vc = document.getElementById('vocabC') || (() => {
     const d = document.createElement('div'); d.className='vc'; d.id='vocabC';
@@ -620,8 +634,11 @@ function showWordModal(w){
     </div>
     <div class="frow">
       <div class="fg">
-        <label class="flabel">Phiên âm</label>
-        <input class="finput" id="mPhonetic" placeholder="/ˈwɜːd/" value="${esc(w.phonetic||'')}" style="font-family:'DM Mono',monospace;font-style:italic"/>
+        <label class="flabel">Phiên âm <span style="color:var(--text2);font-size:10px;font-weight:400">(để trống → tự động điền khi lưu)</span></label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="finput" id="mPhonetic" placeholder="/ˈwɜːrd/" value="${esc(w.phonetic||'')}" style="font-family:'DM Mono',monospace;font-style:italic;flex:1"/>
+          <button id="phoneticAutoBtn" type="button" title="Tự động lấy phiên âm IPA ngay" onclick="autoFillPhonetic()" style="flex-shrink:0;height:38px;padding:0 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--accent);font-size:15px;cursor:pointer">✨</button>
+        </div>
       </div>
     </div>
     <div class="frow">
@@ -820,6 +837,43 @@ window.setParentId = async function(childId, childLid, parentId){
   rMain();
 };
 
+/* ═══════════════ AUTO PHONETIC (IPA) ═══════════════ */
+async function fetchPhonetic(word){
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 60,
+        messages: [{
+          role: 'user',
+          content: 'Reply ONLY with the IPA phonetic transcription for the English word or phrase "' + word + '", using the format /ˈwɜːrd/ with slashes. If it\'s a phrase, give each word. No explanation, no punctuation outside the slashes.'
+        }]
+      })
+    });
+    const data = await resp.json();
+    const raw  = (data?.content?.[0]?.text || '').trim();
+    const match = raw.match(/\/[^/]+(?:\/\s*\/[^/]+)*\//);
+    return match ? match[0] : raw;
+  } catch(e){ return ''; }
+}
+
+window.autoFillPhonetic = async function(){
+  const contEl  = document.getElementById('mCont');
+  const phoneEl = document.getElementById('mPhonetic');
+  if(!contEl || !phoneEl) return;
+  const raw  = contEl.value.trim();
+  const word = raw.split(':')[0].trim();
+  if(!word){ toast('Nhập nội dung từ trước đã nhé!','err'); return; }
+  const btn = document.getElementById('phoneticAutoBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '…'; }
+  const ipa = await fetchPhonetic(word);
+  if(btn){ btn.disabled = false; btn.textContent = '✨'; }
+  if(ipa){ phoneEl.value = ipa; toast('Đã điền phiên âm tự động ✓','ok'); }
+  else    { toast('Không tìm được phiên âm','err'); }
+};
+
 /* ═══════════════ SAVE (WRITE-THROUGH) ═══════════════ */
 window.saveWord = async function(){
   const content = document.getElementById('mCont')?.value?.trim();
@@ -827,7 +881,16 @@ window.saveWord = async function(){
   const lid       = document.getElementById('mLvl')?.value || S.activeLevel;
   const dv        = document.getElementById('mDate')?.value;
   const createdAt = S.editWord ? (dv ? new Date(dv).getTime() : Date.now()) : Date.now();
-  const phonetic  = document.getElementById('mPhonetic')?.value?.trim()||'';
+  let   phonetic  = document.getElementById('mPhonetic')?.value?.trim()||'';
+  // Tự động lấy phiên âm nếu chưa có
+  if(!phonetic){
+    const wordForIPA = content.split(':')[0].trim();
+    const saveBtn = document.querySelector('#wModal .btn-primary');
+    if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Đang lấy phiên âm…'; }
+    phonetic = await fetchPhonetic(wordForIPA);
+    if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent = S.editWord?'Lưu thay đổi':'Thêm từ'; }
+    if(phonetic){ const phoneEl=document.getElementById('mPhonetic'); if(phoneEl) phoneEl.value=phonetic; }
+  }
   const audioUrl  = document.getElementById('mAudio')?.value?.trim()||'';
   const existingParentId = S.editWord?.parentId||'';
   const data = {content,wordTypes:[...mWT],tags:[...mTags],color:mColor,createdAt,updatedAt:Date.now(),phonetic,audioUrl,parentId:existingParentId};
