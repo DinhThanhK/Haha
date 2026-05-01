@@ -840,22 +840,19 @@ window.setParentId = async function(childId, childLid, parentId){
 /* ═══════════════ AUTO PHONETIC (IPA) ═══════════════ */
 async function fetchPhonetic(word){
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 60,
-        messages: [{
-          role: 'user',
-          content: 'Reply ONLY with the IPA phonetic transcription for the English word or phrase "' + word + '", using the format /ˈwɜːrd/ with slashes. If it\'s a phrase, give each word. No explanation, no punctuation outside the slashes.'
-        }]
-      })
-    });
+    const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+    if(!resp.ok) return '';
     const data = await resp.json();
-    const raw  = (data?.content?.[0]?.text || '').trim();
-    const match = raw.match(/\/[^/]+(?:\/\s*\/[^/]+)*\//);
-    return match ? match[0] : raw;
+    // Lấy phonetic đầu tiên có text
+    for(const entry of data){
+      if(entry.phonetic && entry.phonetic.trim()) return entry.phonetic.trim();
+      if(Array.isArray(entry.phonetics)){
+        for(const p of entry.phonetics){
+          if(p.text && p.text.trim()) return p.text.trim();
+        }
+      }
+    }
+    return '';
   } catch(e){ return ''; }
 }
 
