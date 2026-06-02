@@ -10,9 +10,9 @@ const TAG_PRESETS = [
   { id:'arm_torn', label:'arm_torn', cls:'pre-arm-torn', group:'🦴 Bộ phận' },
 
   { id:'hat',       label:'hat',       cls:'pre-hat',       group:'🎩 Phụ kiện' },
-  { id:'bucket_3',  label:'bucket_3',  cls:'pre-bucket-3',  group:'🎩 Phụ kiện' },
-  { id:'bucket_2',  label:'bucket_2',  cls:'pre-bucket-2',  group:'🎩 Phụ kiện' },
-  { id:'bucket_1',  label:'bucket_1',  cls:'pre-bucket-1',  group:'🎩 Phụ kiện' },
+  { id:'buckethead_3',  label:'buckethead_3',  cls:'pre-buckethead-3',  group:'🎩 Phụ kiện' },
+  { id:'buckethead_2',  label:'buckethead_2',  cls:'pre-buckethead-2',  group:'🎩 Phụ kiện' },
+  { id:'buckethead_1',  label:'buckethead_1',  cls:'pre-buckethead-1',  group:'🎩 Phụ kiện' },
 
   { id:'conehead_3', label:'conehead_3', cls:'pre-conehead-3', group:'🎩 Phụ kiện' },
   { id:'conehead_2', label:'conehead_2', cls:'pre-conehead-2', group:'🎩 Phụ kiện' },
@@ -37,7 +37,8 @@ const TAG_PRESETS = [
 const TAG_COLOR_MAP = {
   always: 't-always',
   body: 't-body', head: 't-body', arm_full: 't-body', arm_torn: 't-body',
-  hat: 't-hat', bucket_1: 't-hat', bucket_2: 't-hat', bucket_3: 't-hat',
+  hat: 't-hat',
+  buckethead_1: 't-hat', buckethead_2: 't-hat', buckethead_3: 't-hat',
   conehead_1: 't-hat', conehead_2: 't-hat', conehead_3: 't-hat',
   brickhead_1: 't-hat', brickhead_2: 't-hat', brickhead_3: 't-hat',
   armor_1: 't-hat', armor_2: 't-hat', armor_3: 't-hat',

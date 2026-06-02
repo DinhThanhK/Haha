@@ -52,12 +52,12 @@
 .pre-hat       { color:#ffb020; border-color:#ffb02055; }
 .pre-hat.active      { background:#ffb02022; }
 
-.pre-bucket-1,
-.pre-bucket-2,
-.pre-bucket-3      { color:#ffb020; border-color:#ffb02055; }
-.pre-bucket-1.active,
-.pre-bucket-2.active,
-.pre-bucket-3.active  { background:#ffb02022; }
+.pre-buckethead-1,
+.pre-buckethead-2,
+.pre-buckethead-3      { color:#ffb020; border-color:#ffb02055; }
+.pre-buckethead-1.active,
+.pre-buckethead-2.active,
+.pre-buckethead-3.active  { background:#ffb02022; }
 
 .pre-conehead-1,
 .pre-conehead-2,
@@ -205,7 +205,6 @@
 .tfb-pill.active  { opacity: 1; }
 .tfb-pill.inactive { opacity: .3; filter: grayscale(.4); }
 
-/* màu cho filter pills (giữ nguyên) */
 .tfb-pill.t-always  { color: #22d17a; border-color: #22d17a55; background: #22d17a14; }
 .tfb-pill.t-hat     { color: #ffb020; border-color: #ffb02055; background: #ffb02014; }
 .tfb-pill.t-effect  { color: #a78bfa; border-color: #a78bfa55; background: #a78bfa14; }
