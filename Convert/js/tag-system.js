@@ -5,25 +5,41 @@ const TAG_PRESETS = [
   { id:'always',  label:'always',  cls:'pre-always',  group:'🎭 Luôn hiện' },
   { id:'body',    label:'body',    cls:'pre-body',    group:'🦴 Bộ phận' },
   { id:'head',    label:'head',    cls:'pre-head',    group:'🦴 Bộ phận' },
-  { id:'arm',     label:'arm',     cls:'pre-arm',     group:'🦴 Bộ phận' },
-  { id:'leg',     label:'leg',     cls:'pre-leg',     group:'🦴 Bộ phận' },
+  { id:'arm-full',     label:'arm-full',     cls:'pre-arm-full',     group:'🦴 Bộ phận' },
+  { id:'arm-torn',     label:'arm-torn',     cls:'pre-arm-torn',     group:'🦴 Bộ phận' },
   { id:'hat',     label:'hat',     cls:'pre-hat',     group:'🎩 Phụ kiện' },
-  { id:'bucket',  label:'bucket',  cls:'pre-bucket',  group:'🎩 Phụ kiện' },
-  { id:'screen',  label:'screen',  cls:'pre-screen',  group:'🎩 Phụ kiện' },
+  { id:'bucket-3',  label:'bucket-3',  cls:'pre-bucket-3',  group:'🎩 Phụ kiện' },
+  { id:'bucket-2',  label:'bucket-2',  cls:'pre-bucket-2',  group:'🎩 Phụ kiện' },
+  { id:'bucket-1',  label:'bucket-1',  cls:'pre-bucket-1',  group:'🎩 Phụ kiện' },
+  { id:'conehead-3',  label:'conehead-3',  cls:'pre-conehead-3',  group:'🎩 Phụ kiện' },
+  { id:'conehead-2',  label:'conehead-2',  cls:'pre-conehead-2',  group:'🎩 Phụ kiện' },
+  { id:'conehead-1',  label:'conehead-1',  cls:'pre-conehead-1',  group:'🎩 Phụ kiện' },
+  { id:'brickhead-3',  label:'brickhead-3',  cls:'pre-brickhead-3',  group:'🎩 Phụ kiện' },
+  { id:'brickhead-2',  label:'brickhead-2',  cls:'pre-brickhead-2',  group:'🎩 Phụ kiện' },
+  { id:'brickhead-1',  label:'brickhead-1',  cls:'pre-brickhead-1',  group:'🎩 Phụ kiện' },
+  { id:'armor-3',  label:'armor-3',  cls:'pre-armor-3',  group:'🎩 Phụ kiện' },
+  { id:'armor-2',  label:'armor-2',  cls:'pre-armor-2',  group:'🎩 Phụ kiện' },
+  { id:'armor-1',  label:'armor-1',  cls:'pre-armor-1',  group:'🎩 Phụ kiện' },
   { id:'butter',  label:'butter',  cls:'pre-butter',  group:'✨ Hiệu ứng' },
   { id:'poison',  label:'poison',  cls:'pre-poison',  group:'✨ Hiệu ứng' },
-  // { id:'frozen',  label:'frozen',  cls:'pre-frozen',  group:'✨ Hiệu ứng' },
-  // { id:'fire',    label:'fire',    cls:'pre-fire',    group:'✨ Hiệu ứng' },
   { id:'vfx',     label:'vfx',     cls:'pre-vfx',     group:'🔧 Khác' },
   { id:'debris',  label:'debris',  cls:'pre-debris',  group:'🔧 Khác' },
   { id:'shadow',  label:'shadow',  cls:'pre-shadow',  group:'🔧 Khác' },
 ];
 
 const TAG_COLOR_MAP = {
-  always:'t-always', body:'t-body', head:'t-body', arm:'t-body', leg:'t-body',
-  hat:'t-hat', bucket:'t-hat', screen:'t-hat',
-  butter:'t-butter', poison:'t-poison', frozen:'t-effect', fire:'t-effect',
-  vfx:'t-custom', debris:'t-custom', shadow:'t-custom',
+  always: 't-always',
+
+  body: 't-body', head: 't-body', 'arm-full': 't-body', 'arm-torn': 't-body',
+
+  hat: 't-hat', 'bucket-1': 't-hat', 'bucket-2': 't-hat', 'bucket-3': 't-hat',
+  'conehead-1': 't-hat', 'conehead-2': 't-hat', 'conehead-3': 't-hat',
+  'brickhead-1': 't-hat', 'brickhead-2': 't-hat', 'brickhead-3': 't-hat',
+  'armor-1': 't-hat', 'armor-2': 't-hat', 'armor-3': 't-hat',
+
+  butter: 't-butter', poison: 't-poison',
+
+  vfx: 't-custom', debris: 't-custom', shadow: 't-custom',
 };
 
 function getTagClass(tag) {
