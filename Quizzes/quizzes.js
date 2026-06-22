@@ -2806,7 +2806,6 @@ window.saveInlineEdit = async function() {
 // ===== MATH / FORMULA RENDERER =====
 // Quy ước ký hiệu đặc biệt:
 //   x^2       → x²  (superscript)
-//   H_2O      → H₂O (subscript)
 //   _t^o      → t° (nhiệt độ hoá học)  
 //   ->        → →  (mũi tên phương trình)
 //   <->       → ⇌  (cân bằng thuận nghịch)
@@ -2830,8 +2829,6 @@ const MATH_SYMBOLS = [
   { input:'U^2/I',       output:'U<sup class="math-sup">2</sup>/I',            label:'Chỉ ^ lên 1 ký tự' },
   { input:'U^{2/I}',     output:'U<sup class="math-sup">2/I</sup>',            label:'^ lên cả nhóm' },
   // ── Chỉ số dưới / Subscript ──────────────────────────────────────
-  { input:'H_2O',        output:'H<sub class="math-sub">2</sub>O',             label:'Chỉ số 1 ký tự' },
-  { input:'C_3O_4',      output:'C<sub class="math-sub">3</sub>O<sub class="math-sub">4</sub>', label:'Nhiều chỉ số đơn' },
   { input:'H_{2SO4}',    output:'H<sub class="math-sub">2SO4</sub>',           label:'Chỉ số dưới nhóm' },
   { input:'_t^o',        output:'<sup class="math-sup">t°</sup>',              label:'Điều kiện nhiệt độ' },
   // ── Mũi tên ─────────────────────────────────────────────────────
@@ -2908,10 +2905,6 @@ function renderMath(text) {
   // 5. SUBSCRIPT
   // 5a. _{nhóm} → toàn bộ nhóm thu nhỏ: H_{2SO4} → H₍₂ₛₒ₄₎
   s = s.replace(/_\{([^}]*)\}/g, (_, sub) =>
-    `<sub class="math-sub">${sub}</sub>`
-  );
-  // 5b. _x → chỉ 1 ký tự đơn: H_2O → H₂O, C_3O_4 → C₃O₄
-  s = s.replace(/_([A-Za-z0-9])/g, (_, sub) =>
     `<sub class="math-sub">${sub}</sub>`
   );
 
