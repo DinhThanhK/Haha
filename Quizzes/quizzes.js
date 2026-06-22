@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove, update, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+import { DEFAULT_SUBJECT, renderSubjectPills, getSelectedSubject, subjectTagHtml } from "./subjects.js";
 
 
 const firebaseConfig = {
@@ -668,6 +669,7 @@ function _doRenderQuizGrid() {
       <div class="quiz-card-body">
         <div class="quiz-card-title">${escHtml(q.name||'Không tên')}</div>
         <div class="quiz-card-meta">
+          ${subjectTagHtml(q.settings?.subject)}
           <span class="quiz-card-tag"><i class="fas fa-question-circle"></i>${(q.questions||[]).filter(qq=>!qq.hidden).length} câu</span>
           <span class="quiz-card-tag"><i class="fas fa-clock"></i>${q.settings?.timeLimit||30} phút</span>
           ${q.settings?.shuffleQ ? '<span class="quiz-card-tag"><i class="fas fa-random"></i>Đảo câu</span>':''}
@@ -717,6 +719,7 @@ function resetForm() {
   const saveBtn = document.getElementById('save-btn');
   if(saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Lưu bộ đề'; }
   renderUserAssignChips([]);
+  renderSubjectPills('quiz-subject-pills', DEFAULT_SUBJECT);
   renderQuestions();
 }
 
@@ -781,6 +784,8 @@ window.editQuiz = function(id, e) {
   document.getElementById('sessions-done-row').style.display = '';
   // User assign
   renderUserAssignChips(q.settings?.allowedUsers||[]);
+  // Môn học
+  renderSubjectPills('quiz-subject-pills', q.settings?.subject || DEFAULT_SUBJECT);
   if(q.imageUrl){ document.getElementById('quiz-img-preview').src=q.imageUrl; document.getElementById('quiz-img-preview').style.display='block'; }
   else document.getElementById('quiz-img-preview').style.display='none';
   if(q.sampleImg!==undefined) {
@@ -1614,6 +1619,7 @@ window.saveQuiz = async function() {
       shuffleA: document.getElementById('shuffle-answers').checked,
       targetSessions: parseInt(document.getElementById('quiz-target-sessions').value)||1,
       allowedUsers: getSelectedUserAssign(),
+      subject: getSelectedSubject('quiz-subject-pills'),
       defaultType: document.getElementById('quiz-default-type')?.value||'single',
       showNewBadge: document.getElementById('quiz-show-new-badge')?.checked||false,
       showIpa: document.getElementById('quiz-show-ipa')?.checked !== false,

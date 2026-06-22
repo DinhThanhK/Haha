@@ -132,6 +132,7 @@
   .quiz-card-title { font-family:'Lexend Deca',sans-serif; font-weight:700; font-size:1rem; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .quiz-card-meta { display:flex; gap:10px; flex-wrap:wrap; }
   .quiz-card-tag { font-size:.75rem; color:var(--text2); background:var(--bg3); padding:3px 8px; border-radius:4px; display:flex; align-items:center; gap:4px; }
+  .quiz-card-tag.subject-tag { color:var(--subj-color); background:var(--subj-bg); font-weight:700; border:1px solid var(--subj-color); }
   .quiz-card-progress { margin-top:10px; }
   .quiz-card-progress-label { display:flex; justify-content:space-between; font-size:.72rem; color:var(--text3); margin-bottom:4px; }
   .quiz-card-progress-bar { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
@@ -824,6 +825,16 @@
     background:var(--bg3); color:var(--text2);
   }
   .user-assign-chip.selected { border-color:var(--accent2); background:rgba(0,212,170,.12); color:var(--accent2); }
+
+  /* ===== SUBJECT PILL SELECT IN FORM ===== */
+  .subject-pill-wrap { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  .subject-pill {
+    padding:6px 14px; border-radius:20px; border:1px solid var(--border);
+    font-size:.82rem; cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:6px;
+    background:var(--bg3); color:var(--text2);
+  }
+  .subject-pill:hover { border-color:var(--subj-color); color:var(--subj-color); }
+  .subject-pill.selected { border-color:var(--subj-color); background:var(--subj-bg); color:var(--subj-color); }
 
   /* ===== SESSIONS DONE DISPLAY ===== */
   .sessions-done-row {
