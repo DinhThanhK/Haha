@@ -698,12 +698,14 @@ function resetForm() {
   document.getElementById('quiz-time').value = 30;
   document.getElementById('shuffle-questions').checked = true;
   document.getElementById('shuffle-answers').checked = true;
-  document.getElementById('quiz-target-sessions').value = 1;
+  document.getElementById('quiz-target-sessions').value = 10;
   document.getElementById('sessions-done-row').style.display = 'none';
   const dtSel = document.getElementById('quiz-default-type');
   if(dtSel) dtSel.value = 'single';
   const nbToggle = document.getElementById('quiz-show-new-badge');
   if(nbToggle) nbToggle.checked = false;
+  const ipaToggle = document.getElementById('quiz-show-ipa');
+  if(ipaToggle) ipaToggle.checked = true;
   const ttsAuto = document.getElementById('quiz-tts-auto');
   if(ttsAuto) ttsAuto.checked = true;
   const ttsAccent = document.getElementById('quiz-tts-accent');
@@ -765,6 +767,8 @@ window.editQuiz = function(id, e) {
   // New badge toggle
   const nbToggle = document.getElementById('quiz-show-new-badge');
   if(nbToggle) nbToggle.checked = q.settings?.showNewBadge||false;
+  const ipaToggle = document.getElementById('quiz-show-ipa');
+  if(ipaToggle) ipaToggle.checked = q.settings?.showIpa !== false;
   // TTS settings
   const ttsAuto = document.getElementById('quiz-tts-auto');
   if(ttsAuto) ttsAuto.checked = q.settings?.ttsAuto !== false;
@@ -790,11 +794,13 @@ window.editQuiz = function(id, e) {
 window.confirmDeleteQuiz = function(id, e) {
   if(e) e.stopPropagation();
   const q = quizzesCache[id];
-  openPwdModal(
-    'Xóa bộ đề',
-    `Xóa "${q?.name||'bộ đề này'}" và toàn bộ lịch sử? Không thể hoàn tác.`,
-    () => { deleteQuiz(id); }
-  );
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('modal-title').textContent = 'Xóa bộ đề';
+  document.getElementById('modal-desc').textContent = `Xóa "${q?.name||'bộ đề này'}" và toàn bộ lịch sử? Không thể hoàn tác.`;
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.textContent = 'Xóa';
+  btn.onclick = () => { closeModal(); deleteQuiz(id); };
+  modal.classList.add('visible');
 };
 
 async function deleteQuiz(id) {
@@ -821,55 +827,19 @@ async function deleteQuiz(id) {
 
 window.closeModal = function() { document.getElementById('confirm-modal').classList.remove('visible'); };
 
-// ===== PASSWORD MODAL =====
-let _pwdCallback = null;
-
-function openPwdModal(title, desc, onConfirm) {
-  _pwdCallback = onConfirm;
-  document.getElementById('pwd-modal-title').textContent = title;
-  document.getElementById('pwd-modal-desc').textContent = desc;
-  document.getElementById('pwd-input').value = '';
-  document.getElementById('pwd-error').textContent = '';
-  document.getElementById('pwd-input').classList.remove('error');
-  document.getElementById('pwd-modal').classList.add('visible');
-  setTimeout(() => document.getElementById('pwd-input').focus(), 100);
-}
-
-window.closePwdModal = function() {
-  document.getElementById('pwd-modal').classList.remove('visible');
-  _pwdCallback = null;
-};
-
-window.confirmPwd = function() {
-  const val = document.getElementById('pwd-input').value;
-  if(val === '321') {
-    const cb = _pwdCallback;   // save ref BEFORE closePwdModal nulls it
-    closePwdModal();
-    if(cb) cb();
-  } else {
-    const inp = document.getElementById('pwd-input');
-    const err = document.getElementById('pwd-error');
-    inp.classList.add('error');
-    err.textContent = 'Mật khẩu không đúng.';
-    inp.value = '';
-    setTimeout(() => inp.classList.remove('error'), 400);
-    setTimeout(() => inp.focus(), 50);
-  }
-};
-
 // ===== CLEAR HISTORY =====
 let _currentHistoryQuizId = null;
 
 window.promptClearHistory = function() {
   if(!_currentHistoryQuizId) return;
   const quiz = quizzesCache[_currentHistoryQuizId];
-  openPwdModal(
-    'Xóa lịch sử',
-    `Xóa toàn bộ lịch sử của "${quiz?.name||'bộ đề này'}"? Không thể hoàn tác.`,
-    async () => {
-      await clearQuizHistory(_currentHistoryQuizId);
-    }
-  );
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('modal-title').textContent = 'Xóa lịch sử';
+  document.getElementById('modal-desc').textContent = `Xóa toàn bộ lịch sử của "${quiz?.name||'bộ đề này'}"? Không thể hoàn tác.`;
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.textContent = 'Xóa';
+  btn.onclick = async () => { closeModal(); await clearQuizHistory(_currentHistoryQuizId); };
+  modal.classList.add('visible');
 };
 
 async function clearQuizHistory(quizId) {
@@ -885,20 +855,22 @@ async function clearQuizHistory(quizId) {
 }
 
 window.promptDeleteHistoryEntry = function(quizId, entryKey) {
-  openPwdModal(
-    'Xóa lần làm này',
-    'Nhập mật khẩu để xóa lần làm này.',
-    async () => {
-      try { await remove(ref(db, `app_data/history/${quizId}/${entryKey}`)); } catch(e2) {}
-      // Remove from DOM immediately
-      document.getElementById('hentry-'+entryKey)?.remove();
-      if(!document.querySelector('#history-modal-entries .history-entry')) {
-        document.getElementById('history-modal-entries').innerHTML =
-          '<div class="history-empty"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có lần làm nào được ghi lại</div>';
-      }
-      showToast('Đã xóa', 'success');
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('modal-title').textContent = 'Xóa lần làm này';
+  document.getElementById('modal-desc').textContent = 'Bạn có chắc chắn muốn xóa lần làm này không?';
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.textContent = 'Xóa';
+  btn.onclick = async () => {
+    closeModal();
+    try { await remove(ref(db, `app_data/history/${quizId}/${entryKey}`)); } catch(e2) {}
+    document.getElementById('hentry-'+entryKey)?.remove();
+    if(!document.querySelector('#history-modal-entries .history-entry')) {
+      document.getElementById('history-modal-entries').innerHTML =
+        '<div class="history-empty"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có lần làm nào được ghi lại</div>';
     }
-  );
+    showToast('Đã xóa', 'success');
+  };
+  modal.classList.add('visible');
 };
 
 // ===== QUESTION EDITOR =====
@@ -1524,10 +1496,9 @@ window.submitMultiFill = function(qi) {
   playTone(allCorrect?'correct':'wrong');
   showQuestion(qi);
   if(allCorrect) spawnConfetti();
+  else spawnWrongEffect();
   updateSidebarStats();
 };
-
-// Play answer audio on click
 let _answerAudioEl = null;
 window.playAnswerAudio = function(btn, encodedUrl) {
   // Stop previous
@@ -1555,11 +1526,19 @@ window.editFillAnswer = function(qi, val) {
 };
 window.syncFormToText = syncFormToText;
 window.syncTextToForm = syncTextToForm;
+
+// Re-render inline edit box content only (used instead of renderQuestions when in inline mode)
+function reRenderInlineEdit() {
+  if(inlineEditQIndex === null || !editQuestions[0]) return;
+  const content = document.getElementById('inline-edit-content');
+  if(!content) return;
+  renderQuestionItem(editQuestions[0], 0, content, true);
+}
 window.editQType = function(qi, type) {
   if(editQuestions[qi]){
     editQuestions[qi].type=type;
-    renderQuestions();
-    setTimeout(() => syncFormToText(qi), 0);
+    if(inlineEditQIndex !== null) { reRenderInlineEdit(); }
+    else { renderQuestions(); setTimeout(() => syncFormToText(qi), 0); }
   }
 };
 window.editAns = function(qi, ai, field, val, single) {
@@ -1578,15 +1557,14 @@ window.editAns = function(qi, ai, field, val, single) {
 window.addAnswer = function(qi) {
   if(!editQuestions[qi]) return;
   editQuestions[qi].answers.push({text:'',correct:false});
-  renderQuestions();
-  // After re-render, re-sync text panel
-  setTimeout(() => syncFormToText(qi), 0);
+  if(inlineEditQIndex !== null) { reRenderInlineEdit(); }
+  else { renderQuestions(); setTimeout(() => syncFormToText(qi), 0); }
 };
 window.removeAnswer = function(qi, ai) {
   if(!editQuestions[qi]) return;
   editQuestions[qi].answers.splice(ai,1);
-  renderQuestions();
-  setTimeout(() => syncFormToText(qi), 0);
+  if(inlineEditQIndex !== null) { reRenderInlineEdit(); }
+  else { renderQuestions(); setTimeout(() => syncFormToText(qi), 0); }
 };
 window.removeQuestion = function(qi) {
   editQuestions.splice(qi,1);
@@ -1639,6 +1617,7 @@ window.saveQuiz = async function() {
       allowedUsers: getSelectedUserAssign(),
       defaultType: document.getElementById('quiz-default-type')?.value||'single',
       showNewBadge: document.getElementById('quiz-show-new-badge')?.checked||false,
+      showIpa: document.getElementById('quiz-show-ipa')?.checked !== false,
       ttsAuto: document.getElementById('quiz-tts-auto')?.checked !== false,
       ttsAccent: document.getElementById('quiz-tts-accent')?.value || 'en-GB',
     },
@@ -1804,16 +1783,20 @@ function showQuestion(idx) {
   let answersHtml_mc = q.answers.map((a, ai) => {
     let cls = 'answer-option';
     let icon = '';
+    let selectedBadge = '';
     if(done) {
       cls += ' disabled';
       const sel = state.selected.includes(ai);
+      const isMulti = q.type === 'multi';
       if(a.correct && sel){ cls+=' selected-correct'; icon='<i class="fas fa-check-circle answer-icon" style="color:var(--correct)"></i>'; }
       else if(a.correct && !sel){ cls+=' correct'; icon='<i class="fas fa-check-circle answer-icon" style="color:var(--correct)"></i>'; }
       else if(!a.correct && sel){ cls+=' selected-wrong'; icon='<i class="fas fa-times-circle answer-icon" style="color:var(--wrong)"></i>'; }
+      if(isMulti && sel) selectedBadge = '<span class="multi-selected-badge"><i class="fas fa-hand-pointer"></i> Đã chọn</span>';
     }
     return `<div class="${cls}" onclick="${done?'':'selectAnswer('+idx+','+ai+')'}" id="opt-${idx}-${ai}">
       <div class="answer-key">${letters[ai]||ai+1}</div>
       <div class="answer-text" data-text="${encodeURIComponent(a.text||'(Chưa có nội dung)')}"></div>
+      ${selectedBadge}
       ${a.audioUrl?`<button class="answer-audio-btn" onclick="event.stopPropagation();playAnswerAudio(this,'${encodeURIComponent(a.audioUrl)}')" title="Nghe"><i class="fas fa-volume-up"></i></button>`:''}
       ${icon}
     </div>`;
@@ -1829,12 +1812,8 @@ function showQuestion(idx) {
 
   // Like/Dislike reaction (always visible after question loads)
   const qReaction = questionReactions[idx];
-  const likedCls = qReaction === 'like' ? ' liked' : '';
-  const dislikedCls = qReaction === 'dislike' ? ' disliked' : '';
   const reactionHtml = `<div class="q-reaction-row">
     <span class="q-reaction-label"><i class="fas fa-tag" style="margin-right:4px"></i>Đánh dấu câu này:</span>
-    <button class="q-react-btn${likedCls}" id="react-like-${idx}" onclick="reactQuestion(${idx},'like')"><i class="fas fa-thumbs-up"></i> Hay</button>
-    <button class="q-react-btn${dislikedCls}" id="react-dislike-${idx}" onclick="reactQuestion(${idx},'dislike')"><i class="fas fa-thumbs-down"></i> Dở</button>
   </div>`;
 
   let explanHtml = '';
@@ -1875,9 +1854,12 @@ function showQuestion(idx) {
     if(q.type==='multifill') qtd.style.display='none';
     else applyMath(qtd, q.text || '');
   }
-  // IPA phiên âm: hiện cho toàn bộ câu hỏi (không áp dụng multifill)
-  if(q.type !== 'multifill') {
+  // IPA phiên âm: chỉ hiện nếu bộ đề bật showIpa (mặc định bật)
+  if(q.type !== 'multifill' && currentQuizMeta?.settings?.showIpa !== false) {
     renderIpaDisplay(idx, q.text || '');
+  } else if(q.type !== 'multifill') {
+    const ipaEl = document.getElementById('ipa-display-'+idx);
+    if(ipaEl) ipaEl.style.display='none';
   }
   if(q.type==='multifill') {
     const mfDisp = document.getElementById('mf-qdisplay-'+idx);
@@ -1973,6 +1955,7 @@ window.selectAnswer = function(qi, ai) {
     playTone(correct?'correct':'wrong');
     showQuestion(qi);
     if(correct) spawnConfetti();
+    else spawnWrongEffect();
     updateSidebarStats();
   } else {
     // multi: highlight selection, user must confirm
@@ -2216,6 +2199,7 @@ window.submitFill = function(qi) {
   playTone(finalCorrect ? 'correct' : 'wrong');
   showQuestion(qi);
   if(finalCorrect) spawnConfetti();
+  else spawnWrongEffect();
   updateSidebarStats();
 };
 
@@ -2229,6 +2213,7 @@ window.confirmMulti = function(qi) {
   playTone(correct?'correct':'wrong');
   showQuestion(qi);
   if(correct) spawnConfetti();
+  else spawnWrongEffect();
   updateSidebarStats();
 };
 
@@ -2241,229 +2226,10 @@ window.undoAnswer = function(qi) {
   updateNavItem(qi);
 };
 
-// ===== LIKE / DISLIKE REACTIONS =====
-window.reactQuestion = function(qi, type) {
-  const prev = questionReactions[qi];
-  // Toggle off if same
-  questionReactions[qi] = (prev === type) ? null : type;
-  // Update buttons in-place without re-rendering whole question
-  const likeBtn = document.getElementById('react-like-'+qi);
-  const dislikeBtn = document.getElementById('react-dislike-'+qi);
-  if(likeBtn) likeBtn.className = 'q-react-btn' + (questionReactions[qi]==='like' ? ' liked' : '');
-  if(dislikeBtn) dislikeBtn.className = 'q-react-btn' + (questionReactions[qi]==='dislike' ? ' disliked' : '');
-};
 
-// ===== RATING SYSTEM =====
-let _currentRatingVal = 0;
 
-function openRatingModal(quizId, likedQs) {
-  _currentRatingVal = 0;
-  const quiz = quizzesCache[quizId];
-  document.getElementById('rating-quiz-name').textContent = quiz?.name || 'Bộ đề này';
-  document.getElementById('rating-comment').value = '';
-  // Reset stars
-  document.querySelectorAll('.rating-star').forEach(s => { s.classList.remove('active'); s.style.color = ''; });
-  // Liked/disliked summary
-  const summaryEl = document.getElementById('rating-liked-summary');
-  const likes = likedQs.filter(r => r.reaction === 'like');
-  const dislikes = likedQs.filter(r => r.reaction === 'dislike');
-  let summaryHtml = '';
-  if(likes.length > 0 || dislikes.length > 0) {
-    summaryHtml = '<div class="liked-qs-section">';
-    if(likes.length > 0) {
-      summaryHtml += `<div class="liked-qs-title"><i class="fas fa-thumbs-up" style="color:var(--accent2)"></i> Câu hay (${likes.length}):</div>`;
-      likes.forEach(r => {
-        summaryHtml += `<div class="liked-q-item like"><i class="fas fa-check" style="color:var(--accent2);flex-shrink:0;margin-top:2px"></i><span>${escHtml(r.text)}</span></div>`;
-      });
-    }
-    if(dislikes.length > 0) {
-      summaryHtml += `<div class="liked-qs-title" style="margin-top:6px"><i class="fas fa-thumbs-down" style="color:var(--wrong)"></i> Câu Dở (${dislikes.length}):</div>`;
-      dislikes.forEach(r => {
-        summaryHtml += `<div class="liked-q-item dislike"><i class="fas fa-exclamation" style="color:var(--wrong);flex-shrink:0;margin-top:2px"></i><span>${escHtml(r.text)}</span></div>`;
-      });
-    }
-    summaryHtml += '</div>';
-  }
-  summaryEl.innerHTML = summaryHtml;
-  // Show the panel
-  document.getElementById('rating-panel').classList.remove('hidden');
-  // Star click handlers
-  document.querySelectorAll('.rating-star').forEach(star => {
-    star.onclick = () => {
-      _currentRatingVal = parseInt(star.dataset.val);
-      document.querySelectorAll('.rating-star').forEach((s, i) => {
-        s.classList.toggle('active', i < _currentRatingVal);
-        s.style.color = i < _currentRatingVal ? 'var(--accent4)' : '';
-      });
-    };
-    star.onmouseenter = () => {
-      const v = parseInt(star.dataset.val);
-      document.querySelectorAll('.rating-star').forEach((s, i) => {
-        s.style.color = i < v ? 'var(--accent4)' : (i < _currentRatingVal ? 'var(--accent4)' : '');
-      });
-    };
-    star.onmouseleave = () => {
-      document.querySelectorAll('.rating-star').forEach((s, i) => {
-        s.style.color = i < _currentRatingVal ? 'var(--accent4)' : '';
-      });
-    };
-  });
-}
 
-window.skipRating = function() {
-  document.getElementById('rating-panel').classList.add('hidden');
-};
 
-window.submitRating = async function() {
-  const quizId = currentQuizMeta?.id;
-  if(!quizId) return;
-  const stars = _currentRatingVal;
-  const comment = document.getElementById('rating-comment').value.trim();
-  if(stars === 0) {
-    showToast('Hãy chọn số sao đánh giá!', 'error');
-    return;
-  }
-  // Build liked questions list
-  const likedQs = buildReactionList();
-  const entry = {
-    stars,
-    comment,
-    likedQs,
-    ts: Date.now(),
-    user: getCurrentUser() || 'anonymous'
-  };
-  try {
-    await push(ref(db, 'app_data/ratings/'+quizId), entry);
-  } catch(e) {
-    const data = JSON.parse(localStorage.getItem('qm_ratings')||'{}');
-    if(!data[quizId]) data[quizId] = [];
-    data[quizId].push(entry);
-    localStorage.setItem('qm_ratings', JSON.stringify(data));
-  }
-  document.getElementById('rating-panel').classList.add('hidden');
-  showToast('Cảm ơn bạn đã đánh giá! ⭐', 'success');
-};
-
-function buildReactionList() {
-  return Object.entries(questionReactions)
-    .filter(([, r]) => r !== null)
-    .map(([qi, reaction]) => {
-      const q = quizQuestions[parseInt(qi)];
-      const text = (q?.text||'').substring(0, 80);
-      // Try to find the original index in the unshuffled quiz for reliable edit navigation
-      const origQuestions = currentQuizMeta ? (quizzesCache[currentQuizMeta.id]?.questions || []) : [];
-      const origIdx = origQuestions.findIndex(oq => oq.text === q?.text);
-      return {
-        qi: origIdx >= 0 ? origIdx : parseInt(qi), // prefer original index
-        text,
-        reaction
-      };
-    });
-}
-
-async function showRatingsForQuiz(quizId) {
-  let entries = [];
-  try {
-    const snap = await get(ref(db, 'app_data/ratings/'+quizId));
-    const val = snap.val();
-    if(val && typeof val === 'object') {
-      entries = Object.entries(val).map(([k,v])=>({key:k, data:v})).sort((a,b)=>b.data.ts-a.data.ts);
-    }
-  } catch(e) {
-    const data = JSON.parse(localStorage.getItem('qm_ratings')||'{}');
-    entries = (data[quizId]||[]).slice().reverse().map((v,i)=>({key:String(i),data:v}));
-  }
-  return entries;
-}
-
-window.switchHistoryTab = function(tab) {
-  const tabHistory = document.getElementById('history-tab-history');
-  const tabRatings = document.getElementById('history-tab-ratings');
-  const btnHistory = document.getElementById('htab-history');
-  const btnRatings = document.getElementById('htab-ratings');
-  if(tab === 'history') {
-    tabHistory.style.display = ''; tabRatings.style.display = 'none';
-    btnHistory.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:rgba(108,99,255,.12);color:var(--accent);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
-    btnRatings.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
-  } else {
-    tabHistory.style.display = 'none'; tabRatings.style.display = '';
-    btnRatings.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:rgba(108,99,255,.12);color:var(--accent);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
-    btnHistory.style.cssText = 'padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.82rem;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .2s';
-    // Lazy load ratings
-    loadRatingsTab(_currentHistoryQuizId);
-  }
-};
-
-async function loadRatingsTab(quizId) {
-  const el = document.getElementById('ratings-modal-entries');
-  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
-  const entries = await showRatingsForQuiz(quizId);
-  if(entries.length === 0) {
-    el.innerHTML = '<div class="history-empty"><i class="fas fa-star" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có đánh giá nào</div>';
-    return;
-  }
-  // Tổng hợp sao
-  const avg = entries.reduce((s, e) => s + (e.data.stars||0), 0) / entries.length;
-  const starsStr = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
-  el.innerHTML = `<div style="text-align:center;padding:10px 0 16px;border-bottom:1px solid var(--border);margin-bottom:12px">
-    <div style="font-size:1.5rem;color:var(--accent4);letter-spacing:4px">${starsStr}</div>
-    <div style="font-size:.85rem;color:var(--text2);margin-top:4px">${avg.toFixed(1)} / 5 &nbsp;·&nbsp; ${entries.length} đánh giá</div>
-  </div>` + entries.map(item => {
-    const en = item.data;
-    const date = new Date(en.ts);
-    const dateStr = date.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'});
-    const starsHtml = '★'.repeat(en.stars||0) + '☆'.repeat(5-(en.stars||0));
-    const likes = (en.likedQs||[]).filter(r=>r.reaction==='like');
-    const dislikes = (en.likedQs||[]).filter(r=>r.reaction==='dislike');
-    let reactSummary = '';
-    if(likes.length > 0) reactSummary += `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:.7rem;color:var(--accent2);flex-shrink:0"><i class="fas fa-thumbs-up"></i></span>${likes.map(r=>`<span onclick="openQuizEditAtQuestion('${quizId}',${r.qi})" title="Nhấn để chỉnh sửa câu này" style="font-size:.7rem;padding:2px 8px;border-radius:12px;background:rgba(0,212,170,.1);border:1px solid var(--accent2);color:var(--accent2);cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(0,212,170,.25)'" onmouseout="this.style.background='rgba(0,212,170,.1)'">${escHtml((r.text||'').substring(0,40)+((r.text||'').length>40?'…':''))}</span>`).join('')}</div>`;
-    if(dislikes.length > 0) reactSummary += `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:.7rem;color:var(--wrong);flex-shrink:0"><i class="fas fa-thumbs-down"></i></span>${dislikes.map(r=>`<span onclick="openQuizEditAtQuestion('${quizId}',${r.qi})" title="Nhấn để chỉnh sửa câu này" style="font-size:.7rem;padding:2px 8px;border-radius:12px;background:rgba(255,107,107,.1);border:1px solid var(--wrong);color:var(--wrong);cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,107,107,.25)'" onmouseout="this.style.background='rgba(255,107,107,.1)'">${escHtml((r.text||'').substring(0,40)+((r.text||'').length>40?'…':''))}</span>`).join('')}</div>`;
-    return `<div class="history-entry" id="rating-entry-${item.key}" style="align-items:flex-start">
-      <div style="flex:1">
-        <div style="color:var(--accent4);font-size:1rem;letter-spacing:2px">${starsHtml}</div>
-        ${en.comment ? `<div style="margin-top:4px;font-size:.85rem;color:var(--text);font-style:italic">"${escHtml(en.comment)}"</div>` : ''}
-        ${reactSummary}
-        <div style="margin-top:5px;font-size:.72rem;color:var(--text3)"><i class="fas fa-calendar-alt"></i> ${dateStr}</div>
-      </div>
-      <button onclick="promptDeleteRatingEntry('${quizId}','${item.key}')" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:8px" title="Xóa đánh giá này" onmouseover="this.style.background='var(--wrong)';this.style.color='#fff'" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text3)'"><i class="fas fa-times"></i></button>
-    </div>`;
-  }).join('');
-}
-
-window.promptDeleteRatingEntry = function(quizId, entryKey) {
-  openPwdModal(
-    'Xóa đánh giá này',
-    'Nhập mật khẩu để xóa đánh giá này.',
-    async () => {
-      try { await remove(ref(db, `app_data/ratings/${quizId}/${entryKey}`)); } catch(e2) {}
-      document.getElementById('rating-entry-'+entryKey)?.remove();
-      const remaining = document.querySelectorAll('#ratings-modal-entries .history-entry');
-      if(!remaining.length) {
-        document.getElementById('ratings-modal-entries').innerHTML =
-          '<div class="history-empty"><i class="fas fa-star" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có đánh giá nào</div>';
-      }
-      showToast('Đã xóa đánh giá', 'success');
-    }
-  );
-};
-
-window.promptClearRatings = function() {
-  if(!_currentHistoryQuizId) return;
-  const quiz = quizzesCache[_currentHistoryQuizId];
-  openPwdModal(
-    'Xóa tất cả đánh giá',
-    `Xóa toàn bộ đánh giá của "${quiz?.name||'bộ đề này'}"? Không thể hoàn tác.`,
-    async () => {
-      try { await remove(ref(db, 'app_data/ratings/'+_currentHistoryQuizId)); } catch(e) {}
-      const data = JSON.parse(localStorage.getItem('qm_ratings')||'{}');
-      delete data[_currentHistoryQuizId];
-      localStorage.setItem('qm_ratings', JSON.stringify(data));
-      showToast('Đã xóa tất cả đánh giá', 'success');
-      document.getElementById('ratings-modal-entries').innerHTML =
-        '<div class="history-empty"><i class="fas fa-star" style="font-size:2rem;display:block;margin-bottom:8px"></i>Chưa có đánh giá nào</div>';
-    }
-  );
-};
 
 // ===== JUMP TO QUESTION IN EDIT FORM =====
 // qi here is the shuffled session index stored in reactions — we match by question text
@@ -2534,7 +2300,7 @@ function getQuizOrder() {
   if(stored && Array.isArray(stored)) {
     // Merge: keep stored order for existing ids, append any new ones
     const ordered = stored.filter(id => allIds.includes(id));
-    allIds.forEach(id => { if(!ordered.includes(id)) ordered.push(id); });
+    allIds.forEach(id => { if(!ordered.includes(id)) ordered.unshift(id); }); // new quizzes go to top
     return ordered;
   }
   return allIds;
@@ -2805,7 +2571,6 @@ window.showQuizHistory = async function(quizId, e) {
   entriesEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
   modal.classList.add('visible');
   // Always reset to history tab
-  switchHistoryTab('history');
 
   let entries = []; // [{key, data}]
   try {
@@ -2926,19 +2691,15 @@ window.doFinishQuiz = async function() {
       likedQs
     });
     renderQuizGrid();
-    // Show rating modal after a short delay
-    setTimeout(() => openRatingModal(currentQuizMeta.id, likedQs), 600);
   }
 };
 
 window.retryQuiz = function() {
   document.getElementById('result-overlay').classList.remove('visible');
-  document.getElementById('rating-panel').classList.add('hidden');
   if(currentQuizMeta?.id) startQuiz(currentQuizMeta.id);
 };
 window.reviewQuiz = function() {
   document.getElementById('result-overlay').classList.remove('visible');
-  document.getElementById('rating-panel').classList.add('hidden');
   isReviewMode = true;
   showQuestion(0);
 };
@@ -2946,28 +2707,25 @@ window.exitQuiz = function() {
   clearInterval(timerInterval);
   ttsStop();
   document.getElementById('result-overlay').classList.remove('visible');
-  document.getElementById('rating-panel').classList.add('hidden');
   document.getElementById('quiz-sidebar').classList.remove('mobile-visible');
   showPage('home');
 };
 
 // ===== INLINE EDIT =====
 window.openInlineEdit = function(qi) {
-  // find original question in the quiz
   const q = quizQuestions[qi];
   inlineEditQIndex = qi;
-  // create temp edit copy
   editQuestions = [JSON.parse(JSON.stringify(q))];
-  const content = document.getElementById('inline-edit-content');
-  content.innerHTML = '';
-  renderQuestionItem(editQuestions[0], 0, content, true);
-  // Reset button state
+  const editContent = document.getElementById('inline-edit-content');
+  editContent.innerHTML = '';
+  renderQuestionItem(editQuestions[0], 0, editContent, true);
   const inlineBtn = document.getElementById('inline-save-btn');
-  if(inlineBtn) {
-    inlineBtn.disabled = false;
-    inlineBtn.innerHTML = '<i class="fas fa-save"></i> Lưu thay đổi';
-  }
-  document.getElementById('inline-edit-overlay').classList.add('visible');
+  if(inlineBtn) { inlineBtn.disabled = false; inlineBtn.innerHTML = '<i class="fas fa-save"></i> Lưu thay đổi'; }
+  // Teleport to body so position:fixed escapes overflow stacking context of quiz-main
+  const overlay = document.getElementById('inline-edit-overlay');
+  if(overlay.parentNode !== document.body) document.body.appendChild(overlay);
+  overlay.offsetHeight; // force reflow
+  overlay.classList.add('visible');
 };
 window.closeInlineEdit = function() {
   document.getElementById('inline-edit-overlay').classList.remove('visible');
@@ -3294,15 +3052,289 @@ function getWrongPraise(){
   return p[Math.floor(Math.random()*p.length)];
 }
 
+// ===== CORRECT EFFECT: Star Burst + Light Rays =====
 function spawnConfetti(n=20) {
-  const colors=['#6c63ff','#00d4aa','#ffd93d','#ff6b6b','#fff'];
-  for(let i=0;i<n;i++){
-    const el=document.createElement('div');
-    el.className='confetti-piece';
-    el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*.5}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(),3500);
+  // Keep old confetti as backup for results page (n>20)
+  if(n > 20) {
+    const colors=['#6c63ff','#00d4aa','#ffd93d','#ff6b6b','#fff'];
+    for(let i=0;i<n;i++){
+      const el=document.createElement('div');
+      el.className='confetti-piece';
+      el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*.5}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),3500);
+    }
+    return;
   }
+  spawnCorrectEffect();
+}
+
+function spawnCorrectEffect() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:7999';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+
+  // --- Light rays ---
+  const RAY_COUNT = 16;
+  const rays = Array.from({length: RAY_COUNT}, (_, i) => ({
+    angle: (i / RAY_COUNT) * Math.PI * 2 + Math.random() * 0.2,
+    len: 0,
+    maxLen: 0.52 * Math.max(W, H),
+    width: 18 + Math.random() * 28,
+    alpha: 0,
+    color: Math.random() > 0.5 ? [255, 230, 80] : [255, 255, 200],
+  }));
+
+  // --- Stars (particles) ---
+  const STAR_COUNT = 22;
+  const stars = Array.from({length: STAR_COUNT}, () => {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 3.5 + Math.random() * 5;
+    return {
+      x: cx, y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 3 + Math.random() * 5,
+      alpha: 1,
+      color: [
+        [255, 230, 80],
+        [255, 200, 50],
+        [200, 255, 180],
+        [120, 220, 255],
+        [255, 255, 255],
+      ][Math.floor(Math.random() * 5)],
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.25,
+    };
+  });
+
+  // --- Central flash ---
+  let flashAlpha = 0.85;
+
+  let frame = 0;
+  const TOTAL = 70;
+
+  function drawStar5(ctx, x, y, r, rot) {
+    ctx.beginPath();
+    for(let i = 0; i < 10; i++) {
+      const a = rot + (i * Math.PI) / 5 - Math.PI / 2;
+      const rr = i % 2 === 0 ? r : r * 0.42;
+      i === 0 ? ctx.moveTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr)
+               : ctx.lineTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr);
+    }
+    ctx.closePath();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const t = frame / TOTAL;
+
+    // Central flash
+    if(flashAlpha > 0) {
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 120);
+      grad.addColorStop(0, `rgba(255,255,200,${flashAlpha})`);
+      grad.addColorStop(0.4, `rgba(255,230,80,${flashAlpha * 0.5})`);
+      grad.addColorStop(1, 'rgba(255,200,50,0)');
+      ctx.beginPath(); ctx.arc(cx, cy, 120, 0, Math.PI*2);
+      ctx.fillStyle = grad; ctx.fill();
+      flashAlpha -= 0.06;
+    }
+
+    // Light rays (bloom in, then fade)
+    rays.forEach(r => {
+      r.len = Math.min(r.maxLen, r.len + r.maxLen * 0.09);
+      r.alpha = t < 0.35 ? t / 0.35 * 0.38 : (1 - (t - 0.35) / 0.65) * 0.38;
+      const ex = cx + Math.cos(r.angle) * r.len;
+      const ey = cy + Math.sin(r.angle) * r.len;
+      const grad = ctx.createLinearGradient(cx, cy, ex, ey);
+      grad.addColorStop(0, `rgba(${r.color},${r.alpha})`);
+      grad.addColorStop(0.6, `rgba(${r.color},${r.alpha * 0.5})`);
+      grad.addColorStop(1, `rgba(${r.color},0)`);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(
+        cx + Math.cos(r.angle - 0.08) * r.len,
+        cy + Math.sin(r.angle - 0.08) * r.len
+      );
+      ctx.lineTo(ex, ey);
+      ctx.lineTo(
+        cx + Math.cos(r.angle + 0.08) * r.len,
+        cy + Math.sin(r.angle + 0.08) * r.len
+      );
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Star particles
+    stars.forEach(s => {
+      s.x += s.vx; s.y += s.vy;
+      s.vy += 0.12; // gravity
+      s.alpha = Math.max(0, 1 - t * 1.2);
+      s.rot += s.rotSpeed;
+      ctx.save();
+      ctx.globalAlpha = s.alpha;
+      // glow
+      const sg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size * 3);
+      sg.addColorStop(0, `rgba(${s.color},0.6)`);
+      sg.addColorStop(1, `rgba(${s.color},0)`);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.size * 3, 0, Math.PI*2);
+      ctx.fillStyle = sg; ctx.fill();
+      // star shape
+      drawStar5(ctx, s.x, s.y, s.size, s.rot);
+      ctx.fillStyle = `rgb(${s.color})`;
+      ctx.fill();
+      ctx.restore();
+    });
+
+    frame++;
+    if(frame < TOTAL) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  draw();
+}
+
+// ===== WRONG EFFECT: Black Hole + Red Crack =====
+function spawnWrongEffect() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:7999';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+
+  // --- Black hole rings ---
+  let bhRadius = 0;
+  const BH_MAX = 90;
+
+  // --- Cracks (lightning-like bolts from center) ---
+  const CRACK_COUNT = 9;
+  function makeCrack() {
+    const angle = Math.random() * Math.PI * 2;
+    const segs = 5 + Math.floor(Math.random() * 4);
+    const pts = [{x: cx, y: cy}];
+    let ax = cx, ay = cy;
+    const baseLen = 60 + Math.random() * 80;
+    for(let i = 0; i < segs; i++) {
+      const dev = (Math.random() - 0.5) * 0.7;
+      const len = baseLen / segs * (0.7 + Math.random() * 0.6);
+      ax += Math.cos(angle + dev) * len;
+      ay += Math.sin(angle + dev) * len;
+      pts.push({x: ax, y: ay});
+    }
+    return { pts, alpha: 0.95, color: Math.random() > 0.4 ? [255, 60, 60] : [200, 0, 180] };
+  }
+  const cracks = Array.from({length: CRACK_COUNT}, makeCrack);
+
+  // --- Debris particles sucked inward ---
+  const DEBRIS = 28;
+  const debris = Array.from({length: DEBRIS}, () => {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 200;
+    return {
+      x: cx + Math.cos(angle) * dist,
+      y: cy + Math.sin(angle) * dist,
+      alpha: 0.8 + Math.random() * 0.2,
+      size: 2 + Math.random() * 4,
+      color: Math.random() > 0.5 ? [255, 60, 60] : [120, 0, 180],
+    };
+  });
+
+  // --- Screen flash (dark red) ---
+  let flashAlpha = 0.32;
+
+  let frame = 0;
+  const TOTAL = 68;
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const t = frame / TOTAL;
+
+    // Dark flash overlay
+    if(flashAlpha > 0) {
+      ctx.fillStyle = `rgba(120,0,0,${flashAlpha})`;
+      ctx.fillRect(0, 0, W, H);
+      flashAlpha -= 0.025;
+    }
+
+    // Black hole — grows then fades
+    bhRadius = t < 0.5 ? (t / 0.5) * BH_MAX : BH_MAX * (1 - (t - 0.5) / 0.5);
+    if(bhRadius > 1) {
+      // Outer glow (red/purple)
+      const glow = ctx.createRadialGradient(cx, cy, bhRadius * 0.3, cx, cy, bhRadius * 2.8);
+      glow.addColorStop(0, `rgba(160,0,60,${0.55 * (1 - t)})`);
+      glow.addColorStop(0.5, `rgba(80,0,120,${0.3 * (1 - t)})`);
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(cx, cy, bhRadius * 2.8, 0, Math.PI*2);
+      ctx.fillStyle = glow; ctx.fill();
+      // Accretion ring
+      for(let r = bhRadius; r < bhRadius * 1.55; r += 2) {
+        const a = (1 - (r - bhRadius) / (bhRadius * 0.55)) * 0.55 * (1 - t * 0.7);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(255,${Math.floor(40 + (r - bhRadius)*60)},${Math.floor(60*(1-t))},${a})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      // Core black
+      const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, bhRadius);
+      core.addColorStop(0, 'rgba(0,0,0,1)');
+      core.addColorStop(0.7, 'rgba(10,0,20,1)');
+      core.addColorStop(1, 'rgba(40,0,30,0.7)');
+      ctx.beginPath(); ctx.arc(cx, cy, bhRadius, 0, Math.PI*2);
+      ctx.fillStyle = core; ctx.fill();
+    }
+
+    // Cracks
+    cracks.forEach(c => {
+      c.alpha = Math.max(0, c.alpha - 0.022);
+      if(c.alpha <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = c.alpha;
+      ctx.shadowColor = `rgb(${c.color})`;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.moveTo(c.pts[0].x, c.pts[0].y);
+      c.pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.strokeStyle = `rgb(${c.color})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // bright core of crack
+      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    // Debris sucked into hole
+    debris.forEach(d => {
+      const dx = cx - d.x, dy = cy - d.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const pull = (3 + t * 6) / dist;
+      d.x += dx * pull; d.y += dy * pull;
+      d.alpha = Math.max(0, d.alpha - 0.018);
+      if(d.alpha <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = d.alpha;
+      ctx.fillStyle = `rgb(${d.color})`;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.size, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    frame++;
+    if(frame < TOTAL) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  draw();
 }
 
 window.showToast = function(msg, type='success') {
@@ -3319,5 +3351,171 @@ window.showToast = function(msg, type='success') {
   tc.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); },3000);
 };
+
+
+// ===== BACKGROUND CANVAS EFFECTS =====
+(function initBgEffects() {
+  const canvas = document.getElementById('bg-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize, {passive:true});
+
+  // --- SHOOTING STARS ---
+  const shootingStars = [];
+  function spawnShootingStar() {
+    const angle = (Math.random() * 30 + 15) * Math.PI / 180;
+    const speed = 7 + Math.random() * 9;
+    shootingStars.push({
+      x: Math.random() * canvas.width * 1.2, y: -20,
+      vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+      alpha: 0, maxAlpha: 0.8 + Math.random()*0.18, fade:'in', trail:[],
+    });
+  }
+  function scheduleShootingStar() {
+    setTimeout(() => { spawnShootingStar(); scheduleShootingStar(); }, 5000 + Math.random()*13000);
+  }
+  scheduleShootingStar();
+
+  function drawShootingStars() {
+    for(let i=shootingStars.length-1;i>=0;i--) {
+      const s=shootingStars[i];
+      s.trail.push({x:s.x,y:s.y});
+      if(s.trail.length>26) s.trail.shift();
+      s.x+=s.vx; s.y+=s.vy;
+      if(s.fade==='in') { s.alpha=Math.min(s.alpha+0.07,s.maxAlpha); if(s.alpha>=s.maxAlpha) s.fade='out'; }
+      else s.alpha-=0.022;
+      if(s.alpha<=0||s.y>canvas.height+50){shootingStars.splice(i,1);continue;}
+      if(s.trail.length>=2){
+        const grad=ctx.createLinearGradient(s.trail[0].x,s.trail[0].y,s.x,s.y);
+        grad.addColorStop(0,'rgba(255,255,255,0)');
+        grad.addColorStop(0.5,`rgba(200,180,255,${s.alpha*0.6})`);
+        grad.addColorStop(1,`rgba(255,255,255,${s.alpha})`);
+        ctx.beginPath(); ctx.moveTo(s.trail[0].x,s.trail[0].y);
+        s.trail.forEach(p=>ctx.lineTo(p.x,p.y)); ctx.lineTo(s.x,s.y);
+        ctx.strokeStyle=grad; ctx.lineWidth=2.5; ctx.stroke();
+        const g2=ctx.createLinearGradient(s.trail[0].x,s.trail[0].y,s.x,s.y);
+        g2.addColorStop(0,'rgba(140,100,255,0)'); g2.addColorStop(1,`rgba(140,100,255,${s.alpha*0.22})`);
+        ctx.beginPath(); ctx.moveTo(s.trail[0].x,s.trail[0].y);
+        s.trail.forEach(p=>ctx.lineTo(p.x,p.y)); ctx.lineTo(s.x,s.y);
+        ctx.strokeStyle=g2; ctx.lineWidth=7; ctx.stroke();
+      }
+      const grd=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,7);
+      grd.addColorStop(0,`rgba(255,255,255,${s.alpha})`);
+      grd.addColorStop(0.4,`rgba(200,180,255,${s.alpha*0.7})`);
+      grd.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.beginPath(); ctx.arc(s.x,s.y,7,0,Math.PI*2); ctx.fillStyle=grd; ctx.fill();
+    }
+  }
+
+  // --- COSMOS: STARS (chấm tròn, 3 lớp depth) ---
+  // Layer 0: tiny distant stars (nhiều, mờ, nhỏ)
+  // Layer 1: mid stars (twinkle nhẹ, màu ấm/lạnh)
+  // Layer 2: bright close stars (ít, sáng, có halo)
+  const STAR_LAYERS = [
+    { count:220, rMin:0.3, rMax:0.8,  alphaMin:0.08, alphaMax:0.28, speed:0,      colors:[[255,255,255],[220,220,255],[255,240,220]] },
+    { count:90,  rMin:0.8, rMax:1.6,  alphaMin:0.20, alphaMax:0.55, speed:0.0001, colors:[[255,255,255],[180,160,255],[160,220,255],[255,200,180]] },
+    { count:28,  rMin:1.4, rMax:2.6,  alphaMin:0.45, alphaMax:0.85, speed:0.0002, colors:[[255,255,255],[200,180,255],[140,210,255]] },
+  ];
+  const allStars = [];
+  STAR_LAYERS.forEach((layer, li) => {
+    for(let i=0;i<layer.count;i++){
+      const col = layer.colors[Math.floor(Math.random()*layer.colors.length)];
+      allStars.push({
+        x: Math.random()*window.innerWidth,
+        y: Math.random()*window.innerHeight,
+        r: layer.rMin + Math.random()*(layer.rMax - layer.rMin),
+        baseAlpha: layer.alphaMin + Math.random()*(layer.alphaMax - layer.alphaMin),
+        twinkle: Math.random()*Math.PI*2,
+        twinkleSpeed: 0.006 + Math.random()*0.022,
+        twinkleAmp: 0.3 + Math.random()*0.55,
+        color: col,
+        layer: li,
+        speed: layer.speed,
+        vx: (Math.random()-0.5)*layer.speed,
+        vy: (Math.random()-0.5)*layer.speed * 0.3,
+      });
+    }
+  });
+
+  // --- NEBULA ORBS (glow mờ, trôi chậm như thiên hà) ---
+  const nebulae = [
+    {x:0.12, y:0.18, rx:0.38, ry:0.30, color:[108,99,255],  alpha:0.055, sp:0.00045, ax:0.28, ay:0.22},
+    {x:0.78, y:0.55, rx:0.42, ry:0.34, color:[0,212,170],   alpha:0.045, sp:0.00055, ax:-0.24,ay:0.26},
+    {x:0.48, y:0.88, rx:0.36, ry:0.28, color:[180,100,255], alpha:0.040, sp:0.00038, ax:0.18, ay:-0.18},
+    {x:0.88, y:0.08, rx:0.30, ry:0.26, color:[80,160,255],  alpha:0.035, sp:0.00050, ax:-0.20,ay:0.15},
+    {x:0.35, y:0.45, rx:0.28, ry:0.22, color:[255,120,180], alpha:0.030, sp:0.00042, ax:0.15, ay:0.20},
+  ];
+
+  let t = 0;
+
+  function drawNebulae() {
+    nebulae.forEach(o => {
+      const cx = (o.x + Math.sin(t*o.sp + o.ax)*0.16) * canvas.width;
+      const cy = (o.y + Math.cos(t*o.sp + o.ay)*0.13) * canvas.height;
+      const rx = o.rx * canvas.width;
+      const ry = o.ry * canvas.height;
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+      const [r,g,b] = o.color;
+      grd.addColorStop(0,   `rgba(${r},${g},${b},${o.alpha})`);
+      grd.addColorStop(0.45,`rgba(${r},${g},${b},${o.alpha*0.4})`);
+      grd.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+      ctx.save();
+      ctx.scale(1, ry/rx);
+      ctx.beginPath();
+      ctx.arc(cx, cy*(rx/ry), rx, 0, Math.PI*2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  function drawStars() {
+    allStars.forEach(s => {
+      s.twinkle += s.twinkleSpeed;
+      // drift nhẹ cho layer 1,2
+      if(s.layer > 0) {
+        s.x += s.vx; s.y += s.vy;
+        if(s.x < -5) s.x = canvas.width+5;
+        if(s.x > canvas.width+5) s.x = -5;
+        if(s.y < -5) s.y = canvas.height+5;
+        if(s.y > canvas.height+5) s.y = -5;
+      }
+      const tw = s.twinkleAmp * Math.sin(s.twinkle);
+      const a = Math.max(0, Math.min(1, s.baseAlpha + tw * s.baseAlpha));
+      const [r,g,b] = s.color;
+
+      // Layer 2 (bright): vẽ halo glow
+      if(s.layer === 2) {
+        const halo = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r*5);
+        halo.addColorStop(0,   `rgba(${r},${g},${b},${a*0.35})`);
+        halo.addColorStop(0.5, `rgba(${r},${g},${b},${a*0.08})`);
+        halo.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r*5, 0, Math.PI*2);
+        ctx.fillStyle = halo;
+        ctx.fill();
+      }
+
+      // chấm tròn chính
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+      ctx.fill();
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t++;
+    drawNebulae();
+    drawStars();
+    drawShootingStars();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
 
 init();
