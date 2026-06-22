@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove, update, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyARyxrxmbNLaxSdDP14S5YQES5AJnLj-XU",
   authDomain: "mylife-ddd6a.firebaseapp.com",
@@ -545,12 +546,12 @@ let _suppressQuizzesUpdate = false;
 function subscribeQuizzes() {
   const r = ref(db, 'quizzes');
   onValue(r, snap => {
+    // Always hide loading screen on first Firebase response, even if suppressed
+    if(window._hideLoadingScreen) window._hideLoadingScreen();
     if(_suppressQuizzesUpdate) return; // skip our own write echo
     quizzesCache = snap.val() || {};
     renderQuizGrid();
     updateHomeStats();
-    // Ẩn loading screen sau khi data đầu tiên từ Firebase về
-    if(window._hideLoadingScreen) window._hideLoadingScreen();
   }, err => {
     showToast('Lỗi kết nối Firebase: ' + err.message, 'error');
     if(window._hideLoadingScreen) window._hideLoadingScreen();
@@ -1495,8 +1496,6 @@ window.submitMultiFill = function(qi) {
   answers[qi] = { selected:[], correct:allCorrect, userAnswers };
   playTone(allCorrect?'correct':'wrong');
   showQuestion(qi);
-  if(allCorrect) spawnConfetti();
-  else spawnWrongEffect();
   updateSidebarStats();
 };
 let _answerAudioEl = null;
@@ -1813,7 +1812,6 @@ function showQuestion(idx) {
   // Like/Dislike reaction (always visible after question loads)
   const qReaction = questionReactions[idx];
   const reactionHtml = `<div class="q-reaction-row">
-    <span class="q-reaction-label"><i class="fas fa-tag" style="margin-right:4px"></i>Đánh dấu câu này:</span>
   </div>`;
 
   let explanHtml = '';
@@ -1954,8 +1952,6 @@ window.selectAnswer = function(qi, ai) {
     answers[qi] = { selected:[ai], correct };
     playTone(correct?'correct':'wrong');
     showQuestion(qi);
-    if(correct) spawnConfetti();
-    else spawnWrongEffect();
     updateSidebarStats();
   } else {
     // multi: highlight selection, user must confirm
@@ -2198,8 +2194,6 @@ window.submitFill = function(qi) {
   answers[qi] = { selected:[], correct: finalCorrect, userText, diffHtml: bestHtml, pct: bestPct };
   playTone(finalCorrect ? 'correct' : 'wrong');
   showQuestion(qi);
-  if(finalCorrect) spawnConfetti();
-  else spawnWrongEffect();
   updateSidebarStats();
 };
 
@@ -2212,8 +2206,6 @@ window.confirmMulti = function(qi) {
   if(window._multiSel) delete window._multiSel[qi];
   playTone(correct?'correct':'wrong');
   showQuestion(qi);
-  if(correct) spawnConfetti();
-  else spawnWrongEffect();
   updateSidebarStats();
 };
 
@@ -2642,6 +2634,16 @@ window.finishQuiz = function() {
   document.getElementById('submit-confirm-modal').classList.add('visible');
 };
 
+function buildReactionList() {
+  // Build list of {qi, reaction, text} from questionReactions for history saving
+  return Object.entries(questionReactions)
+    .filter(([, r]) => r === 'like' || r === 'dislike')
+    .map(([qi, reaction]) => {
+      const q = quizQuestions[parseInt(qi)];
+      return { qi: parseInt(qi), reaction, text: q?.text || '' };
+    });
+}
+
 window.doFinishQuiz = async function() {
   document.getElementById('submit-confirm-modal').classList.remove('visible');
   clearInterval(timerInterval);
@@ -2680,15 +2682,16 @@ window.doFinishQuiz = async function() {
   document.getElementById('result-emoji').textContent=emoji;
   document.getElementById('result-grade').textContent=grade;
   document.getElementById('result-overlay').classList.add('visible');
-  if(pct>=70) spawnConfetti(30);
+  if(pct>=70) window.spawnConfetti(30);
 
   if(currentQuizMeta?.id) {
     await incrementSession(currentQuizMeta.id);
     setLastPlayedTime(currentQuizMeta.id);
     const likedQs = buildReactionList();
+    const userId = getCurrentUser();
     await saveQuizHistory(currentQuizMeta.id, {
       correct: correctCount, wrong: wrongCount, total, pct, timeUsedSec, ts: Date.now(),
-      likedQs
+      likedQs, userId
     });
     renderQuizGrid();
   }
@@ -3044,292 +3047,6 @@ function getWrongPraise(){
   const p=['❌ Chời ơi chời, sai rồi','😛 Chưa đúng, lêu lêu!','😝 Đồ gà, học thêm đi!','🤔 Sai rồi chế ơi!','😅 Suýt đúng rồi!','🙃 Sai mất tiêu!','📉 Trật rồi nha!','😵 Không đúng rồi!','😬 Gần đúng thôi!','🤨 Nghĩ lại xem!','🔄 Thử lại nào!','📚 Ôn lại chút nhé!','😶 Sai rồi đó!','😑 Không ổn rồi!','😓 Hơi lệch rồi!','😏 Chưa chuẩn đâu!','🧐 Xem kỹ lại nào!','😮 Sai nhẹ rồi!','😬 Lệch hướng rồi!','😜 Sai rồi nha!'];
   return p[Math.floor(Math.random()*p.length)];
 }
-
-// ===== CORRECT EFFECT: Star Burst + Light Rays =====
-function spawnConfetti(n=20) {
-  // Keep old confetti as backup for results page (n>20)
-  if(n > 20) {
-    const colors=['#6c63ff','#00d4aa','#ffd93d','#ff6b6b','#fff'];
-    for(let i=0;i<n;i++){
-      const el=document.createElement('div');
-      el.className='confetti-piece';
-      el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*.5}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
-      document.body.appendChild(el);
-      setTimeout(()=>el.remove(),3500);
-    }
-    return;
-  }
-  spawnCorrectEffect();
-}
-
-function spawnCorrectEffect() {
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:7999';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  document.body.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const cx = W / 2, cy = H / 2;
-
-  // --- Light rays ---
-  const RAY_COUNT = 16;
-  const rays = Array.from({length: RAY_COUNT}, (_, i) => ({
-    angle: (i / RAY_COUNT) * Math.PI * 2 + Math.random() * 0.2,
-    len: 0,
-    maxLen: 0.52 * Math.max(W, H),
-    width: 18 + Math.random() * 28,
-    alpha: 0,
-    color: Math.random() > 0.5 ? [255, 230, 80] : [255, 255, 200],
-  }));
-
-  // --- Stars (particles) ---
-  const STAR_COUNT = 22;
-  const stars = Array.from({length: STAR_COUNT}, () => {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 3.5 + Math.random() * 5;
-    return {
-      x: cx, y: cy,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size: 3 + Math.random() * 5,
-      alpha: 1,
-      color: [
-        [255, 230, 80],
-        [255, 200, 50],
-        [200, 255, 180],
-        [120, 220, 255],
-        [255, 255, 255],
-      ][Math.floor(Math.random() * 5)],
-      rot: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.25,
-    };
-  });
-
-  // --- Central flash ---
-  let flashAlpha = 0.85;
-
-  let frame = 0;
-  const TOTAL = 70;
-
-  function drawStar5(ctx, x, y, r, rot) {
-    ctx.beginPath();
-    for(let i = 0; i < 10; i++) {
-      const a = rot + (i * Math.PI) / 5 - Math.PI / 2;
-      const rr = i % 2 === 0 ? r : r * 0.42;
-      i === 0 ? ctx.moveTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr)
-               : ctx.lineTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr);
-    }
-    ctx.closePath();
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    const t = frame / TOTAL;
-
-    // Central flash
-    if(flashAlpha > 0) {
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 120);
-      grad.addColorStop(0, `rgba(255,255,200,${flashAlpha})`);
-      grad.addColorStop(0.4, `rgba(255,230,80,${flashAlpha * 0.5})`);
-      grad.addColorStop(1, 'rgba(255,200,50,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, 120, 0, Math.PI*2);
-      ctx.fillStyle = grad; ctx.fill();
-      flashAlpha -= 0.06;
-    }
-
-    // Light rays (bloom in, then fade)
-    rays.forEach(r => {
-      r.len = Math.min(r.maxLen, r.len + r.maxLen * 0.09);
-      r.alpha = t < 0.35 ? t / 0.35 * 0.38 : (1 - (t - 0.35) / 0.65) * 0.38;
-      const ex = cx + Math.cos(r.angle) * r.len;
-      const ey = cy + Math.sin(r.angle) * r.len;
-      const grad = ctx.createLinearGradient(cx, cy, ex, ey);
-      grad.addColorStop(0, `rgba(${r.color},${r.alpha})`);
-      grad.addColorStop(0.6, `rgba(${r.color},${r.alpha * 0.5})`);
-      grad.addColorStop(1, `rgba(${r.color},0)`);
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(
-        cx + Math.cos(r.angle - 0.08) * r.len,
-        cy + Math.sin(r.angle - 0.08) * r.len
-      );
-      ctx.lineTo(ex, ey);
-      ctx.lineTo(
-        cx + Math.cos(r.angle + 0.08) * r.len,
-        cy + Math.sin(r.angle + 0.08) * r.len
-      );
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.restore();
-    });
-
-    // Star particles
-    stars.forEach(s => {
-      s.x += s.vx; s.y += s.vy;
-      s.vy += 0.12; // gravity
-      s.alpha = Math.max(0, 1 - t * 1.2);
-      s.rot += s.rotSpeed;
-      ctx.save();
-      ctx.globalAlpha = s.alpha;
-      // glow
-      const sg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size * 3);
-      sg.addColorStop(0, `rgba(${s.color},0.6)`);
-      sg.addColorStop(1, `rgba(${s.color},0)`);
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.size * 3, 0, Math.PI*2);
-      ctx.fillStyle = sg; ctx.fill();
-      // star shape
-      drawStar5(ctx, s.x, s.y, s.size, s.rot);
-      ctx.fillStyle = `rgb(${s.color})`;
-      ctx.fill();
-      ctx.restore();
-    });
-
-    frame++;
-    if(frame < TOTAL) requestAnimationFrame(draw);
-    else canvas.remove();
-  }
-  draw();
-}
-
-// ===== WRONG EFFECT: Black Hole + Red Crack =====
-function spawnWrongEffect() {
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:7999';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  document.body.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const cx = W / 2, cy = H / 2;
-
-  // --- Black hole rings ---
-  let bhRadius = 0;
-  const BH_MAX = 90;
-
-  // --- Cracks (lightning-like bolts from center) ---
-  const CRACK_COUNT = 9;
-  function makeCrack() {
-    const angle = Math.random() * Math.PI * 2;
-    const segs = 5 + Math.floor(Math.random() * 4);
-    const pts = [{x: cx, y: cy}];
-    let ax = cx, ay = cy;
-    const baseLen = 60 + Math.random() * 80;
-    for(let i = 0; i < segs; i++) {
-      const dev = (Math.random() - 0.5) * 0.7;
-      const len = baseLen / segs * (0.7 + Math.random() * 0.6);
-      ax += Math.cos(angle + dev) * len;
-      ay += Math.sin(angle + dev) * len;
-      pts.push({x: ax, y: ay});
-    }
-    return { pts, alpha: 0.95, color: Math.random() > 0.4 ? [255, 60, 60] : [200, 0, 180] };
-  }
-  const cracks = Array.from({length: CRACK_COUNT}, makeCrack);
-
-  // --- Debris particles sucked inward ---
-  const DEBRIS = 28;
-  const debris = Array.from({length: DEBRIS}, () => {
-    const angle = Math.random() * Math.PI * 2;
-    const dist = 80 + Math.random() * 200;
-    return {
-      x: cx + Math.cos(angle) * dist,
-      y: cy + Math.sin(angle) * dist,
-      alpha: 0.8 + Math.random() * 0.2,
-      size: 2 + Math.random() * 4,
-      color: Math.random() > 0.5 ? [255, 60, 60] : [120, 0, 180],
-    };
-  });
-
-  // --- Screen flash (dark red) ---
-  let flashAlpha = 0.32;
-
-  let frame = 0;
-  const TOTAL = 68;
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    const t = frame / TOTAL;
-
-    // Dark flash overlay
-    if(flashAlpha > 0) {
-      ctx.fillStyle = `rgba(120,0,0,${flashAlpha})`;
-      ctx.fillRect(0, 0, W, H);
-      flashAlpha -= 0.025;
-    }
-
-    // Black hole — grows then fades
-    bhRadius = t < 0.5 ? (t / 0.5) * BH_MAX : BH_MAX * (1 - (t - 0.5) / 0.5);
-    if(bhRadius > 1) {
-      // Outer glow (red/purple)
-      const glow = ctx.createRadialGradient(cx, cy, bhRadius * 0.3, cx, cy, bhRadius * 2.8);
-      glow.addColorStop(0, `rgba(160,0,60,${0.55 * (1 - t)})`);
-      glow.addColorStop(0.5, `rgba(80,0,120,${0.3 * (1 - t)})`);
-      glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, bhRadius * 2.8, 0, Math.PI*2);
-      ctx.fillStyle = glow; ctx.fill();
-      // Accretion ring
-      for(let r = bhRadius; r < bhRadius * 1.55; r += 2) {
-        const a = (1 - (r - bhRadius) / (bhRadius * 0.55)) * 0.55 * (1 - t * 0.7);
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.strokeStyle = `rgba(255,${Math.floor(40 + (r - bhRadius)*60)},${Math.floor(60*(1-t))},${a})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-      // Core black
-      const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, bhRadius);
-      core.addColorStop(0, 'rgba(0,0,0,1)');
-      core.addColorStop(0.7, 'rgba(10,0,20,1)');
-      core.addColorStop(1, 'rgba(40,0,30,0.7)');
-      ctx.beginPath(); ctx.arc(cx, cy, bhRadius, 0, Math.PI*2);
-      ctx.fillStyle = core; ctx.fill();
-    }
-
-    // Cracks
-    cracks.forEach(c => {
-      c.alpha = Math.max(0, c.alpha - 0.022);
-      if(c.alpha <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = c.alpha;
-      ctx.shadowColor = `rgb(${c.color})`;
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.moveTo(c.pts[0].x, c.pts[0].y);
-      c.pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
-      ctx.strokeStyle = `rgb(${c.color})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      // bright core of crack
-      ctx.lineWidth = 0.8;
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-      ctx.stroke();
-      ctx.restore();
-    });
-
-    // Debris sucked into hole
-    debris.forEach(d => {
-      const dx = cx - d.x, dy = cy - d.y;
-      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      const pull = (3 + t * 6) / dist;
-      d.x += dx * pull; d.y += dy * pull;
-      d.alpha = Math.max(0, d.alpha - 0.018);
-      if(d.alpha <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = d.alpha;
-      ctx.fillStyle = `rgb(${d.color})`;
-      ctx.beginPath(); ctx.arc(d.x, d.y, d.size, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-    });
-
-    frame++;
-    if(frame < TOTAL) requestAnimationFrame(draw);
-    else canvas.remove();
-  }
-  draw();
-}
-
 window.showToast = function(msg, type='success') {
   let tc = document.getElementById('toast-container');
   if(!tc) {
@@ -3511,4 +3228,6 @@ window.showToast = function(msg, type='success') {
   draw();
 })();
 
+// ===== BOOTSTRAP =====
+// ES module scripts run after DOM is ready, so we can call init() directly
 init();

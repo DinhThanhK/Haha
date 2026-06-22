@@ -93,7 +93,7 @@
   }
 
   /* ===== PAGES ===== */
-  .page { display:none; padding-top:72px; min-height:100vh; }
+  .page { display:none; padding-top:10px; min-height:100vh; }
   .page.active { display:block; }
 
   /* ===== HOME PAGE ===== */
