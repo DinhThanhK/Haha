@@ -105,10 +105,10 @@
   .home-hero h1 span { color:var(--accent); }
   .home-hero p { color:var(--text2); font-size:1rem; }
   .home-stats { display:flex; gap:12px; margin:20px 0; flex-wrap:wrap; }
-  .stat-badge { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 16px; font-size:.82rem; color:var(--text2); display:flex; align-items:center; gap:6px; }
+  .stat-badge { background:var(--bg3); height: 50px; border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 16px; font-size:.82rem; color:var(--text2); display:flex; align-items:center; gap:6px; }
   .stat-badge i { color:var(--accent); }
   .search-bar {
-    display:flex; gap:10px; max-width:480px; margin:20px 0;
+    display:flex; gap:10px; max-width:480px; margin:0px 0;
   }
   .search-input {
     flex:1; padding:10px 16px; border-radius:var(--radius-sm); border:1px solid var(--border);
@@ -793,7 +793,7 @@
   /* ===== USER LOGIN BADGE ===== */
   .user-badge {
     background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:6px 12px; font-size:.82rem; color:var(--text2); display:flex; align-items:center; gap:7px;
+    padding:6px 12px; height: 50px; font-size:.82rem; color:var(--text2); display:flex; align-items:center; gap:7px;
     cursor:pointer; transition:all .2s; user-select:none; position:relative;
   }
   .user-badge:hover { border-color:var(--accent); color:var(--text); }
