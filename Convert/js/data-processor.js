@@ -132,6 +132,7 @@ function buildLayerList() {
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;min-width:0">${name}</span>
       <span class="layer-tags" id="tpills-${CSS.escape(name)}" data-layer="${name}">${tagsHtml}</span>
       <button class="tag-edit-btn" id="tebtn-${CSS.escape(name)}" title="Gán tag cho layer">🏷</button>
+      <button class="layer-copy-btn" title="Sao chép layer (và layer tương tự)" data-copy="${name}">⧉</button>
       <span class="layer-z-controls">
         <button class="layer-z-btn" title="Z-order lên" data-zup="${name}">▲</button>
         <span class="layer-z">${layer.zDepth}</span>
@@ -184,6 +185,10 @@ function buildLayerList() {
     item.querySelector('[data-zdown]').addEventListener('click', e => {
       e.stopPropagation();
       moveLayerZOrder(name, -1);
+    });
+    item.querySelector('.layer-copy-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      copyLayer(name);
     });
     item.addEventListener('click', (e) => {
       highlightLayer(name, e.ctrlKey || e.metaKey);

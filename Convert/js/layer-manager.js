@@ -398,6 +398,100 @@ function splitBitmapToNewLayer(sourceLayer, bitmapPath) {
   highlightLayer(sourceLayer);
 }
 
+// ─── Copy Layer ───────────────────────────────────────────────────────────────
+/**
+ * Sao chép layer (và các similar layer nếu có) thành layer mới.
+ * Layer mới có tên baseName + '_copy' (hoặc '_copy2', '_copy3', ...).
+ * Toàn bộ keyframe data trong tất cả animations được sao chép sâu.
+ */
+function copyLayer(sourceLayerName) {
+  const similar = getSimilarLayers(sourceLayerName);
+  const allTargets = [sourceLayerName, ...similar];
+  const affectedCount = allTargets.length;
+
+  const label = affectedCount > 1
+    ? `Sao chép layer "${sourceLayerName}" + ${affectedCount - 1} layer tương tự`
+    : `Sao chép layer "${sourceLayerName}"`;
+  pushUndo(label);
+
+  const newNames = {};
+  for (const layerName of allTargets) {
+    const newName = _findFreeCopyName(layerName);
+    newNames[layerName] = newName;
+
+    // Tìm layer gốc để lấy zDepth
+    const srcObj = S.layers.find(l => l.name === layerName);
+    const newZDepth = (srcObj?.zDepth ?? 0) + 0.1;
+
+    // Thêm layer mới
+    S.layers.push({ name: newName, zDepth: newZDepth });
+
+    // Copy tags
+    S.layerTags[newName] = [...(S.layerTags[layerName] || [])];
+
+    // Copy toàn bộ keyframe data trong mọi animation (deep clone)
+    for (const aname of Object.keys(S.timeline)) {
+      const srcKfs = (S.timeline[aname] || {})[layerName];
+      if (!srcKfs) continue;
+      // Deep clone keyframes
+      S.timeline[aname][newName] = srcKfs.map(kf => ({
+        time:    kf.time,
+        visible: kf.visible,
+        parts:   (kf.parts || []).map(p => ({ ...p })),
+      }));
+    }
+  }
+
+  buildLayerList();
+  if (S.currentAnim) renderFrame(S.currentAnim, S.currentTime);
+  markDirty();
+  if (typeof markSessionDirty === 'function') markSessionDirty();
+
+  // Highlight layer copy đầu tiên
+  highlightLayer(newNames[sourceLayerName]);
+
+  // Thông báo ngắn
+  _showCopyToast(sourceLayerName, newNames, affectedCount);
+}
+
+function _findFreeCopyName(baseName) {
+  const existing = new Set(S.layers.map(l => l.name));
+  let candidate = baseName + '_copy';
+  let i = 2;
+  while (existing.has(candidate)) {
+    candidate = baseName + '_copy' + i++;
+  }
+  return candidate;
+}
+
+function _showCopyToast(sourceLayer, newNames, count) {
+  // Xóa toast cũ nếu có
+  document.querySelectorAll('.copy-layer-toast').forEach(el => el.remove());
+
+  const toast = document.createElement('div');
+  toast.className = 'copy-layer-toast';
+  const firstNew = newNames[sourceLayer];
+  const msg = count > 1
+    ? `✓ Đã sao chép <b>${sourceLayer}</b> và <b>${count - 1}</b> layer tương tự`
+    : `✓ Đã sao chép <b>${sourceLayer}</b> → <b>${firstNew}</b>`;
+
+  toast.innerHTML = `<div class="copy-toast-msg">${msg}</div>`;
+  toast.style.cssText = `
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--card,#1e1e2e); border:1px solid var(--acc,#7c5cbf);
+    color:var(--fg,#cdd6f4); padding:8px 16px; border-radius:6px;
+    font-size:11px; z-index:9999; pointer-events:none;
+    box-shadow:0 4px 16px rgba(0,0,0,0.4);
+    animation: fadeInUp 0.2s ease;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.3s';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 350);
+  }, 2500);
+}
+
 function _findFreeName(baseName) {
   const existing = new Set(S.layers.map(l => l.name));
   let candidate = baseName + '_x';

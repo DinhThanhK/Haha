@@ -3,7 +3,7 @@
   --bdr:#252532; --bdr2:#2e2e3e;
   --acc:#00ffb4; --acc2:#00c8ff; --acc3:#a78bfa;
   --red:#ff4466; --amb:#ffb020; --grn:#22d17a;
-  --txt:#d8dced; --mut:#4a4a62; --mut2:#6a6a88;
+  --txt:#d8dced; --mut:#cdcdcd; --mut2:#bcbcc9;
   --r:8px; --font:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}

@@ -46,10 +46,10 @@
 .layer-scroll{overflow-y:auto;flex:1;padding:4px 0}
 .layer-item{
   display:flex;align-items:center;gap:6px;
-  padding:4px 12px;font-size:10px;color:var(--mut2);
+  padding:4px 12px;font-size:10px;color:var(--txt);
   cursor:pointer;transition:background .08s;white-space:nowrap;
 }
-.layer-item:hover{background:var(--sur2);color:var(--txt)}
+.layer-item:hover{background:var(--sur2);color:#fff}
 .layer-item.active{color:var(--acc);background:#040e09}
 .layer-item.has-data .layer-dot{background:var(--acc2)}
 .layer-item.active .layer-dot{background:var(--acc);box-shadow:0 0 5px var(--acc)}
@@ -62,10 +62,10 @@
 .layer-vis {
   font-size:10px; width:18px; height:18px; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
-  border-radius:3px; cursor:pointer; color:var(--mut2); transition:all .1s;
+  border-radius:3px; cursor:pointer; color:var(--txt); transition:all .1s;
   background:none; border:none; font-family:var(--font); padding:0;
 }
-.layer-vis:hover { background:var(--sur3); color:var(--txt); }
+.layer-vis:hover { background:var(--sur3); color:#fff; }
 .layer-item.hidden-layer { opacity:0.35; }
 .layer-item.hidden-layer .layer-vis { color:var(--red); opacity:1; }
 
@@ -82,12 +82,12 @@
   display:flex; align-items:center; gap:4px;
   padding:0 8px 0 12px;
   border-bottom:1px solid var(--bdr); background:var(--sur2); flex-shrink:0;
-  font-size:9px; color:var(--mut2);
+  font-size:9px; color:var(--txt);
 }
-.layer-header-bar .lh-title { flex:1; padding:7px 0; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+.layer-header-bar .lh-title { flex:1; padding:7px 0; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#fff; }
 .layer-ctrl-btn {
   padding:2px 6px; border-radius:3px; background:none; border:1px solid var(--bdr);
-  color:var(--mut2); font-family:var(--font); font-size:9px; cursor:pointer; transition:all .1s;
+  color:var(--txt); font-family:var(--font); font-size:9px; cursor:pointer; transition:all .1s;
 }
 .layer-ctrl-btn:hover { border-color:var(--acc2); color:var(--acc2); }
 .layer-ctrl-btn.active { border-color:var(--acc); color:var(--acc); background:rgba(var(--acc-rgb,100,80,255),.12); }

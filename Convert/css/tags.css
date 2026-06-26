@@ -152,6 +152,28 @@
 .tag-edit-btn:hover { border-color: var(--acc3); color: var(--acc3); }
 .tag-edit-btn.open  { border-color: var(--acc3); color: var(--acc3); background: #0d0a1e; }
 
+/* ── LAYER COPY BUTTON ── */
+.layer-copy-btn {
+  padding: 1px 5px; border-radius: 3px; background: none;
+  border: 1px solid transparent; color: var(--mut);
+  font-family: var(--font); font-size: 11px; cursor: pointer;
+  transition: all .1s; flex-shrink: 0; line-height: 1.4;
+  opacity: 0; pointer-events: none;
+}
+.layer-item:hover .layer-copy-btn,
+.layer-item.active .layer-copy-btn {
+  opacity: 1; pointer-events: auto;
+}
+.layer-copy-btn:hover {
+  border-color: var(--acc); color: var(--acc);
+  background: rgba(124,92,191,0.12);
+}
+
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateX(-50%) translateY(8px); }
+  to   { opacity:1; transform:translateX(-50%) translateY(0); }
+}
+
 /* ── TAG FILTER BAR ── */
 .tag-filter-bar {
   display: flex;

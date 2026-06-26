@@ -20,7 +20,7 @@ header{
 #statusBadge.err{color:var(--red);border-color:#3a1020;background:#150608}
 #statusBadge.loading{color:var(--amb);border-color:#3a2a05;background:#15100a}
 
-main{flex:1;display:grid;grid-template-columns:260px 1fr 400px;overflow:hidden;min-height:0}
+main{flex:1;display:grid;grid-template-columns:310px 1fr 400px;overflow:hidden;min-height:0}
 
 .panel{display:flex;flex-direction:column;overflow:hidden}
 .lpanel{border-right:1px solid var(--bdr)}
