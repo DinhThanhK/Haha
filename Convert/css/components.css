@@ -40,6 +40,16 @@
 .anim-dot{width:6px;height:6px;border-radius:50%;background:var(--mut);flex-shrink:0}
 .anim-btn.active .anim-dot{background:var(--acc);box-shadow:0 0 6px var(--acc)}
 .anim-meta{margin-left:auto;font-size:9px;color:var(--mut2);white-space:nowrap}
+/* Rename inline input */
+.anim-name-label{user-select:none}
+.anim-rename-input{
+  flex:1;min-width:0;font-size:10px;font-family:var(--font);
+  background:var(--sur2,#1a1a2e);color:var(--txt,#e0e0ff);
+  border:1px solid var(--acc,#7c6df8);border-radius:3px;
+  padding:1px 5px;outline:none;
+}
+.anim-rename-input:focus{box-shadow:0 0 0 2px #7c6df833}
+#animRenameError{animation:fadeIn .15s ease}
 
 #layerSection{display:none;flex-direction:column;border-top:1px solid var(--bdr);max-height:45%;min-height:100px}
 #animationsPanel{display:none;flex-direction:column;flex:0 0 44%;min-width:80px;overflow:hidden}
