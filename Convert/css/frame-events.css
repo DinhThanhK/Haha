@@ -1,0 +1,341 @@
+/* frame-events.css – Styles cho Frame Events panel */
+
+.fe-scroll {
+  padding: 8px 10px;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.fe-section-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--acc2);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 4px 0 2px;
+  border-bottom: 1px solid var(--bd);
+  margin-bottom: 5px;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.fe-hint {
+  font-size: 8px;
+  font-weight: 400;
+  color: var(--mut2);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.fe-anim-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--acc);
+  margin-bottom: 5px;
+  padding: 2px 6px;
+  background: var(--bg2);
+  border-radius: 4px;
+  border-left: 3px solid var(--acc);
+}
+
+/* Timeline event track */
+.fe-track-wrap {
+  position: relative;
+  margin-bottom: 6px;
+}
+.evt-track {
+  position: relative;
+  height: 16px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  overflow: visible;
+}
+/* Playhead trong evt-track */
+.evt-playhead {
+  position: absolute;
+  top: -2px; bottom: -2px;
+  width: 2px;
+  background: var(--acc);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 0 4px var(--acc);
+}
+.evt-marker {
+  position: absolute;
+  top: 2px; bottom: 2px;
+  width: 3px;
+  background: var(--acc2);
+  transform: translateX(-50%);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  z-index: 2;
+}
+.evt-marker:hover {
+  background: var(--acc);
+  transform: translateX(-50%) scaleX(1.8);
+  z-index: 10;
+}
+.fe-track-label {
+  font-size: 8px;
+  color: var(--mut2);
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* ── Header row ─────────────────────────────────────────────────────── */
+.fe-header {
+  display: grid;
+  grid-template-columns: 70px 1fr 52px 60px 72px 52px;
+  gap: 4px;
+  padding: 0 4px 4px;
+  font-size: 8px;
+  color: var(--mut2);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.fe-header span { padding: 0 2px; }
+
+/* ── Event rows ─────────────────────────────────────────────────────── */
+.fe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.fe-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 52px 60px 72px 52px;
+  gap: 4px;
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 4px 5px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.fe-row:hover {
+  border-color: var(--acc2);
+  box-shadow: 0 0 0 1px var(--acc2)22;
+}
+
+/* ── Number spinner — ẩn mũi tên mặc định, thay bằng custom ─────────── */
+.fe-inp {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  color: var(--txt);
+  font-size: 9.5px;
+  padding: 3px 5px;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+.fe-inp:focus { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc)22; }
+
+/* Ẩn spinner mặc định của browser */
+.fe-inp-num::-webkit-inner-spin-button,
+.fe-inp-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.fe-inp-num { -moz-appearance: textfield; }
+.fe-inp-time::-webkit-inner-spin-button,
+.fe-inp-time::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.fe-inp-time { -moz-appearance: textfield; }
+
+/* Wrapper cho num input + custom spinner buttons */
+.fe-num-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.fe-num-wrap .fe-inp-num {
+  flex: 1;
+  padding-right: 18px; /* room for spinner */
+  text-align: right;
+}
+.fe-spin-btns {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  display: flex;
+  flex-direction: column;
+  width: 16px;
+  border-left: 1px solid var(--bd);
+  border-radius: 0 3px 3px 0;
+  overflow: hidden;
+}
+.fe-spin-btns button {
+  flex: 1;
+  background: var(--bg2);
+  border: none;
+  color: var(--mut);
+  font-size: 7px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background .1s, color .1s;
+  user-select: none;
+}
+.fe-spin-btns button:hover { background: var(--acc2); color: #fff; }
+.fe-spin-btns button:first-child { border-bottom: 1px solid var(--bd); }
+
+.fe-cell { position: relative; }
+.fe-cell.fe-time {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.fe-time-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+.fe-inp-time { width: 44px !important; flex-shrink: 0; text-align: right; }
+.fe-frame-label {
+  font-size: 7.5px;
+  color: var(--mut2);
+  white-space: nowrap;
+}
+
+.fe-inp-name {
+  font-weight: 600;
+  color: var(--acc2);
+  font-size: 9px;
+}
+.fe-inp-str { font-size: 8.5px; }
+
+/* ── Action buttons ─────────────────────────────────────────────────── */
+.fe-actions {
+  display: flex;
+  gap: 3px;
+  justify-content: flex-end;
+}
+.fe-btn {
+  background: none;
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  color: var(--mut);
+  font-size: 11px;
+  width: 23px; height: 23px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.fe-pin-btn:hover { color: var(--acc2); border-color: var(--acc2); background: var(--bg2); }
+.fe-del-btn:hover { color: #e05; border-color: #e05; background: #e0550015; }
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.fe-footer {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.fe-add-btn {
+  background: linear-gradient(135deg, var(--acc), var(--acc2));
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+  flex: 1;
+  transition: opacity .15s, transform .1s;
+}
+.fe-add-btn:hover { opacity: .85; transform: translateY(-1px); }
+.fe-add-btn:active { transform: translateY(0); }
+.fe-add-named { background: linear-gradient(135deg, var(--acc3), #7c5cbf) !important; }
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+.fe-empty {
+  font-size: 9px;
+  color: var(--mut2);
+  text-align: center;
+  padding: 12px 0;
+  font-style: italic;
+}
+
+/* ── Quick presets ───────────────────────────────────────────────────── */
+.fe-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.fe-preset-btn {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  color: var(--txt);
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.fe-preset-btn:hover {
+  background: var(--acc2);
+  color: #fff;
+  border-color: var(--acc2);
+  transform: translateY(-1px);
+}
+
+/* ── Export hint box ─────────────────────────────────────────────────── */
+.fe-export-hint {
+  font-size: 9px;
+  color: var(--mut2);
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 5px;
+  padding: 7px 9px;
+  line-height: 1.7;
+  margin-top: 4px;
+}
+.fe-export-hint b { color: var(--acc2); }
+.fe-export-hint code {
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: monospace;
+  font-size: 8.5px;
+  color: var(--acc);
+}
+
+/* Label nhỏ hiện tên event trên marker */
+.evt-marker-label {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 6.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  text-shadow: 0 1px 3px #000a;
+  letter-spacing: .02em;
+}
+.evt-marker:hover .evt-marker-label { opacity: 1; }
+
+/* fe-row: border-left set by JS (per-color), reset default */
+.fe-row {
+  border-left-width: 3px;
+}
