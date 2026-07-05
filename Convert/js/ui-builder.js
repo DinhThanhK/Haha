@@ -649,7 +649,7 @@ function ppeApplyLive(layerName, pi, axis, val) {
     const sel = S.similarLayerSelected;
     if (sel === 'all') {
       targets.push(...S._similarLayers);
-    } else if (sel !== layerName) {
+    } else if (sel !== 'none' && sel !== layerName) {
       targets.push(sel);
     }
   }
@@ -692,7 +692,7 @@ function ppeSave(escapedLayer, pi) {
   if (S._similarLayers?.length) {
     const sel = S.similarLayerSelected;
     if (sel === 'all') targets.push(...S._similarLayers);
-    else if (sel !== layerName) targets.push(sel);
+    else if (sel !== 'none' && sel !== layerName) targets.push(sel);
   }
 
   for (const tLayer of targets) {

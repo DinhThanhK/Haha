@@ -298,6 +298,17 @@ function buildSimilarLayersPanel(clickedLayer) {
   const listEl = document.getElementById('similarLayerList');
   listEl.innerHTML = '';
 
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'sim-btn' + (S.similarLayerSelected === 'none' ? ' active' : '');
+  noneBtn.textContent = `✕ None`;
+  noneBtn.title = 'Chỉ sửa layer hiện tại, không ảnh hưởng similar layers';
+  noneBtn.onclick = () => {
+    S.similarLayerSelected = 'none';
+    listEl.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+    noneBtn.classList.add('active');
+  };
+  listEl.appendChild(noneBtn);
+
   const allBtn = document.createElement('button');
   allBtn.className = 'sim-btn' + (S.similarLayerSelected === 'all' ? ' active' : '');
   allBtn.textContent = `✦ All (${similar.length})`;
