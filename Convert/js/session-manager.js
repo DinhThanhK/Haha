@@ -31,6 +31,7 @@ function buildSessionData() {
     animHiddenLayers: Object.fromEntries(
       Object.entries(S.animHiddenLayers || {}).map(([k, v]) => [k, [...v]])
     ),
+    expAnimChecklist: S._expAnimChecklist || {},
   };
 }
 
@@ -123,7 +124,15 @@ function applySession(session) {
   const loopBtn = $('loopBtn');
   if (loopBtn) loopBtn.classList.toggle('active', S.looping);
 
+  if (session.expAnimChecklist) {
+    S._expAnimChecklist = session.expAnimChecklist;
+  }
+
   if (typeof buildLayerList === 'function') buildLayerList();
+  // Rebuild export panel with restored trim states
+  if (typeof buildExportPanel === 'function' && S.data) {
+    setTimeout(() => buildExportPanel(), 50);
+  }
 
   document.querySelectorAll('.layer-item').forEach(item => {
     const name = item.dataset.name;

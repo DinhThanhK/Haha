@@ -16,7 +16,7 @@ function getExportPrefix() {
   return src.replace(/\.zip$/i, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
 }
 
-function buildSpineJSON(animNames, opts, atlasEntries) {
+function buildSpineJSON(animNames, opts, atlasEntries, animTrimMap) {
   const meta = S.data.meta || {};
   const fps  = opts.fpsOverride || meta.fps || 30;
   const W    = meta.canvasW || 390;
@@ -128,13 +128,40 @@ function buildSpineJSON(animNames, opts, atlasEntries) {
     const animTL = S.timeline[animName] || {};
     const bones_anim = {};
     const slots_anim = {};
-    const animDur = S.animations[animName]?.duration || 1;
+    const animFullDur = S.animations[animName]?.duration || 1;
+    // Trim range: default = full animation
+    const trimInfo    = animTrimMap ? animTrimMap[animName] : null;
+    const trimStart   = (trimInfo && trimInfo.trimStart > 0) ? trimInfo.trimStart : 0;
+    const trimEnd     = (trimInfo && trimInfo.trimEnd < animFullDur - 0.001) ? trimInfo.trimEnd : animFullDur;
+    const animDur     = trimEnd - trimStart;
+
+    // Helper: filter & remap kfs for trim
+    function trimKFs(kfs) {
+      if (!kfs || !kfs.length) return kfs;
+      if (trimStart <= 0 && trimEnd >= animFullDur - 0.001) return kfs; // no trim needed
+      // Collect keyframes that fall within [trimStart, trimEnd], remapping time
+      const result = [];
+      for (let i = 0; i < kfs.length; i++) {
+        const kf = kfs[i];
+        const nextKf = kfs[i + 1];
+        // Include the keyframe active at trimStart (carry-forward)
+        if (kf.time <= trimStart) {
+          // Only keep the last one before/at trimStart
+          if (nextKf && nextKf.time <= trimStart) continue;
+          result.push({ ...kf, time: 0 });
+          continue;
+        }
+        if (kf.time > trimEnd + 0.0001) break;
+        result.push({ ...kf, time: parseFloat((kf.time - trimStart).toFixed(6)) });
+      }
+      return result;
+    }
 
     for (const layer of layersSorted) {
       const lname = layer.name;
       const animHiddenSet = S.animHiddenLayers[animName] || new Set();
       if (animHiddenSet.has(lname)) continue;
-      const kfs = animTL[lname];
+      const kfs = trimKFs(animTL[lname]);
       if (!kfs || !kfs.length) continue;
 
       const hasData = kfs.some(kf => kf.parts?.length > 0);
@@ -290,8 +317,14 @@ function buildSpineJSON(animNames, opts, atlasEntries) {
     const evList = (S.animEvents && S.animEvents[animName]) || [];
     if (!evList.length) continue;
 
+    const animFullDur2 = S.animations[animName]?.duration || 1;
+    const trimInfo2    = animTrimMap ? animTrimMap[animName] : null;
+    const ts2 = (trimInfo2 && trimInfo2.trimStart > 0) ? trimInfo2.trimStart : 0;
+    const te2 = (trimInfo2 && trimInfo2.trimEnd < animFullDur2 - 0.001) ? trimInfo2.trimEnd : animFullDur2;
+
     const timelineEntries = [];
     for (const ev of evList) {
+      if (ev.time < ts2 - 0.0001 || ev.time > te2 + 0.0001) continue;
       if (!eventsRegistry[ev.name]) {
         eventsRegistry[ev.name] = {
           int:    ev.int    || 0,
@@ -299,7 +332,8 @@ function buildSpineJSON(animNames, opts, atlasEntries) {
           string: ev.string || ''
         };
       }
-      const entry = { time: ev.time, name: ev.name };
+      const remappedTime = parseFloat((ev.time - ts2).toFixed(6));
+      const entry = { time: remappedTime, name: ev.name };
       if (ev.int    !== 0) entry.int    = ev.int;
       if (ev.float  !== 0) entry.float  = ev.float;
       if (ev.string !== '') entry.string = ev.string;
@@ -334,7 +368,14 @@ function doExport() {
   const onlyActive = $('expOnlyActive').checked;
   const scale    = parseFloat($('expScale').value) || 1;
   const fpsOverride = parseInt($('expFps').value) || 0;
-  const anims    = getSelectedAnims();
+  // Use trim-aware selection
+  const animsWithTrim = (typeof getSelectedAnimsWithTrim === 'function')
+    ? getSelectedAnimsWithTrim()
+    : getSelectedAnims().map(n => ({ name: n, trimStart: 0, trimEnd: S.animations[n]?.duration || 1 }));
+  const anims = animsWithTrim.map(a => a.name);
+  // Build trimMap: { animName: { trimStart, trimEnd } }
+  const trimMap = {};
+  for (const a of animsWithTrim) trimMap[a.name] = a;
   if (!anims.length) { $('expStatus').textContent = '⚠ Chưa chọn animation nào'; return; }
 
   if (fmt === 'json_raw') {
@@ -368,15 +409,15 @@ function doExport() {
     downloadBlob(JSON.stringify(out, null, 2), 'application/json', getExportPrefix() + '_raw.json');
     $('expStatus').textContent = `✓ Xuất JSON (${anims.length} anim · ${Object.keys(tagIndex).length} skin tags)`;
   } else if (fmt === 'spine') {
-    const spine = buildSpineJSON(anims, { scale, onlyActive, fpsOverride });
+    const spine = buildSpineJSON(anims, { scale, onlyActive, fpsOverride }, null, trimMap);
     downloadBlob(JSON.stringify(spine, null, 2), 'application/json', getExportPrefix() + '_spine.json');
     $('expStatus').textContent = `✓ Xuất Spine JSON (${anims.length} anim)`;
   } else {
-    exportSpine3File(anims, { scale, onlyActive, fpsOverride });
+    exportSpine3File(anims, { scale, onlyActive, fpsOverride }, trimMap);
   }
 }
 
-async function exportSpine3File(anims, opts) {
+async function exportSpine3File(anims, opts, trimMap) {
   const btn = $('expBtn');
   btn.disabled = true;
   $('expStatus').textContent = '⏳ Đang tạo atlas PNG...';
@@ -433,7 +474,7 @@ async function exportSpine3File(anims, opts) {
       atlasText += `${stem}\n  rotate: false\n  xy: ${e.x}, ${e.y}\n  size: ${e.w}, ${e.h}\n  orig: ${e.w}, ${e.h}\n  offset: 0, 0\n  index: -1\n`;
     }
 
-    const spine = buildSpineJSON(anims, opts, entries);
+    const spine = buildSpineJSON(anims, opts, entries, trimMap);
 
     const JSZip2 = await loadJSZip();
     const outZip = new JSZip2();
@@ -457,6 +498,7 @@ async function exportSpine3File(anims, opts) {
 
 function expSelAll(v) {
   document.querySelectorAll('#expAnimChecklist input[type=checkbox]').forEach(cb => cb.checked = v);
+  if (typeof _saveExpAnimChecklistState === 'function') _saveExpAnimChecklistState();
 }
 
 function getSelectedAnims() {

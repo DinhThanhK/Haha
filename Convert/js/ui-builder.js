@@ -33,15 +33,92 @@ function buildIssueCard(issues) {
 function buildExportPanel() {
   const list = $('expAnimChecklist');
   list.innerHTML = '';
+  // Restore saved trim state if available
+  const savedChecklist = S._expAnimChecklist || {};
   for (const name of S.animNames) {
     const anim = S.animations[name];
-    const row  = document.createElement('label');
-    row.className = 'exp-anim-check';
-    row.innerHTML = `
-      <input type="checkbox" checked data-expname="${name}">
-      <span class="ean">${name}</span>
-      <span class="emeta">${anim.frameCount}f · ${anim.duration.toFixed(2)}s</span>`;
-    list.appendChild(row);
+    const dur  = anim.duration;
+    const saved = savedChecklist[name] || {};
+    const isChecked = saved.checked !== false; // default true
+    const trimStart = (saved.trimStart !== undefined) ? saved.trimStart : null;
+    const trimEnd   = (saved.trimEnd   !== undefined) ? saved.trimEnd   : null;
+    const hasTrim   = (trimStart !== null && trimStart > 0) || (trimEnd !== null && trimEnd < dur - 0.001);
+    const trimOpen  = saved.trimOpen || false;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'exp-anim-item';
+    wrapper.dataset.expname = name;
+
+    const tsVal = trimStart !== null ? trimStart : 0;
+    const teVal = trimEnd   !== null ? trimEnd   : dur;
+
+    wrapper.innerHTML = `
+      <label class="exp-anim-check" style="cursor:default">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} data-expname="${name}" style="cursor:pointer">
+        <span class="ean">${name}</span>
+        <span class="emeta">${anim.frameCount}f · ${dur.toFixed(2)}s</span>
+        <button class="exp-anim-trim-btn${hasTrim || trimOpen ? ' active' : ''}" title="Chỉnh thời gian xuất" data-for="${name}">✂</button>
+      </label>
+      <div class="exp-anim-trim-row${trimOpen ? '' : ' hidden'}" data-trim-for="${name}">
+        <label>Từ</label>
+        <input type="number" class="trim-start${trimStart !== null && trimStart > 0 ? ' trim-active' : ''}" data-for="${name}"
+          min="0" max="${dur.toFixed(3)}" step="0.01" value="${tsVal.toFixed(3)}">
+        <label>→</label>
+        <input type="number" class="trim-end${trimEnd !== null && trimEnd < dur - 0.001 ? ' trim-active' : ''}" data-for="${name}"
+          min="0" max="${dur.toFixed(3)}" step="0.01" value="${teVal.toFixed(3)}">
+        <label>s</label>
+        <button class="trim-reset" data-for="${name}" title="Reset về mặc định">↺</button>
+      </div>`;
+
+    // Toggle trim row
+    wrapper.querySelector('.exp-anim-trim-btn').addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const trimRow = wrapper.querySelector('.exp-anim-trim-row');
+      const open = trimRow.classList.toggle('hidden');
+      // open==true means now hidden; open==false means visible
+      e.currentTarget.classList.toggle('active', !open);
+      _saveExpAnimChecklistState();
+    });
+
+    // Checkbox change
+    wrapper.querySelector('input[type=checkbox]').addEventListener('change', () => {
+      _saveExpAnimChecklistState();
+    });
+
+    // Trim inputs
+    const startInput = wrapper.querySelector('.trim-start');
+    const endInput   = wrapper.querySelector('.trim-end');
+
+    function onTrimChange() {
+      let ts = parseFloat(startInput.value);
+      let te = parseFloat(endInput.value);
+      if (isNaN(ts)) ts = 0;
+      if (isNaN(te)) te = dur;
+      ts = Math.max(0, Math.min(ts, dur));
+      te = Math.max(0, Math.min(te, dur));
+      if (ts > te) { const tmp = ts; ts = te; te = tmp; }
+      startInput.classList.toggle('trim-active', ts > 0.0001);
+      endInput.classList.toggle('trim-active', te < dur - 0.001);
+      // Update trim btn highlight
+      const anyTrim = ts > 0.0001 || te < dur - 0.001;
+      wrapper.querySelector('.exp-anim-trim-btn').classList.toggle('active',
+        !wrapper.querySelector('.exp-anim-trim-row').classList.contains('hidden') || anyTrim);
+      _saveExpAnimChecklistState();
+    }
+    startInput.addEventListener('input', onTrimChange);
+    endInput.addEventListener('input', onTrimChange);
+
+    // Reset button
+    wrapper.querySelector('.trim-reset').addEventListener('click', e => {
+      e.preventDefault();
+      startInput.value = (0).toFixed(3);
+      endInput.value   = dur.toFixed(3);
+      startInput.classList.remove('trim-active');
+      endInput.classList.remove('trim-active');
+      _saveExpAnimChecklistState();
+    });
+
+    list.appendChild(wrapper);
   }
   const btn = $('expBtn');
   btn.disabled = false;
@@ -49,6 +126,48 @@ function buildExportPanel() {
   $('expFormat').onchange = () => {
     $('atlasRow').style.display = $('expFormat').value === 'spine3file' ? '' : 'none';
   };
+}
+
+// Lưu trạng thái checklist (checked, trimStart, trimEnd, trimOpen) vào S._expAnimChecklist
+function _saveExpAnimChecklistState() {
+  const result = {};
+  document.querySelectorAll('#expAnimChecklist .exp-anim-item').forEach(wrapper => {
+    const name = wrapper.dataset.expname;
+    if (!name) return;
+    const cb       = wrapper.querySelector('input[type=checkbox]');
+    const tsInput  = wrapper.querySelector('.trim-start');
+    const teInput  = wrapper.querySelector('.trim-end');
+    const trimRow  = wrapper.querySelector('.exp-anim-trim-row');
+    const dur      = S.animations[name]?.duration || 1;
+    const ts = tsInput ? parseFloat(tsInput.value) : 0;
+    const te = teInput ? parseFloat(teInput.value) : dur;
+    result[name] = {
+      checked:   cb ? cb.checked : true,
+      trimStart: (ts > 0.0001) ? ts : null,
+      trimEnd:   (te < dur - 0.001) ? te : null,
+      trimOpen:  trimRow ? !trimRow.classList.contains('hidden') : false,
+    };
+  });
+  S._expAnimChecklist = result;
+  markSessionDirty();
+}
+
+// Lấy danh sách anim được chọn kèm thông tin trim
+function getSelectedAnimsWithTrim() {
+  const items = [];
+  document.querySelectorAll('#expAnimChecklist .exp-anim-item').forEach(wrapper => {
+    const name = wrapper.dataset.expname;
+    if (!name) return;
+    const cb = wrapper.querySelector('input[type=checkbox]');
+    if (!cb || !cb.checked) return;
+    const dur = S.animations[name]?.duration || 1;
+    const tsInput = wrapper.querySelector('.trim-start');
+    const teInput = wrapper.querySelector('.trim-end');
+    const trimStart = tsInput ? Math.max(0, parseFloat(tsInput.value) || 0) : 0;
+    const trimEnd   = teInput ? Math.min(dur, parseFloat(teInput.value) || dur) : dur;
+    items.push({ name, trimStart, trimEnd });
+  });
+  return items;
 }
 
 function updateRightPanel(animName, t) {

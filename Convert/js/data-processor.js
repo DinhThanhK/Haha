@@ -245,23 +245,4 @@ function buildIssueCard(issues) {
     ).join('');
 }
 
-function buildExportPanel() {
-  const list = $('expAnimChecklist');
-  list.innerHTML = '';
-  for (const name of S.animNames) {
-    const anim = S.animations[name];
-    const row  = document.createElement('label');
-    row.className = 'exp-anim-check';
-    row.innerHTML = `
-      <input type="checkbox" checked data-expname="${name}">
-      <span class="ean">${name}</span>
-      <span class="emeta">${anim.frameCount}f · ${anim.duration.toFixed(2)}s</span>`;
-    list.appendChild(row);
-  }
-  const btn = $('expBtn');
-  btn.disabled = false;
-  btn.onclick = doExport;
-  $('expFormat').onchange = () => {
-    $('atlasRow').style.display = $('expFormat').value === 'spine3file' ? '' : 'none';
-  };
-}
+// buildExportPanel is defined in ui-builder.js
